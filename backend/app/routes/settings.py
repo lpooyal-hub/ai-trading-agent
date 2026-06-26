@@ -39,6 +39,7 @@ def get_safety_settings() -> SafetySettingsRead:
         toss_token_path_configured=bool(settings.toss_token_path),
         toss_accounts_path_configured=bool(settings.toss_accounts_path),
         toss_positions_path_configured=bool(settings.toss_positions_path),
+        market_snapshot_max_age_minutes=settings.market_snapshot_max_age_minutes,
     )
 
 

@@ -102,6 +102,32 @@ export type DecisionEvaluation = {
   improvement_note: string | null;
 };
 
+export type MarketSnapshot = {
+  id: number;
+  created_at: string;
+  symbol: string;
+  price: number;
+  change_percent: number;
+  volume: number;
+  sector: string;
+  extra_json: Record<string, unknown>;
+};
+
+export type MarketSnapshotInput = {
+  symbol: string;
+  price: number;
+  change_percent: number;
+  volume: number;
+  sector: string;
+  extra_json: Record<string, unknown>;
+};
+
+export type MarketSnapshotCreateResponse = {
+  created_count: number;
+  skipped_count: number;
+  snapshots: MarketSnapshot[];
+};
+
 export type LLMUsage = {
   id: number;
   created_at: string;
@@ -164,6 +190,7 @@ export type SafetySettings = {
   toss_token_path_configured: boolean;
   toss_accounts_path_configured: boolean;
   toss_positions_path_configured: boolean;
+  market_snapshot_max_age_minutes: number;
 };
 
 export type SecurityReadiness = {
@@ -234,6 +261,12 @@ export const api = {
   getOrders: () => request<TradeOrder[]>("/orders"),
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
+  getMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots"),
+  getLatestMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots/latest"),
+  createMarketSnapshots: (snapshots: MarketSnapshotInput[]) => request<MarketSnapshotCreateResponse>("/market/snapshots", {
+    method: "POST",
+    body: JSON.stringify({ snapshots }),
+  }),
   getLLMUsage: () => request<LLMUsage[]>("/llm-usage"),
   getLLMSummary: () => request<LLMUsageSummary>("/llm-usage/summary"),
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),

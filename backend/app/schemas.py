@@ -219,6 +219,25 @@ class MarketSnapshotRead(BaseModel):
     extra_json: dict[str, Any]
 
 
+class MarketSnapshotCreate(BaseModel):
+    symbol: str
+    price: float = Field(gt=0)
+    change_percent: float = 0
+    volume: float = Field(ge=0)
+    sector: str = "semiconductor"
+    extra_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class MarketSnapshotBulkCreate(BaseModel):
+    snapshots: list[MarketSnapshotCreate]
+
+
+class MarketSnapshotBulkCreateResponse(BaseModel):
+    created_count: int
+    skipped_count: int
+    snapshots: list[MarketSnapshotRead]
+
+
 class LLMUsageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -320,6 +339,7 @@ class SafetySettingsRead(BaseModel):
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool
     toss_positions_path_configured: bool
+    market_snapshot_max_age_minutes: int
 
 
 class SecurityReadinessRead(BaseModel):

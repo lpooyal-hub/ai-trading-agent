@@ -5,6 +5,7 @@ import { DecisionDetailPage } from "./pages/DecisionDetailPage";
 import { DecisionsPage } from "./pages/DecisionsPage";
 import { EvaluationsPage } from "./pages/EvaluationsPage";
 import { LLMUsagePage } from "./pages/LLMUsagePage";
+import { MarketPage } from "./pages/MarketPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -15,6 +16,7 @@ const navItems = [
   { id: "decision-detail", label: "Decision Detail" },
   { id: "orders", label: "Orders" },
   { id: "portfolio", label: "Portfolio" },
+  { id: "market", label: "Market" },
   { id: "evaluations", label: "Evaluations" },
   { id: "llm-usage", label: "LLM Usage" },
   { id: "settings", label: "Settings" },
@@ -36,6 +38,7 @@ export default function App() {
       {activePage === "decision-detail" ? <DecisionDetailPage decisionId={selectedDecisionId} /> : null}
       {activePage === "orders" ? <OrdersPage /> : null}
       {activePage === "portfolio" ? <PortfolioPage /> : null}
+      {activePage === "market" ? <MarketPage /> : null}
       {activePage === "evaluations" ? <EvaluationsPage /> : null}
       {activePage === "llm-usage" ? <LLMUsagePage /> : null}
       {activePage === "settings" ? <SettingsPage /> : null}

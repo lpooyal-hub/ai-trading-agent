@@ -153,6 +153,17 @@ curl -X POST http://localhost:8000/evaluations/1
 curl http://localhost:8000/evaluations
 ```
 
+Update market snapshots:
+
+```bash
+curl http://localhost:8000/market/snapshots/latest
+curl -X POST http://localhost:8000/market/snapshots \
+  -H "Content-Type: application/json" \
+  -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
+```
+
+`USE_MOCK_DATA=false`에서는 agent가 저장된 최신 market snapshot만 사용합니다. 허용 Top 10 universe 밖의 심볼은 저장하지 않으며, `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
+
 Review LLM usage and budget:
 
 ```bash

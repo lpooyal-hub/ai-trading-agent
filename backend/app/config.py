@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     llm_output_cost_per_1m_tokens_usd: float = 0
     openai_responses_url: str = "https://api.openai.com/v1/responses"
     openai_timeout_seconds: int = 30
+    market_snapshot_max_age_minutes: int = 30
 
     toss_app_key: str | None = None
     toss_app_secret: str | None = None

@@ -53,6 +53,7 @@ export function SettingsPage() {
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_ACCOUNTS_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_POSITIONS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
+        <div><dt>MARKET_SNAPSHOT_MAX_AGE_MINUTES</dt><dd>{settings?.market_snapshot_max_age_minutes ?? 30}</dd></div>
         <div><dt>Safe Public Demo</dt><dd>{String(security?.safe_for_public_demo ?? false)}</dd></div>
         <div><dt>Security Warnings</dt><dd>{security?.warnings.length ? security.warnings.join(" / ") : "None"}</dd></div>
         <div><dt>Next Actions</dt><dd>{security?.next_actions.length ? security.next_actions.join(" / ") : "None"}</dd></div>
