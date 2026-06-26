@@ -17,6 +17,7 @@
 - 에이전트 판단별 LLM 토큰/예상 비용 기록 필드
 - `/health`
 - `/settings/safety`
+- `/settings/llm-budget`
 - `/portfolio/initialize-legacy`
 - `/portfolio/legacy`
 - `/portfolio/bot`
@@ -33,6 +34,9 @@
 - `/evaluations/run`
 - `/evaluations/{decision_id}`
 - `/evaluations`
+- `/llm-usage`
+- `/llm-usage/summary`
+- `/llm-usage/{usage_id}`
 - 이후 단계용 모듈 구조
 
 ## 실행 명령어
@@ -59,6 +63,7 @@ uvicorn app.main:app --reload
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - 현재 agent 실행은 mock market data와 mock LLM 응답만 사용합니다.
 - LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 1~3개 후보만 agent에 전달합니다.
+- LLM 호출 전 budget guard를 확인하고, 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - decision evaluation은 mock snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
 
@@ -84,10 +89,12 @@ uvicorn app.main:app --reload
 1. Top 10 Universe의 mock market snapshot을 저장합니다.
 2. rule-based pre-filter로 1~3개 후보만 고릅니다.
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
-4. 후보가 있으면 mock LLM 응답으로 `AgentDecision`을 저장합니다.
-5. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
-6. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
-7. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
-8. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
+4. 후보가 있으면 LLM budget guard를 확인합니다.
+5. budget이 초과되면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
+6. budget이 남아 있으면 mock LLM 응답으로 `AgentDecision`을 저장합니다.
+7. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
+8. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
+9. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
+10. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다.

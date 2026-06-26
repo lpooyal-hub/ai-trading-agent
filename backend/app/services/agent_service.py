@@ -10,6 +10,7 @@ from app.models import (
     LLMPurpose,
     MarketSnapshot,
 )
+from app.risk.llm_budget_manager import LLMBudgetManager
 from app.services.market_service import MarketService
 
 
@@ -20,6 +21,7 @@ class AgentService:
         self.settings = settings or get_settings()
         self.market_service = MarketService(self.settings)
         self.llm_client = MockLLMClient()
+        self.llm_budget_manager = LLMBudgetManager(self.settings)
 
     def run_once(self, db: Session) -> AgentDecision:
         snapshots = self.market_service.refresh_top_universe_snapshots(db)
@@ -30,6 +32,14 @@ class AgentService:
                 db,
                 snapshots=snapshots,
                 reason=self.no_candidate_reason,
+            )
+
+        budget = self.llm_budget_manager.check_budget(db)
+        if not budget["approved"]:
+            return self._save_skipped_decision(
+                db,
+                snapshots=snapshots,
+                reason=f"LLM budget exceeded: {budget['reason']}",
             )
 
         response = self.llm_client.create_decision([self._snapshot_to_dict(item) for item in candidates])

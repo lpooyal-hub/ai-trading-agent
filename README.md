@@ -30,6 +30,7 @@
 - DRY_RUN simulated orders
 - Decision approval API for DRY_RUN order simulation
 - LLM token/cost tracking
+- LLM usage summary and budget guardrails
 - rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한
 - decision evaluation and reflection
 - React dashboard 구조
@@ -125,6 +126,14 @@ Run decision evaluations:
 curl -X POST http://localhost:8000/evaluations/run
 curl -X POST http://localhost:8000/evaluations/1
 curl http://localhost:8000/evaluations
+```
+
+Review LLM usage and budget:
+
+```bash
+curl http://localhost:8000/llm-usage
+curl http://localhost:8000/llm-usage/summary
+curl http://localhost:8000/settings/llm-budget
 ```
 
 Frontend:

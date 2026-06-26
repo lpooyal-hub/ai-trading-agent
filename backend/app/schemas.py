@@ -213,6 +213,29 @@ class LLMUsageRead(BaseModel):
     raw_usage_json: dict[str, Any]
 
 
+class LLMUsageSummaryRead(BaseModel):
+    today_calls: int
+    today_prompt_tokens: int
+    today_completion_tokens: int
+    today_total_tokens: int
+    today_estimated_cost_usd: float
+    monthly_estimated_cost_usd: float
+    average_latency_ms: float
+    successful_calls: int
+    failed_calls: int
+
+
+class LLMBudgetRead(LLMUsageSummaryRead):
+    approved: bool
+    reason: str
+    daily_cost_remaining_usd: float
+    monthly_cost_remaining_usd: float
+    daily_tokens_remaining: int
+    daily_cost_limit_usd: float
+    monthly_cost_limit_usd: float
+    daily_token_limit: int
+
+
 class SafetySettingsRead(BaseModel):
     broker_provider: str
     dry_run: bool

@@ -1,7 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.schemas import SafetySettingsRead
+from app.database import get_db
+from app.risk.llm_budget_manager import LLMBudgetManager
+from app.schemas import LLMBudgetRead, SafetySettingsRead
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -27,4 +30,16 @@ def get_safety_settings() -> SafetySettingsRead:
         default_stop_mode=settings.default_stop_mode,
         hard_max_position_loss_percent=settings.hard_max_position_loss_percent,
         hard_daily_loss_limit_percent=settings.hard_daily_loss_limit_percent,
+    )
+
+
+@router.get("/llm-budget", response_model=LLMBudgetRead)
+def get_llm_budget_settings(db: Session = Depends(get_db)) -> LLMBudgetRead:
+    settings = get_settings()
+    budget = LLMBudgetManager(settings).check_budget(db)
+    return LLMBudgetRead(
+        **budget,
+        daily_cost_limit_usd=settings.llm_daily_cost_limit_usd,
+        monthly_cost_limit_usd=settings.llm_monthly_cost_limit_usd,
+        daily_token_limit=settings.llm_daily_token_limit,
     )
