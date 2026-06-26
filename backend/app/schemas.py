@@ -261,6 +261,8 @@ class BrokerStatusRead(BaseModel):
     has_app_secret: bool
     has_account_id: bool
     credentials_ready: bool
+    openai_configured: bool
+    real_llm_ready: bool
     live_ready: bool
     status_reason: str
 
@@ -282,3 +284,6 @@ class SafetySettingsRead(BaseModel):
     default_stop_mode: str
     hard_max_position_loss_percent: float
     hard_daily_loss_limit_percent: float
+    llm_model_decision: str | None
+    openai_timeout_seconds: int
+    real_llm_enabled: bool

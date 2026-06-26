@@ -73,6 +73,7 @@ docker compose up --build
 - 봇은 반도체 Top 10 Universe 허용 종목만 다룰 수 있어야 합니다.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - 현재 agent 실행은 mock market data와 mock LLM 응답만 사용합니다.
+- `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
 - LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 1~3개 후보만 agent에 전달합니다.
 - LLM 호출 전 budget guard를 확인하고, 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
@@ -110,7 +111,7 @@ docker compose up --build
 10. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
 11. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
-현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다.
+현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다. 실제 OpenAI 호출은 Responses API의 `model`, `input`, `text.format` 구조를 사용하며, API 키는 로그나 DB에 저장하지 않습니다.
 
 ## Demo Data
 

@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     llm_model_decision: str | None = None
     llm_model_evaluation: str | None = None
     llm_model_reflection: str | None = None
+    openai_responses_url: str = "https://api.openai.com/v1/responses"
+    openai_timeout_seconds: int = 30
 
     toss_app_key: str | None = None
     toss_app_secret: str | None = None
@@ -94,6 +96,14 @@ class Settings(BaseSettings):
         if self.has_external_api_credentials:
             return "External API credentials are configured."
         return "Demo mode is enabled because mock data is on and no external API credentials are configured."
+
+    @property
+    def real_llm_enabled(self) -> bool:
+        return bool(
+            not self.use_mock_data
+            and self.openai_api_key
+            and self.llm_model_decision
+        )
 
 
 @lru_cache

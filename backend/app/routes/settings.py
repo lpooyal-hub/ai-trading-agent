@@ -30,6 +30,9 @@ def get_safety_settings() -> SafetySettingsRead:
         default_stop_mode=settings.default_stop_mode,
         hard_max_position_loss_percent=settings.hard_max_position_loss_percent,
         hard_daily_loss_limit_percent=settings.hard_daily_loss_limit_percent,
+        llm_model_decision=settings.llm_model_decision,
+        openai_timeout_seconds=settings.openai_timeout_seconds,
+        real_llm_enabled=settings.real_llm_enabled,
     )
 
 

@@ -146,6 +146,9 @@ export type SafetySettings = {
   default_stop_mode: string;
   hard_max_position_loss_percent: number;
   hard_daily_loss_limit_percent: number;
+  llm_model_decision: string | null;
+  openai_timeout_seconds: number;
+  real_llm_enabled: boolean;
 };
 
 export type DemoStatus = {
@@ -173,6 +176,8 @@ export type BrokerStatus = {
   has_app_secret: boolean;
   has_account_id: boolean;
   credentials_ready: boolean;
+  openai_configured: boolean;
+  real_llm_ready: boolean;
   live_ready: boolean;
   status_reason: string;
 };

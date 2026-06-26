@@ -17,6 +17,7 @@ class TossClient:
             and self.settings.live_trading_enabled
             and not self.settings.use_mock_data
         )
+        openai_configured = bool(self.settings.openai_api_key)
         return {
             "broker_provider": self.settings.broker_provider,
             "use_mock_data": self.settings.use_mock_data,
@@ -26,6 +27,8 @@ class TossClient:
             "has_app_secret": has_app_secret,
             "has_account_id": has_account_id,
             "credentials_ready": credentials_ready,
+            "openai_configured": openai_configured,
+            "real_llm_ready": self.settings.real_llm_enabled,
             "live_ready": live_ready,
             "status_reason": self._status_reason(credentials_ready, live_ready),
         }

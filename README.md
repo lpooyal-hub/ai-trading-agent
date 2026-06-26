@@ -64,6 +64,14 @@ cp .env.example .env
 
 다른 사용자는 `BOT_CAPITAL_LIMIT_USD`, `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`, LLM 예산 제한을 자신의 연구 목적에 맞게 바꿀 수 있습니다. 브로커 연동은 기본적으로 토스증권 Open API 키 구조를 기준으로 합니다.
 
+실제 OpenAI LLM 호출을 사용하려면 아래 조건을 모두 만족해야 합니다.
+
+- `USE_MOCK_DATA=false`
+- `OPENAI_API_KEY` 설정
+- `LLM_MODEL_DECISION` 설정
+
+이 조건이 맞지 않으면 실제 OpenAI API를 호출하지 않고 안전한 HOLD / SKIPPED 결과를 남깁니다.
+
 ## Broker Integration
 
 기본 브로커 provider는 `toss_securities`입니다.

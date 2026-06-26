@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.clients.llm_client import LLMClient
 from app.clients.mock_llm_client import MockLLMClient
 from app.config import Settings, get_settings
 from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, MarketSnapshot
@@ -14,7 +15,7 @@ class AgentService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.market_service = MarketService(self.settings)
-        self.llm_client = MockLLMClient()
+        self.llm_client = MockLLMClient() if self.settings.use_mock_data else LLMClient(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.llm_usage_service = LLMUsageService()
 
@@ -61,8 +62,8 @@ class AgentService:
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
             estimated_llm_cost_usd=0,
-            status=self._status_for_response(response),
-            rejection_reason=None if response.get("should_execute") else "Mock agent did not request execution.",
+            status=self._status_for_response(response, llm_result.success),
+            rejection_reason=self._rejection_reason(response, llm_result),
             dry_run=True,
         )
         db.add(decision)
@@ -82,7 +83,7 @@ class AgentService:
             error_message=llm_result.error_message,
             raw_usage_json={
                 **usage,
-                "source": "mock_llm_client",
+                "source": self.llm_client.__class__.__name__,
                 "raw_response": llm_result.raw_response,
             },
             commit=False,
@@ -169,7 +170,17 @@ class AgentService:
         }
 
     @staticmethod
-    def _status_for_response(response: dict) -> DecisionStatus:
+    def _rejection_reason(response: dict, llm_result) -> str | None:
+        if not llm_result.success:
+            return f"LLM call failed: {llm_result.error_message}"
+        if not response.get("should_execute"):
+            return "Agent did not request execution."
+        return None
+
+    @staticmethod
+    def _status_for_response(response: dict, llm_success: bool = True) -> DecisionStatus:
+        if not llm_success:
+            return DecisionStatus.SKIPPED
         if not response.get("should_execute"):
             return DecisionStatus.SKIPPED
         if response.get("action") == AgentAction.HOLD.value:
