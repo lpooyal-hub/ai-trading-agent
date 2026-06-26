@@ -1,6 +1,6 @@
 # Security Policy
 
-This repository is designed for public demo and paper-trading research only.
+This repository is designed to be safe by default, with DRY_RUN and mock data enabled unless the user explicitly changes the configuration.
 
 ## Do Not Commit
 
@@ -23,4 +23,4 @@ Rotate the key immediately, remove it from git history, and audit any systems th
 
 ## Live Trading
 
-Live trading implementation should stay in a private branch or private repository. The public main branch should remain DRY_RUN-only.
+Live trading must remain opt-in. Keep `DRY_RUN=true` and `LIVE_TRADING_ENABLED=false` unless you have reviewed the code, configured credentials, and accepted responsibility for any resulting orders. Do not commit credentials, account data, real logs, or real API responses.

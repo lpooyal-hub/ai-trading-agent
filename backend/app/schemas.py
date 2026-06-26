@@ -116,6 +116,15 @@ class AgentDecisionRead(AgentDecisionBase):
     executed_order_id: int | None
 
 
+class AgentStatusRead(BaseModel):
+    dry_run: bool
+    use_mock_data: bool
+    live_trading_enabled: bool
+    active_universe: list[str]
+    last_decision_id: int | None
+    last_decision_status: str | None
+
+
 class TradeOrderRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -163,19 +172,23 @@ class MarketSnapshotRead(BaseModel):
     extra_json: dict[str, Any]
 
 
-class LLMUsageLogRead(BaseModel):
+class LLMUsageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     created_at: datetime
+    symbol: str | None
     decision_id: int | None
-    provider: str
+    evaluation_id: int | None
     model: str
+    purpose: str
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
     estimated_cost_usd: float
-    purpose: str
+    latency_ms: int
+    success: bool
+    error_message: str | None
     raw_usage_json: dict[str, Any]
 
 

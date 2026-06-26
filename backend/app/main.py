@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routes import health, portfolio, settings
+from app.routes import agent, health, portfolio, settings
 from app.utils.logger import get_logger
 
 
@@ -26,7 +26,7 @@ def on_startup() -> None:
     if app_settings.dry_run:
         logger.warning("Running in DRY_RUN mode. Real order execution is disabled.")
     if not app_settings.live_trading_enabled:
-        logger.warning("Live trading is disabled in this public-safe build.")
+        logger.warning("Live trading is disabled by configuration.")
     if app_settings.use_mock_data:
         logger.warning("Using mock data. No real brokerage or OpenAI API calls will be made.")
     init_db()
@@ -35,3 +35,4 @@ def on_startup() -> None:
 app.include_router(health.router)
 app.include_router(settings.router)
 app.include_router(portfolio.router)
+app.include_router(agent.router)

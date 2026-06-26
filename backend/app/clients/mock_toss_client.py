@@ -21,5 +21,5 @@ class MockTossClient:
     def place_live_order(self, *args, **kwargs) -> dict:
         return {
             "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-            "message": "Live trading is intentionally not implemented in the public build.",
+            "message": "Mock mode does not place live orders.",
         }
