@@ -236,6 +236,20 @@ class LLMBudgetRead(LLMUsageSummaryRead):
     daily_token_limit: int
 
 
+class DemoStatusRead(BaseModel):
+    legacy_positions: int
+    bot_positions: int
+    decisions: int
+    orders: int
+    evaluations: int
+    llm_usage_rows: int
+
+
+class DemoSeedResponse(DemoStatusRead):
+    created: bool
+    message: str
+
+
 class SafetySettingsRead(BaseModel):
     broker_provider: str
     dry_run: bool

@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.database import init_db
 from app.routes import (
     agent,
+    demo,
     decisions,
     evaluations,
     health,
@@ -45,6 +46,7 @@ app.include_router(health.router)
 app.include_router(settings.router)
 app.include_router(portfolio.router)
 app.include_router(agent.router)
+app.include_router(demo.router)
 app.include_router(decisions.router)
 app.include_router(orders.router)
 app.include_router(evaluations.router)

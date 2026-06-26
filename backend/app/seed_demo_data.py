@@ -15,13 +15,33 @@ from app.models import (
 )
 
 
-def seed_demo_data() -> None:
+def get_demo_status() -> dict:
+    init_db()
+    db = SessionLocal()
+    try:
+        return {
+            "legacy_positions": db.query(LegacyPosition).count(),
+            "bot_positions": db.query(BotPosition).count(),
+            "decisions": db.query(AgentDecision).count(),
+            "orders": db.query(TradeOrder).count(),
+            "evaluations": db.query(DecisionEvaluation).count(),
+            "llm_usage_rows": db.query(LLMUsage).count(),
+        }
+    finally:
+        db.close()
+
+
+def seed_demo_data() -> dict:
     """Seed fictional public-demo data only."""
     init_db()
     db = SessionLocal()
     try:
         if db.query(LegacyPosition).first():
-            return
+            return {
+                "created": False,
+                "message": "Demo data already exists.",
+                **get_demo_status(),
+            }
 
         legacy = LegacyPosition(
             symbol="SPACE_X",
@@ -105,6 +125,11 @@ def seed_demo_data() -> None:
         )
         db.add_all([order, evaluation, usage])
         db.commit()
+        return {
+            "created": True,
+            "message": "Fictional demo data created.",
+            **get_demo_status(),
+        }
     finally:
         db.close()
 

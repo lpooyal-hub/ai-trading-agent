@@ -101,15 +101,27 @@ section h3 {
 }
 
 .primary-button,
+.secondary-button,
 .small-button {
   border: 1px solid #1d5d3d;
-  background: #236b45;
   color: #ffffff;
   cursor: pointer;
   border-radius: 6px;
 }
 
 .primary-button {
+  background: #236b45;
+}
+
+.secondary-button {
+  background: #4f6356;
+}
+
+.primary-button {
+  padding: 10px 14px;
+}
+
+.secondary-button {
   padding: 10px 14px;
 }
 

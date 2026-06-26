@@ -18,6 +18,8 @@
 - `/health`
 - `/settings/safety`
 - `/settings/llm-budget`
+- `/demo/status`
+- `/demo/seed`
 - `/portfolio/initialize-legacy`
 - `/portfolio/legacy`
 - `/portfolio/bot`
@@ -105,3 +107,12 @@ docker compose up --build
 10. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다.
+
+## Demo Data
+
+대시보드 확인용 fictional demo data는 CLI 또는 API로 생성할 수 있습니다.
+
+```bash
+python -m app.seed_demo_data
+curl -X POST http://localhost:8000/demo/seed
+```

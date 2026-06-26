@@ -95,6 +95,13 @@ cd /home/ubuntu/ai-trading-agent/backend
 python -m app.seed_demo_data
 ```
 
+Demo seed API:
+
+```bash
+curl http://localhost:8000/demo/status
+curl -X POST http://localhost:8000/demo/seed
+```
+
 Agent run once:
 
 ```bash

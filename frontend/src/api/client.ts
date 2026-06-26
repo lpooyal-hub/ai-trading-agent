@@ -148,6 +148,20 @@ export type SafetySettings = {
   hard_daily_loss_limit_percent: number;
 };
 
+export type DemoStatus = {
+  legacy_positions: number;
+  bot_positions: number;
+  decisions: number;
+  orders: number;
+  evaluations: number;
+  llm_usage_rows: number;
+};
+
+export type DemoSeedResponse = DemoStatus & {
+  created: boolean;
+  message: string;
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -174,4 +188,6 @@ export const api = {
   getLLMSummary: () => request<LLMUsageSummary>("/llm-usage/summary"),
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
+  getDemoStatus: () => request<DemoStatus>("/demo/status"),
+  seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
 };
