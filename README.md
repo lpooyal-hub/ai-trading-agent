@@ -119,6 +119,14 @@ List simulated orders:
 curl http://localhost:8000/orders
 ```
 
+Run decision evaluations:
+
+```bash
+curl -X POST http://localhost:8000/evaluations/run
+curl -X POST http://localhost:8000/evaluations/1
+curl http://localhost:8000/evaluations
+```
+
 Frontend:
 
 ```bash

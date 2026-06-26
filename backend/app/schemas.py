@@ -171,6 +171,15 @@ class DecisionEvaluationRead(BaseModel):
     evaluation_json: dict[str, Any]
 
 
+class EvaluationRunRequest(BaseModel):
+    window: EvaluationWindow = EvaluationWindow.ONE_DAY
+
+
+class EvaluationRunResponse(BaseModel):
+    created_count: int
+    evaluations: list[DecisionEvaluationRead]
+
+
 class MarketSnapshotRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
