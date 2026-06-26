@@ -1,0 +1,77 @@
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    app_name: str = "AI Trading Agent Research Platform"
+    environment: str = "development"
+    database_url: str = "sqlite:///./data/trading_agent.db"
+
+    dry_run: bool = True
+    live_trading_enabled: bool = False
+    use_mock_data: bool = True
+    bot_capital_limit_usd: float = 250
+    max_order_amount_usd: float = 100
+    max_positions: int = 3
+    max_daily_trades: int = 5
+    min_cash_reserve_usd: float = 25
+    allowed_sector: str = "semiconductor"
+    allowed_symbols_csv: str = Field(
+        default="NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT",
+        validation_alias="ALLOWED_SYMBOLS",
+    )
+    forbidden_keywords_csv: str = Field(
+        default="leveraged,inverse,2x,3x,bull,bear,short",
+        validation_alias="FORBIDDEN_KEYWORDS",
+    )
+    protected_symbols_csv: str = Field(
+        default="SPACE_X",
+        validation_alias="PROTECTED_SYMBOLS",
+    )
+    default_stop_mode: str = "agent_with_hard_guardrails"
+    hard_max_position_loss_percent: float = 25
+    hard_daily_loss_limit_percent: float = 10
+    llm_daily_cost_limit_usd: float = 2
+    llm_monthly_cost_limit_usd: float = 30
+    llm_daily_token_limit: int = 100000
+    llm_model_decision: str | None = None
+    llm_model_evaluation: str | None = None
+    llm_model_reflection: str | None = None
+
+    toss_app_key: str | None = None
+    toss_app_secret: str | None = None
+    toss_account_id: str | None = None
+    openai_api_key: str | None = None
+
+    @staticmethod
+    def _split_csv(value: str) -> list[str]:
+        return [item.strip().upper() for item in value.split(",") if item.strip()]
+
+    @property
+    def allowed_symbols(self) -> list[str]:
+        return self._split_csv(self.allowed_symbols_csv)
+
+    @property
+    def forbidden_keywords(self) -> list[str]:
+        return [item.lower() for item in self._split_csv(self.forbidden_keywords_csv)]
+
+    @property
+    def protected_symbols(self) -> list[str]:
+        return self._split_csv(self.protected_symbols_csv)
+
+    @property
+    def active_universe(self) -> list[str]:
+        return self.allowed_symbols
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

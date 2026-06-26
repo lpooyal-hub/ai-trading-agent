@@ -1,0 +1,2 @@
+class TradingService:
+    pass

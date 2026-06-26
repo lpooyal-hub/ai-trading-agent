@@ -1,0 +1,2 @@
+class MarketDataClient:
+    pass
