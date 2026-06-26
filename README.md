@@ -138,6 +138,8 @@ curl http://localhost:8000/decisions/1/preview
 curl -X POST http://localhost:8000/decisions/1/approve
 ```
 
+`/decisions/{id}/preview`는 예상 side, 수량, 가격, 주문금액, 예산 영향, bot-owned 수량, legacy 보호 여부, RiskManager 결과를 먼저 보여줍니다.
+
 List simulated orders:
 
 ```bash

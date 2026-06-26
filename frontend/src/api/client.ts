@@ -55,6 +55,26 @@ export type TradeOrder = {
   reason: string;
 };
 
+export type DecisionPreview = {
+  decision_id: number;
+  approved: boolean;
+  reason: string;
+  symbol: string;
+  action: "BUY" | "SELL" | "HOLD";
+  side: "BUY" | "SELL" | null;
+  estimated_quantity: number;
+  estimated_price: number;
+  estimated_order_amount: number;
+  available_budget: number;
+  bot_exposure: number;
+  bot_owned_quantity: number;
+  legacy_protected: boolean;
+  execution_mode: string;
+  dry_run: boolean;
+  live_trading_enabled: boolean;
+  warnings: string[];
+};
+
 export type BotPosition = {
   id: number;
   symbol: string;
@@ -257,6 +277,7 @@ export const api = {
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
   getDecisions: () => request<AgentDecision[]>("/decisions"),
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
+  previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),
   approveDecision: (id: number) => request<TradeOrder>(`/decisions/${id}/approve`, { method: "POST" }),
   getOrders: () => request<TradeOrder[]>("/orders"),
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),

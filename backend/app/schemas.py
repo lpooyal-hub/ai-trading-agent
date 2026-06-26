@@ -150,8 +150,20 @@ class DecisionPreviewRead(BaseModel):
     decision_id: int
     approved: bool
     reason: str
+    symbol: str
+    action: AgentAction
+    side: OrderSide | None
+    estimated_quantity: float
+    estimated_price: float
+    estimated_order_amount: float
     available_budget: float
+    bot_exposure: float
+    bot_owned_quantity: float
+    legacy_protected: bool
+    execution_mode: str
     dry_run: bool
+    live_trading_enabled: bool
+    warnings: list[str]
 
 
 class AgentStatusRead(BaseModel):

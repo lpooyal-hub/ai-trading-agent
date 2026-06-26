@@ -6,6 +6,7 @@ from app.models import (
     AgentDecision,
     BotPosition,
     DecisionStatus,
+    LegacyPosition,
     OrderSide,
     OrderStatus,
     TradeOrder,
@@ -20,17 +21,46 @@ class TradingService:
 
     def preview_decision(self, db: Session, decision: AgentDecision) -> dict:
         available_budget = self.calculate_available_budget(db)
+        bot_position = self._get_bot_position(db, decision.symbol)
+        legacy_position = (
+            db.query(LegacyPosition)
+            .filter(LegacyPosition.symbol == decision.symbol)
+            .filter(LegacyPosition.is_protected.is_(True))
+            .first()
+        )
+        estimated_quantity = self._quantity_from_decision(decision)
+        if decision.action == AgentAction.SELL and bot_position:
+            estimated_quantity = min(estimated_quantity, bot_position.quantity)
+        estimated_order_amount = (
+            estimated_quantity * decision.current_price
+            if decision.action == AgentAction.SELL
+            else decision.recommended_order_amount
+        )
+        execution_mode = self._execution_mode()
         result = self.risk_manager.validate_decision(
             decision,
             db,
             available_bot_budget=available_budget,
+            sell_quantity=estimated_quantity if decision.action == AgentAction.SELL else None,
         )
         return {
             "decision_id": decision.id,
             "approved": result["approved"],
             "reason": result["reason"],
+            "symbol": decision.symbol,
+            "action": decision.action,
+            "side": self._side_for_decision(decision),
+            "estimated_quantity": estimated_quantity,
+            "estimated_price": decision.current_price,
+            "estimated_order_amount": estimated_order_amount,
             "available_budget": available_budget,
+            "bot_exposure": self.calculate_bot_exposure(db),
+            "bot_owned_quantity": bot_position.quantity if bot_position else 0,
+            "legacy_protected": bool(legacy_position),
+            "execution_mode": execution_mode,
             "dry_run": self.settings.dry_run,
+            "live_trading_enabled": self.settings.live_trading_enabled,
+            "warnings": self._preview_warnings(decision, execution_mode, bool(legacy_position)),
         }
 
     def execute_approved_decision(self, db: Session, decision: AgentDecision) -> TradeOrder:
@@ -257,6 +287,38 @@ class TradingService:
             db.commit()
             db.refresh(order)
         return order
+
+    def _execution_mode(self) -> str:
+        if self.settings.dry_run:
+            return "DRY_RUN_SIMULATION"
+        if self.settings.live_trading_enabled:
+            return "LIVE_TODO_NOT_IMPLEMENTED"
+        return "BLOCKED_LIVE_DISABLED"
+
+    @staticmethod
+    def _side_for_decision(decision: AgentDecision) -> OrderSide | None:
+        if decision.action == AgentAction.BUY:
+            return OrderSide.BUY
+        if decision.action == AgentAction.SELL:
+            return OrderSide.SELL
+        return None
+
+    def _preview_warnings(
+        self,
+        decision: AgentDecision,
+        execution_mode: str,
+        legacy_protected: bool,
+    ) -> list[str]:
+        warnings: list[str] = []
+        if execution_mode != "DRY_RUN_SIMULATION":
+            warnings.append("This decision will not create a DRY_RUN simulated order.")
+        if legacy_protected:
+            warnings.append("The symbol exists as a protected legacy position.")
+        if decision.action == AgentAction.HOLD:
+            warnings.append("HOLD decisions are not executable.")
+        if decision.recommended_order_amount <= 0:
+            warnings.append("Recommended order amount is zero.")
+        return warnings
 
     @staticmethod
     def _quantity_from_decision(decision: AgentDecision) -> float:

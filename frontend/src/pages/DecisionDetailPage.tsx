@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, TradeOrder } from "../api/client";
+import { api, AgentDecision, DecisionPreview, TradeOrder } from "../api/client";
 
 export function DecisionDetailPage({ decisionId }: { decisionId: number | null }) {
   const [decision, setDecision] = useState<AgentDecision | null>(null);
+  const [preview, setPreview] = useState<DecisionPreview | null>(null);
   const [order, setOrder] = useState<TradeOrder | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!decisionId) return;
-    api.getDecision(decisionId).then(setDecision).catch(() => setDecision(null));
+    Promise.all([api.getDecision(decisionId), api.previewDecision(decisionId)])
+      .then(([decisionResult, previewResult]) => {
+        setDecision(decisionResult);
+        setPreview(previewResult);
+      })
+      .catch(() => {
+        setDecision(null);
+        setPreview(null);
+      });
   }, [decisionId]);
 
   if (!decisionId) {
@@ -35,10 +44,29 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
           <p className="eyebrow">Decision #{decision.id}</p>
           <h2>{decision.symbol} {decision.action}</h2>
         </div>
-        <button className="primary-button" onClick={approve} type="button">Approve DRY_RUN</button>
+        <button className="primary-button" disabled={preview ? !preview.approved : false} onClick={approve} type="button">
+          Approve {preview?.execution_mode ?? "Decision"}
+        </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="detail-grid">
+        <section>
+          <h3>Order Preview</h3>
+          <p>{preview ? `${preview.side ?? "NONE"} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} at $${preview.estimated_price.toFixed(2)}` : "Preview unavailable"}</p>
+          <p>{preview ? `$${preview.estimated_order_amount.toFixed(2)} · ${preview.execution_mode}` : null}</p>
+        </section>
+        <section>
+          <h3>RiskManager</h3>
+          <p>{preview ? `${preview.approved ? "Approved" : "Rejected"} · ${preview.reason}` : "Preview unavailable"}</p>
+        </section>
+        <section>
+          <h3>Budget Impact</h3>
+          <p>{preview ? `Available $${preview.available_budget.toFixed(2)} · Exposure $${preview.bot_exposure.toFixed(2)}` : "Preview unavailable"}</p>
+        </section>
+        <section>
+          <h3>Position Scope</h3>
+          <p>{preview ? `Bot owned ${preview.bot_owned_quantity.toFixed(6)} · Legacy protected ${preview.legacy_protected ? "Yes" : "No"}` : "Preview unavailable"}</p>
+        </section>
         <section>
           <h3>Thesis</h3>
           <p>{decision.thesis}</p>
@@ -56,6 +84,14 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
           <p>{order ? `Order #${order.id} ${order.status}` : decision.executed_order_id ?? "None"}</p>
         </section>
       </div>
+      {preview?.warnings.length ? (
+        <section>
+          <h3>Preview Warnings</h3>
+          <ul>
+            {preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </section>
+      ) : null}
       <section>
         <h3>Input Snapshot</h3>
         <pre>{JSON.stringify(decision.input_snapshot_json, null, 2)}</pre>
