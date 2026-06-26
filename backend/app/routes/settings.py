@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.risk.llm_budget_manager import LLMBudgetManager
-from app.schemas import LLMBudgetRead, SafetySettingsRead
+from app.schemas import LLMBudgetRead, SafetySettingsRead, SecurityReadinessRead
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -37,6 +37,42 @@ def get_safety_settings() -> SafetySettingsRead:
         toss_token_path_configured=bool(settings.toss_token_path),
         toss_accounts_path_configured=bool(settings.toss_accounts_path),
         toss_positions_path_configured=bool(settings.toss_positions_path),
+    )
+
+
+@router.get("/security-readiness", response_model=SecurityReadinessRead)
+def get_security_readiness() -> SecurityReadinessRead:
+    settings = get_settings()
+    warnings: list[str] = []
+    next_actions: list[str] = []
+
+    if not settings.dry_run:
+        warnings.append("DRY_RUN is disabled. Review all order paths before running the agent.")
+    if settings.live_trading_enabled:
+        warnings.append("LIVE_TRADING_ENABLED is true. Public V1 still has no live order implementation.")
+    if settings.use_mock_data and settings.has_external_api_credentials:
+        warnings.append("Mock mode is enabled while external API credentials are configured.")
+    if not settings.use_mock_data and not settings.toss_credentials_ready:
+        next_actions.append("Configure Toss API credentials or turn USE_MOCK_DATA back on.")
+    if settings.toss_credentials_ready and not settings.toss_read_only_ready:
+        next_actions.append("Configure Toss read-only endpoint paths before using broker account or position lookup.")
+    if not settings.real_llm_enabled:
+        next_actions.append("Set USE_MOCK_DATA=false, OPENAI_API_KEY, and LLM_MODEL_DECISION to enable real LLM calls.")
+    if settings.real_llm_enabled:
+        next_actions.append("Run the agent with small DRY_RUN decisions first and review LLM usage cost logs.")
+
+    safe_for_public_demo = settings.use_mock_data and settings.dry_run and not settings.has_external_api_credentials
+    return SecurityReadinessRead(
+        safe_for_public_demo=safe_for_public_demo,
+        mock_data_enabled=settings.use_mock_data,
+        dry_run_enabled=settings.dry_run,
+        live_trading_enabled=settings.live_trading_enabled,
+        toss_credentials_configured=settings.toss_credentials_ready,
+        toss_read_only_ready=settings.toss_read_only_ready,
+        openai_configured=bool(settings.openai_api_key),
+        real_llm_ready=settings.real_llm_enabled,
+        warnings=warnings,
+        next_actions=next_actions,
     )
 
 

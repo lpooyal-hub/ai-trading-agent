@@ -152,7 +152,10 @@ Review LLM usage and budget:
 curl http://localhost:8000/llm-usage
 curl http://localhost:8000/llm-usage/summary
 curl http://localhost:8000/settings/llm-budget
+curl http://localhost:8000/settings/security-readiness
 ```
+
+`/settings/security-readiness`는 API 키 값을 반환하지 않고, mock/demo 안전 상태, Toss/OpenAI 설정 여부, 필요한 다음 조치만 boolean과 문구로 보여줍니다.
 
 Broker readiness:
 

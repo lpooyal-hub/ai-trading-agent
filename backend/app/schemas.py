@@ -292,3 +292,16 @@ class SafetySettingsRead(BaseModel):
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool
     toss_positions_path_configured: bool
+
+
+class SecurityReadinessRead(BaseModel):
+    safe_for_public_demo: bool
+    mock_data_enabled: bool
+    dry_run_enabled: bool
+    live_trading_enabled: bool
+    toss_credentials_configured: bool
+    toss_read_only_ready: bool
+    openai_configured: bool
+    real_llm_ready: bool
+    warnings: list[str]
+    next_actions: list[str]

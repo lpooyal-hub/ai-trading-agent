@@ -155,6 +155,19 @@ export type SafetySettings = {
   toss_positions_path_configured: boolean;
 };
 
+export type SecurityReadiness = {
+  safe_for_public_demo: boolean;
+  mock_data_enabled: boolean;
+  dry_run_enabled: boolean;
+  live_trading_enabled: boolean;
+  toss_credentials_configured: boolean;
+  toss_read_only_ready: boolean;
+  openai_configured: boolean;
+  real_llm_ready: boolean;
+  warnings: string[];
+  next_actions: string[];
+};
+
 export type DemoStatus = {
   demo_enabled: boolean;
   demo_reason: string;
@@ -213,6 +226,7 @@ export const api = {
   getLLMSummary: () => request<LLMUsageSummary>("/llm-usage/summary"),
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
+  getSecurityReadiness: () => request<SecurityReadiness>("/settings/security-readiness"),
   getDemoStatus: () => request<DemoStatus>("/demo/status"),
   seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
   getBrokerStatus: () => request<BrokerStatus>("/broker/status"),

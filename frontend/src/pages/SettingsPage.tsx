@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
-import { api, BrokerStatus, LLMBudget, SafetySettings } from "../api/client";
+import { api, BrokerStatus, LLMBudget, SafetySettings, SecurityReadiness } from "../api/client";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<SafetySettings | null>(null);
   const [budget, setBudget] = useState<LLMBudget | null>(null);
   const [broker, setBroker] = useState<BrokerStatus | null>(null);
+  const [security, setSecurity] = useState<SecurityReadiness | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus()])
-      .then(([safety, llmBudget, brokerStatus]) => {
+    Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus(), api.getSecurityReadiness()])
+      .then(([safety, llmBudget, brokerStatus, securityReadiness]) => {
         setSettings(safety);
         setBudget(llmBudget);
         setBroker(brokerStatus);
+        setSecurity(securityReadiness);
       })
       .catch(() => setSettings(null));
   }, []);
@@ -49,6 +51,9 @@ export function SettingsPage() {
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_ACCOUNTS_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_POSITIONS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
+        <div><dt>Safe Public Demo</dt><dd>{String(security?.safe_for_public_demo ?? false)}</dd></div>
+        <div><dt>Security Warnings</dt><dd>{security?.warnings.length ? security.warnings.join(" / ") : "None"}</dd></div>
+        <div><dt>Next Actions</dt><dd>{security?.next_actions.length ? security.next_actions.join(" / ") : "None"}</dd></div>
       </dl>
     </section>
   );
