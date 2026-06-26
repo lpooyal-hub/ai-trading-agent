@@ -207,6 +207,18 @@ cd /home/ubuntu/ai-trading-agent
 docker compose up --build
 ```
 
+Docker Compose 기본 host port는 frontend `5176`, backend `8022`입니다.
+
+```bash
+curl http://localhost:8022/health
+```
+
+다른 포트를 쓰려면 실행 시 `BACKEND_PORT`, `FRONTEND_PORT`를 지정합니다.
+
+```bash
+BACKEND_PORT=8023 FRONTEND_PORT=5177 docker compose up --build
+```
+
 Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다. 실제 키를 넣은 `.env` 파일은 커밋하지 않습니다.
 
 ## Public Repo 운영 방침
