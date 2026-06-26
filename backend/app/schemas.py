@@ -237,6 +237,8 @@ class LLMBudgetRead(LLMUsageSummaryRead):
 
 
 class DemoStatusRead(BaseModel):
+    demo_enabled: bool
+    demo_reason: str
     legacy_positions: int
     bot_positions: int
     decisions: int

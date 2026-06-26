@@ -4,6 +4,7 @@ React + TypeScript + Vite 기반의 관리자 대시보드입니다.
 
 현재 화면은 DRY_RUN / mock data 중심의 연구용 UI입니다.
 Dashboard의 `Seed Demo Data` 버튼은 backend `/demo/seed`를 호출해 fictional sample data를 생성합니다.
+이 버튼은 demo mode가 활성화된 경우에만 사용할 수 있습니다.
 
 ## 주요 화면
 

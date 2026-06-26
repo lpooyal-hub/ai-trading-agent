@@ -116,3 +116,5 @@ docker compose up --build
 python -m app.seed_demo_data
 curl -X POST http://localhost:8000/demo/seed
 ```
+
+`/demo/seed`는 `USE_MOCK_DATA=true`이고 외부 API credential이 설정되지 않은 경우에만 허용됩니다.

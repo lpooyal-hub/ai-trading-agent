@@ -149,6 +149,8 @@ export type SafetySettings = {
 };
 
 export type DemoStatus = {
+  demo_enabled: boolean;
+  demo_reason: string;
   legacy_positions: number;
   bot_positions: number;
   decisions: number;

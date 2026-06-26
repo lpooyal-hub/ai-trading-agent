@@ -102,6 +102,8 @@ curl http://localhost:8000/demo/status
 curl -X POST http://localhost:8000/demo/seed
 ```
 
+Demo seed는 `USE_MOCK_DATA=true`이고 Toss/OpenAI 같은 외부 API credential이 설정되지 않은 경우에만 활성화됩니다.
+
 Agent run once:
 
 ```bash

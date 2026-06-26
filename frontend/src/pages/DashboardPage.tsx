@@ -59,7 +59,12 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <button className="primary-button" onClick={() => api.runAgentOnce().then((decision) => onSelectDecision(decision.id))} type="button">
           Run Agent Once
         </button>
-        <button className="secondary-button" onClick={seedDemoData} type="button">
+        <button
+          className="secondary-button"
+          disabled={demoStatus ? !demoStatus.demo_enabled : false}
+          onClick={seedDemoData}
+          type="button"
+        >
           Seed Demo Data
         </button>
       </header>
@@ -75,6 +80,11 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Monthly LLM Cost" value={`$${llmSummary?.monthly_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />
         <StatCard label="LLM Budget Left" value={`$${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
         <StatCard label="Average Latency" value={`${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`} />
+        <StatCard
+          label="Demo Mode"
+          value={demoStatus?.demo_enabled ? "Enabled" : "Disabled"}
+          detail={demoStatus?.demo_reason}
+        />
         <StatCard label="Demo Rows" value={`${demoStatus?.decisions ?? 0}`} detail={`${demoStatus?.orders ?? 0} orders`} />
       </div>
       <section>

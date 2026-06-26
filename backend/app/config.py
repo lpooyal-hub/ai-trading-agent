@@ -72,6 +72,29 @@ class Settings(BaseSettings):
     def active_universe(self) -> list[str]:
         return self.allowed_symbols
 
+    @property
+    def has_external_api_credentials(self) -> bool:
+        return any(
+            [
+                self.toss_app_key,
+                self.toss_app_secret,
+                self.toss_account_id,
+                self.openai_api_key,
+            ]
+        )
+
+    @property
+    def demo_mode_enabled(self) -> bool:
+        return self.use_mock_data and not self.has_external_api_credentials
+
+    @property
+    def demo_mode_reason(self) -> str:
+        if not self.use_mock_data:
+            return "USE_MOCK_DATA is false."
+        if self.has_external_api_credentials:
+            return "External API credentials are configured."
+        return "Demo mode is enabled because mock data is on and no external API credentials are configured."
+
 
 @lru_cache
 def get_settings() -> Settings:
