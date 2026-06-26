@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite:///./data/trading_agent.db"
 
+    broker_provider: str = "toss_securities"
     dry_run: bool = True
     live_trading_enabled: bool = False
     use_mock_data: bool = True

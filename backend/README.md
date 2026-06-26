@@ -1,6 +1,6 @@
 # AI Trading Agent Backend
 
-실험용 AI 트레이딩 에이전트 백엔드입니다.
+토스증권 Open API를 기본 브로커 어댑터로 가정한 실험용 AI 트레이딩 에이전트 백엔드입니다.
 
 현재 기본 설정은 DRY_RUN / paper trading입니다. 실거래는 기본값으로 비활성화되어 있으며, 사용자가 명시적으로 환경변수를 바꾸고 주문 동작을 검토한 경우에만 확장할 수 있습니다.
 
@@ -10,6 +10,7 @@
 
 - FastAPI 앱 엔트리
 - dotenv 기반 설정
+- Toss Securities Open API 기준 브로커 설정
 - SQLite / SQLAlchemy 연결
 - 핵심 ORM 모델
 - Pydantic 스키마
@@ -39,6 +40,7 @@ uvicorn app.main:app --reload
 
 ## 안전 원칙
 
+- 기본 브로커 provider는 `toss_securities`입니다.
 - `DRY_RUN=true`가 기본값입니다.
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
 - 실주문 API 호출은 기본 설정에서 비활성화되어 있습니다.

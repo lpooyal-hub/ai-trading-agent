@@ -193,6 +193,7 @@ class LLMUsageRead(BaseModel):
 
 
 class SafetySettingsRead(BaseModel):
+    broker_provider: str
     dry_run: bool
     live_trading_enabled: bool
     use_mock_data: bool

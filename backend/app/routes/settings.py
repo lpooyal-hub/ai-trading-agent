@@ -11,6 +11,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 def get_safety_settings() -> SafetySettingsRead:
     settings = get_settings()
     return SafetySettingsRead(
+        broker_provider=settings.broker_provider,
         dry_run=settings.dry_run,
         live_trading_enabled=settings.live_trading_enabled,
         use_mock_data=settings.use_mock_data,

@@ -1,10 +1,11 @@
 # AI Trading Agent Research Platform
 
-이 프로젝트는 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단을 기록하고, 리스크 관문을 통과시키고, LLM 사용량과 의사결정 품질을 평가하는 것입니다.
+이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단을 기록하고, 리스크 관문을 통과시키고, LLM 사용량과 의사결정 품질을 평가하는 것입니다.
 
 ## 이 프로젝트는 무엇인가
 
 - 기본값이 DRY_RUN인 AI 트레이딩 에이전트 연구 플랫폼
+- 기본 브로커 대상은 토스증권 Open API입니다.
 - 의사결정 로그, 모의 주문, 리스크 관리, 평가 기록을 남기는 실험 환경
 - LLM 토큰 사용량과 예상 비용을 함께 추적하는 분석 도구
 - 기본 예시는 `$250` 자본 제한과 반도체 Top 10 Universe를 사용하지만, 사용자는 `.env`에서 자신의 연구 설정으로 바꿀 수 있습니다.
@@ -15,6 +16,7 @@
 - 수익 보장 자동매매 봇이 아닙니다.
 - 투자 조언 도구가 아닙니다.
 - 기본 설정 그대로 실행했을 때 실주문이 나가는 도구가 아닙니다.
+- 여러 증권사 API를 동시에 지원하는 범용 브로커 플랫폼이 아닙니다.
 - 실제 계좌 데이터, 실제 주문 기록, 실제 API 응답을 저장소에 포함하지 않습니다.
 
 ## 핵심 기능
@@ -53,10 +55,21 @@ cp .env.example .env
 - `DRY_RUN=true`
 - `LIVE_TRADING_ENABLED=false`
 - `USE_MOCK_DATA=true`
+- `BROKER_PROVIDER=toss_securities`
 - `BOT_CAPITAL_LIMIT_USD=250`
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
 
-다른 사용자는 `BOT_CAPITAL_LIMIT_USD`, `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`, LLM 예산 제한을 자신의 연구 목적에 맞게 바꿀 수 있습니다.
+다른 사용자는 `BOT_CAPITAL_LIMIT_USD`, `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`, LLM 예산 제한을 자신의 연구 목적에 맞게 바꿀 수 있습니다. 브로커 연동은 기본적으로 토스증권 Open API 키 구조를 기준으로 합니다.
+
+## Broker Integration
+
+기본 브로커 provider는 `toss_securities`입니다.
+
+- `TOSS_APP_KEY`
+- `TOSS_APP_SECRET`
+- `TOSS_ACCOUNT_ID`
+
+위 값은 토스증권 Open API 사용자가 자신의 `.env`에 직접 넣는 값입니다. 저장소에는 실제 키나 계좌 정보를 포함하지 않습니다.
 
 ## 실행 방법
 
