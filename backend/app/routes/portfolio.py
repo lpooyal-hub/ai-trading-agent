@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.clients.toss_client import TossClient
 from app.schemas import (
     BotPositionRead,
+    LegacyPositionBrokerSyncResponse,
     LegacyPositionInitializeRequest,
     LegacyPositionInitializeResponse,
     LegacyPositionRead,
@@ -25,6 +27,36 @@ def initialize_legacy_positions(
     return LegacyPositionInitializeResponse(
         initialized_count=len(created),
         skipped_count=skipped_count,
+        positions=created,
+    )
+
+
+@router.post("/sync-legacy-from-broker", response_model=LegacyPositionBrokerSyncResponse)
+def sync_legacy_positions_from_broker(
+    db: Session = Depends(get_db),
+) -> LegacyPositionBrokerSyncResponse:
+    broker_response = TossClient().get_positions()
+    if not broker_response.get("success"):
+        return LegacyPositionBrokerSyncResponse(
+            imported_count=0,
+            skipped_count=0,
+            success=False,
+            status=str(broker_response.get("status", "FAILED")),
+            message=broker_response.get("message", "Broker positions could not be loaded."),
+            positions=[],
+        )
+
+    service = PortfolioService()
+    created, skipped_count, message = service.sync_legacy_positions_from_broker_payload(
+        db,
+        broker_response.get("data") or {},
+    )
+    return LegacyPositionBrokerSyncResponse(
+        imported_count=len(created),
+        skipped_count=skipped_count,
+        success=message is None,
+        status="IMPORTED" if message is None else "BLOCKED",
+        message=message,
         positions=created,
     )
 

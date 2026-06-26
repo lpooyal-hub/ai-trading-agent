@@ -7,6 +7,7 @@ export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([api.getPortfolioSummary(), api.getBotPositions(), api.getLegacyPositions()])
@@ -21,6 +22,19 @@ export function PortfolioPage() {
       });
   }, []);
 
+  const syncLegacyFromBroker = () => {
+    api.syncLegacyFromBroker()
+      .then((result) => {
+        setMessage(result.message ?? `${result.imported_count} imported, ${result.skipped_count} skipped.`);
+        return Promise.all([api.getPortfolioSummary(), api.getLegacyPositions()]);
+      })
+      .then(([portfolio, legacy]) => {
+        setSummary(portfolio);
+        setLegacyPositions(legacy);
+      })
+      .catch(() => setMessage("Broker legacy sync failed."));
+  };
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -28,7 +42,11 @@ export function PortfolioPage() {
           <p className="eyebrow">Portfolio</p>
           <h2>Bot-Only Positions</h2>
         </div>
+        <button className="secondary-button" onClick={syncLegacyFromBroker} type="button">
+          Sync Legacy From Broker
+        </button>
       </header>
+      {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
         <StatCard label="Available Budget" value={`$${summary?.available_budget_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="Invested" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />

@@ -170,9 +170,13 @@ Broker readiness:
 curl http://localhost:8000/broker/status
 curl http://localhost:8000/broker/accounts
 curl http://localhost:8000/broker/positions
+curl http://localhost:8000/broker/positions/normalized
+curl -X POST http://localhost:8000/portfolio/sync-legacy-from-broker
 ```
 
 Toss read-only API 연결은 `USE_MOCK_DATA=false`, `TOSS_APP_KEY`, `TOSS_APP_SECRET`, `TOSS_ACCOUNT_ID`와 함께 공식 문서 기준 endpoint path를 `.env`에 설정해야 활성화됩니다. endpoint path는 문서 버전에 따라 달라질 수 있어 코드에 고정하지 않습니다.
+
+`/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
 
 Frontend:
 

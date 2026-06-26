@@ -48,6 +48,32 @@ class LegacyPositionInitializeResponse(BaseModel):
     positions: list[LegacyPositionRead]
 
 
+class BrokerPositionRead(BaseModel):
+    symbol: str
+    name: str
+    quantity: float
+    avg_price: float
+    current_price: float
+    source: str
+
+
+class BrokerPositionPreviewRead(BaseModel):
+    success: bool
+    status: str
+    message: str | None = None
+    positions: list[BrokerPositionRead]
+    raw_response_saved: bool = False
+
+
+class LegacyPositionBrokerSyncResponse(BaseModel):
+    imported_count: int
+    skipped_count: int
+    success: bool
+    status: str
+    message: str | None = None
+    positions: list[LegacyPositionRead]
+
+
 class BotPositionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

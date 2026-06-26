@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.models import BotPosition, LegacyPosition
 from app.schemas import LegacyPositionCreate
+from app.services.broker_position_normalizer import BrokerPositionNormalizer
 
 
 class PortfolioService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
+        self.position_normalizer = BrokerPositionNormalizer()
 
     def initialize_legacy_positions(
         self,
@@ -45,6 +47,29 @@ class PortfolioService:
             db.refresh(position)
 
         return created, skipped_count
+
+    def sync_legacy_positions_from_broker_payload(
+        self,
+        db: Session,
+        payload: dict,
+    ) -> tuple[list[LegacyPosition], int, str | None]:
+        if self.list_bot_positions(db):
+            return [], 0, "Broker legacy import is blocked after bot positions exist."
+
+        normalized_positions = self.position_normalizer.normalize_positions(payload)
+        create_payload = [
+            LegacyPositionCreate(
+                symbol=position["symbol"],
+                name=position["name"],
+                quantity=position["quantity"],
+                avg_price=position["avg_price"],
+                source=position["source"],
+                is_protected=True,
+            )
+            for position in normalized_positions
+        ]
+        created, skipped_count = self.initialize_legacy_positions(db, create_payload)
+        return created, skipped_count, None
 
     def list_legacy_positions(self, db: Session) -> list[LegacyPosition]:
         return (

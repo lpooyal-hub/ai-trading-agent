@@ -79,6 +79,15 @@ export type LegacyPosition = {
   is_protected: boolean;
 };
 
+export type LegacyPositionBrokerSyncResponse = {
+  imported_count: number;
+  skipped_count: number;
+  success: boolean;
+  status: string;
+  message: string | null;
+  positions: LegacyPosition[];
+};
+
 export type DecisionEvaluation = {
   id: number;
   decision_id: number;
@@ -216,6 +225,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
+  syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
   getBotPositions: () => request<BotPosition[]>("/portfolio/bot"),
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
   getDecisions: () => request<AgentDecision[]>("/decisions"),

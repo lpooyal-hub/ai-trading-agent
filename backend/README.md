@@ -25,7 +25,9 @@
 - `/broker/status`
 - `/broker/accounts`
 - `/broker/positions`
+- `/broker/positions/normalized`
 - `/portfolio/initialize-legacy`
+- `/portfolio/sync-legacy-from-broker`
 - `/portfolio/legacy`
 - `/portfolio/bot`
 - `/portfolio/summary`
@@ -83,6 +85,8 @@ docker compose up --build
 - decision evaluation은 mock snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
 - `/broker/status`는 Toss Open API credential 설정 여부와 live readiness를 마스킹된 상태값으로만 보여줍니다.
 - `/broker/accounts`, `/broker/positions`는 Toss read-only endpoint path가 `.env`에 설정된 경우에만 호출됩니다.
+- `/broker/positions/normalized`는 Toss 잔고 응답을 내부 표준 포지션 형태로 변환해 보여줍니다.
+- `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져오며, bot position이 이미 있으면 import를 차단합니다.
 - `/settings/security-readiness`는 secret 값을 노출하지 않고 demo 안전 상태, Toss/OpenAI 준비 여부, 경고와 다음 조치만 반환합니다.
 
 ## Universe
