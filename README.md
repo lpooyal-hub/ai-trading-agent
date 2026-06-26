@@ -158,7 +158,11 @@ Broker readiness:
 
 ```bash
 curl http://localhost:8000/broker/status
+curl http://localhost:8000/broker/accounts
+curl http://localhost:8000/broker/positions
 ```
+
+Toss read-only API 연결은 `USE_MOCK_DATA=false`, `TOSS_APP_KEY`, `TOSS_APP_SECRET`, `TOSS_ACCOUNT_ID`와 함께 공식 문서 기준 endpoint path를 `.env`에 설정해야 활성화됩니다. endpoint path는 문서 버전에 따라 달라질 수 있어 코드에 고정하지 않습니다.
 
 Frontend:
 

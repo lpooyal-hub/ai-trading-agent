@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     toss_app_key: str | None = None
     toss_app_secret: str | None = None
     toss_account_id: str | None = None
+    toss_base_url: str = "https://openapi.tossinvest.com"
+    toss_token_path: str | None = None
+    toss_accounts_path: str | None = None
+    toss_positions_path: str | None = None
+    toss_timeout_seconds: int = 30
     openai_api_key: str | None = None
 
     @staticmethod
@@ -103,6 +108,20 @@ class Settings(BaseSettings):
             not self.use_mock_data
             and self.openai_api_key
             and self.llm_model_decision
+        )
+
+    @property
+    def toss_credentials_ready(self) -> bool:
+        return bool(self.toss_app_key and self.toss_app_secret and self.toss_account_id)
+
+    @property
+    def toss_read_only_ready(self) -> bool:
+        return bool(
+            not self.use_mock_data
+            and self.toss_credentials_ready
+            and self.toss_token_path
+            and self.toss_accounts_path
+            and self.toss_positions_path
         )
 
 

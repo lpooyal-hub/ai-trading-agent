@@ -149,6 +149,10 @@ export type SafetySettings = {
   llm_model_decision: string | null;
   openai_timeout_seconds: number;
   real_llm_enabled: boolean;
+  toss_base_url: string;
+  toss_token_path_configured: boolean;
+  toss_accounts_path_configured: boolean;
+  toss_positions_path_configured: boolean;
 };
 
 export type DemoStatus = {
@@ -176,6 +180,7 @@ export type BrokerStatus = {
   has_app_secret: boolean;
   has_account_id: boolean;
   credentials_ready: boolean;
+  read_only_ready: boolean;
   openai_configured: boolean;
   real_llm_ready: boolean;
   live_ready: boolean;

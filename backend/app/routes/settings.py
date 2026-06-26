@@ -33,6 +33,10 @@ def get_safety_settings() -> SafetySettingsRead:
         llm_model_decision=settings.llm_model_decision,
         openai_timeout_seconds=settings.openai_timeout_seconds,
         real_llm_enabled=settings.real_llm_enabled,
+        toss_base_url=settings.toss_base_url,
+        toss_token_path_configured=bool(settings.toss_token_path),
+        toss_accounts_path_configured=bool(settings.toss_accounts_path),
+        toss_positions_path_configured=bool(settings.toss_positions_path),
     )
 
 

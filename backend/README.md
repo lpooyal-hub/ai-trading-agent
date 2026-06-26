@@ -22,6 +22,8 @@
 - `/demo/status`
 - `/demo/seed`
 - `/broker/status`
+- `/broker/accounts`
+- `/broker/positions`
 - `/portfolio/initialize-legacy`
 - `/portfolio/legacy`
 - `/portfolio/bot`
@@ -79,6 +81,7 @@ docker compose up --build
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - decision evaluation은 mock snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
 - `/broker/status`는 Toss Open API credential 설정 여부와 live readiness를 마스킹된 상태값으로만 보여줍니다.
+- `/broker/accounts`, `/broker/positions`는 Toss read-only endpoint path가 `.env`에 설정된 경우에만 호출됩니다.
 
 ## Universe
 
@@ -112,6 +115,20 @@ docker compose up --build
 11. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다. 실제 OpenAI 호출은 Responses API의 `model`, `input`, `text.format` 구조를 사용하며, API 키는 로그나 DB에 저장하지 않습니다.
+
+## Toss Read-Only Setup
+
+Toss Open API 조회 연결은 아래 조건이 모두 맞을 때만 시도합니다.
+
+- `USE_MOCK_DATA=false`
+- `TOSS_APP_KEY`
+- `TOSS_APP_SECRET`
+- `TOSS_ACCOUNT_ID`
+- `TOSS_TOKEN_PATH`
+- `TOSS_ACCOUNTS_PATH`
+- `TOSS_POSITIONS_PATH`
+
+토큰과 API 응답 원문은 저장하지 않습니다. Endpoint path는 Toss Open API 공식 문서 기준으로 `.env`에 직접 설정합니다.
 
 ## Demo Data
 

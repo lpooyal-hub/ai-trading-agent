@@ -1,3 +1,6 @@
+import json
+from urllib import error, parse, request
+
 from app.config import Settings, get_settings
 from app.models import OrderStatus
 
@@ -27,6 +30,7 @@ class TossClient:
             "has_app_secret": has_app_secret,
             "has_account_id": has_account_id,
             "credentials_ready": credentials_ready,
+            "read_only_ready": self.settings.toss_read_only_ready,
             "openai_configured": openai_configured,
             "real_llm_ready": self.settings.real_llm_enabled,
             "live_ready": live_ready,
@@ -36,6 +40,16 @@ class TossClient:
     def place_live_order(self, *args, **kwargs):
         # Live trading must stay behind explicit configuration and safety review.
         raise NotImplementedError("Real Toss Securities order execution is not connected yet.")
+
+    def get_accounts(self) -> dict:
+        if not self._read_only_endpoint_ready(self.settings.toss_accounts_path):
+            return self._todo_read_only_response("Toss read-only account endpoint is not configured.")
+        return self._authenticated_get(self.settings.toss_accounts_path)
+
+    def get_positions(self) -> dict:
+        if not self._read_only_endpoint_ready(self.settings.toss_positions_path):
+            return self._todo_read_only_response("Toss read-only positions endpoint is not configured.")
+        return self._authenticated_get(self.settings.toss_positions_path)
 
     def preview_live_order(self, *args, **kwargs) -> dict:
         return {
@@ -53,6 +67,106 @@ class TossClient:
         return {
             "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
             "message": "Live Toss Securities order status lookup is not connected yet.",
+        }
+
+    def _authenticated_get(self, path: str | None) -> dict:
+        if not path:
+            return self._todo_read_only_response("Toss read-only endpoint path is not configured.")
+
+        token_result = self._issue_access_token()
+        if not token_result["success"]:
+            return token_result
+
+        url = self._url(path)
+        req = request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {token_result['access_token']}",
+                "X-Tossinvest-Account": self.settings.toss_account_id or "",
+                "Content-Type": "application/json",
+            },
+            method="GET",
+        )
+        try:
+            with request.urlopen(req, timeout=self.settings.toss_timeout_seconds) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            return {
+                "success": True,
+                "status": "OK",
+                "data": body,
+                "raw_response_saved": False,
+            }
+        except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            return self._safe_error_response(exc)
+
+    def _issue_access_token(self) -> dict:
+        if not self.settings.toss_token_path:
+            return self._todo_read_only_response("Toss token endpoint path is not configured.")
+        if not self.settings.toss_app_key or not self.settings.toss_app_secret:
+            return self._todo_read_only_response("Toss API credentials are incomplete.")
+
+        payload = parse.urlencode(
+            {
+                "grant_type": "client_credentials",
+                "client_id": self.settings.toss_app_key,
+                "client_secret": self.settings.toss_app_secret,
+            }
+        ).encode("utf-8")
+        req = request.Request(
+            self._url(self.settings.toss_token_path),
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        try:
+            with request.urlopen(req, timeout=self.settings.toss_timeout_seconds) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            access_token = body.get("access_token")
+            if not access_token:
+                return {
+                    "success": False,
+                    "status": "FAILED",
+                    "message": "Toss token response did not include access_token.",
+                    "raw_response_saved": False,
+                }
+            return {
+                "success": True,
+                "status": "OK",
+                "access_token": access_token,
+                "raw_response_saved": False,
+            }
+        except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            return self._safe_error_response(exc)
+
+    def _url(self, path: str) -> str:
+        base = self.settings.toss_base_url.rstrip("/")
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        return f"{base}{normalized_path}"
+
+    def _read_only_endpoint_ready(self, path: str | None) -> bool:
+        return bool(
+            not self.settings.use_mock_data
+            and self.settings.toss_credentials_ready
+            and self.settings.toss_token_path
+            and path
+        )
+
+    @staticmethod
+    def _todo_read_only_response(message: str) -> dict:
+        return {
+            "success": False,
+            "status": "TODO_READ_ONLY_API_NOT_CONFIGURED",
+            "message": message,
+            "raw_response_saved": False,
+        }
+
+    @staticmethod
+    def _safe_error_response(exc: Exception) -> dict:
+        return {
+            "success": False,
+            "status": "FAILED",
+            "message": str(exc).replace("\n", " ")[:500],
+            "raw_response_saved": False,
         }
 
     def _status_reason(self, credentials_ready: bool, live_ready: bool) -> str:

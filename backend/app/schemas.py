@@ -261,6 +261,7 @@ class BrokerStatusRead(BaseModel):
     has_app_secret: bool
     has_account_id: bool
     credentials_ready: bool
+    read_only_ready: bool
     openai_configured: bool
     real_llm_ready: bool
     live_ready: bool
@@ -287,3 +288,7 @@ class SafetySettingsRead(BaseModel):
     llm_model_decision: str | None
     openai_timeout_seconds: int
     real_llm_enabled: bool
+    toss_base_url: str
+    toss_token_path_configured: bool
+    toss_accounts_path_configured: bool
+    toss_positions_path_configured: bool

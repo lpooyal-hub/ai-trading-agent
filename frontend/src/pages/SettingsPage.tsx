@@ -28,6 +28,7 @@ export function SettingsPage() {
         <div><dt>BROKER_PROVIDER</dt><dd>{settings?.broker_provider ?? "toss_securities"}</dd></div>
         <div><dt>Broker Status</dt><dd>{broker?.status_reason ?? "-"}</dd></div>
         <div><dt>Toss Credentials Ready</dt><dd>{String(broker?.credentials_ready ?? false)}</dd></div>
+        <div><dt>Toss Read-Only Ready</dt><dd>{String(broker?.read_only_ready ?? false)}</dd></div>
         <div><dt>OpenAI Configured</dt><dd>{String(broker?.openai_configured ?? false)}</dd></div>
         <div><dt>Real LLM Ready</dt><dd>{String(broker?.real_llm_ready ?? false)}</dd></div>
         <div><dt>Live Ready</dt><dd>{String(broker?.live_ready ?? false)}</dd></div>
@@ -44,6 +45,10 @@ export function SettingsPage() {
         <div><dt>Daily Token Budget Left</dt><dd>{budget?.daily_tokens_remaining ?? 0}</dd></div>
         <div><dt>LLM_MODEL_DECISION</dt><dd>{settings?.llm_model_decision ?? "-"}</dd></div>
         <div><dt>OPENAI_TIMEOUT_SECONDS</dt><dd>{settings?.openai_timeout_seconds ?? 30}</dd></div>
+        <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
+        <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
+        <div><dt>TOSS_ACCOUNTS_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>
+        <div><dt>TOSS_POSITIONS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
       </dl>
     </section>
   );
