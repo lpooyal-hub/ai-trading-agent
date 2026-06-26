@@ -1,0 +1,280 @@
+:root {
+  color: #17201b;
+  background: #f4f6f3;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #19231d;
+  color: #f5faf4;
+  padding: 28px 18px;
+}
+
+.sidebar h1 {
+  margin: 6px 0 28px;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #739b82;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.nav-list {
+  display: grid;
+  gap: 6px;
+}
+
+.nav-item {
+  border: 0;
+  background: transparent;
+  color: #dfe8df;
+  cursor: pointer;
+  padding: 10px 12px;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.nav-item.active,
+.nav-item:hover {
+  background: #2d4235;
+  color: #ffffff;
+}
+
+.content {
+  padding: 24px;
+  overflow: auto;
+}
+
+.dry-run-banner {
+  background: #fff5c7;
+  border: 1px solid #e0c55f;
+  border-radius: 6px;
+  color: #584612;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+}
+
+.page-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.page-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header h2,
+section h3 {
+  margin: 4px 0 0;
+}
+
+.primary-button,
+.small-button {
+  border: 1px solid #1d5d3d;
+  background: #236b45;
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.primary-button {
+  padding: 10px 14px;
+}
+
+.small-button {
+  padding: 6px 10px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stat-card,
+.evaluation-card,
+.notice,
+.detail-grid section,
+.settings-list div {
+  background: #ffffff;
+  border: 1px solid #dfe6dc;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.stat-card {
+  display: grid;
+  gap: 6px;
+}
+
+.stat-card span,
+.stat-card small,
+dt {
+  color: #5e6f63;
+  font-size: 13px;
+}
+
+.stat-card strong {
+  font-size: 26px;
+}
+
+.symbol-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symbol-list span {
+  background: #e7eee8;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.table-wrap {
+  background: #ffffff;
+  border: 1px solid #dfe6dc;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 760px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e8eee6;
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+th {
+  background: #f7faf6;
+  color: #506057;
+}
+
+.detail-grid,
+.evaluation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+pre {
+  background: #152018;
+  border-radius: 8px;
+  color: #eff8ef;
+  margin: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.evaluation-card {
+  display: grid;
+  gap: 10px;
+}
+
+.evaluation-card div,
+.evaluation-card dl,
+.settings-list div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.evaluation-card p,
+dd {
+  margin: 0;
+}
+
+.settings-list {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-row {
+  align-items: end;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.filter-row label {
+  display: grid;
+  gap: 6px;
+  color: #5e6f63;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.filter-row input,
+.filter-row select {
+  border: 1px solid #ccd8ce;
+  border-radius: 6px;
+  font: inherit;
+  padding: 10px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 18px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid,
+  .filter-row,
+  .detail-grid,
+  .evaluation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

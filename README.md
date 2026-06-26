@@ -144,6 +144,8 @@ npm install
 npm run dev
 ```
 
+기본 frontend API 주소는 `http://localhost:8000`입니다. 다른 주소를 쓰려면 `VITE_API_BASE_URL`을 설정합니다.
+
 ## Public Repo 운영 방침
 
 - 기본 설정: DRY_RUN / demo / paper trading
