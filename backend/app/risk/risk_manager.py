@@ -51,7 +51,7 @@ class RiskManager:
             return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_USD.")
 
         exposure = self.calculate_bot_exposure(db)
-        if amount + exposure > self.settings.bot_capital_limit_usd:
+        if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_usd:
             return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_USD.")
 
         budget = (

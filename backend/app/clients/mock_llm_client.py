@@ -17,11 +17,11 @@ class MockLLMClient:
         candidate = candidates[0]
         return {
             "symbol": candidate["symbol"],
-            "action": "HOLD",
-            "confidence": 0.62,
-            "recommended_order_amount": 0,
-            "thesis": "Public demo mock response prefers HOLD until real research data is connected.",
-            "risk_notes": "Mock mode uses fictional data and never places real orders.",
+            "action": "BUY",
+            "confidence": 0.68,
+            "recommended_order_amount": 50,
+            "thesis": "Public demo mock response suggests a small paper-trade position for review.",
+            "risk_notes": "Mock mode uses fictional data, requires RiskManager approval, and never places real orders.",
             "time_horizon": "short_term",
-            "should_execute": False,
+            "should_execute": True,
         }

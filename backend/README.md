@@ -23,6 +23,13 @@
 - `/portfolio/summary`
 - `/agent/run-once`
 - `/agent/status`
+- `/decisions`
+- `/decisions/{decision_id}`
+- `/decisions/{decision_id}/preview`
+- `/decisions/{decision_id}/approve`
+- `/decisions/{decision_id}/reject`
+- `/orders`
+- `/orders/{order_id}`
 - 이후 단계용 모듈 구조
 
 ## 실행 명령어
@@ -49,6 +56,7 @@ uvicorn app.main:app --reload
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - 현재 agent 실행은 mock market data와 mock LLM 응답만 사용합니다.
 - LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 1~3개 후보만 agent에 전달합니다.
+- decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 
 ## Universe
 
@@ -74,5 +82,7 @@ uvicorn app.main:app --reload
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 mock LLM 응답으로 `AgentDecision`을 저장합니다.
 5. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
+6. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
+7. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다.

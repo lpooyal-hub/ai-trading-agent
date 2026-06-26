@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routes import agent, health, portfolio, settings
+from app.routes import agent, decisions, health, orders, portfolio, settings
 from app.utils.logger import get_logger
 
 
@@ -36,3 +36,5 @@ app.include_router(health.router)
 app.include_router(settings.router)
 app.include_router(portfolio.router)
 app.include_router(agent.router)
+app.include_router(decisions.router)
+app.include_router(orders.router)

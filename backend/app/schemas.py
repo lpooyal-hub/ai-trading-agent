@@ -116,6 +116,18 @@ class AgentDecisionRead(AgentDecisionBase):
     executed_order_id: int | None
 
 
+class DecisionRejectRequest(BaseModel):
+    reason: str
+
+
+class DecisionPreviewRead(BaseModel):
+    decision_id: int
+    approved: bool
+    reason: str
+    available_budget: float
+    dry_run: bool
+
+
 class AgentStatusRead(BaseModel):
     dry_run: bool
     use_mock_data: bool

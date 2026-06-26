@@ -28,6 +28,7 @@
 - RiskManager 기반 최종 승인/거절
 - legacy position protection
 - DRY_RUN simulated orders
+- Decision approval API for DRY_RUN order simulation
 - LLM token/cost tracking
 - rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한
 - decision evaluation and reflection
@@ -103,6 +104,19 @@ Agent status:
 
 ```bash
 curl http://localhost:8000/agent/status
+```
+
+Preview and approve a decision:
+
+```bash
+curl http://localhost:8000/decisions/1/preview
+curl -X POST http://localhost:8000/decisions/1/approve
+```
+
+List simulated orders:
+
+```bash
+curl http://localhost:8000/orders
 ```
 
 Frontend:

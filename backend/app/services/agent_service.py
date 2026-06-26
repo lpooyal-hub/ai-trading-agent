@@ -33,13 +33,14 @@ class AgentService:
             )
 
         response = self.llm_client.create_decision([self._snapshot_to_dict(item) for item in candidates])
+        selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
         usage = self._estimate_mock_usage(candidates, response)
         decision = AgentDecision(
             symbol=response["symbol"],
             sector=self.settings.allowed_sector,
             action=AgentAction(response["action"]),
             confidence=response["confidence"],
-            current_price=candidates[0].price,
+            current_price=selected_snapshot.price,
             recommended_order_amount=response["recommended_order_amount"],
             thesis=response["thesis"],
             risk_notes=response["risk_notes"],
@@ -101,6 +102,7 @@ class AgentService:
             if item.symbol in self.settings.active_universe
             and item.sector.lower() == self.settings.allowed_sector.lower()
             and item.volume > 0
+            and item.change_percent > 0
         ]
         ranked = sorted(
             eligible,
@@ -108,6 +110,13 @@ class AgentService:
             reverse=True,
         )
         return ranked[:3]
+
+    @staticmethod
+    def _find_snapshot(snapshots: list[MarketSnapshot], symbol: str) -> MarketSnapshot | None:
+        for snapshot in snapshots:
+            if snapshot.symbol == symbol:
+                return snapshot
+        return None
 
     def _save_skipped_decision(
         self,
