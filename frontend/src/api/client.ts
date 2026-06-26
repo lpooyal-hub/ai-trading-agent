@@ -164,6 +164,19 @@ export type DemoSeedResponse = DemoStatus & {
   message: string;
 };
 
+export type BrokerStatus = {
+  broker_provider: string;
+  use_mock_data: boolean;
+  dry_run: boolean;
+  live_trading_enabled: boolean;
+  has_app_key: boolean;
+  has_app_secret: boolean;
+  has_account_id: boolean;
+  credentials_ready: boolean;
+  live_ready: boolean;
+  status_reason: string;
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -192,4 +205,5 @@ export const api = {
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
   getDemoStatus: () => request<DemoStatus>("/demo/status"),
   seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
+  getBrokerStatus: () => request<BrokerStatus>("/broker/status"),
 };

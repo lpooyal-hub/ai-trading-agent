@@ -252,6 +252,19 @@ class DemoSeedResponse(DemoStatusRead):
     message: str
 
 
+class BrokerStatusRead(BaseModel):
+    broker_provider: str
+    use_mock_data: bool
+    dry_run: bool
+    live_trading_enabled: bool
+    has_app_key: bool
+    has_app_secret: bool
+    has_account_id: bool
+    credentials_ready: bool
+    live_ready: bool
+    status_reason: str
+
+
 class SafetySettingsRead(BaseModel):
     broker_provider: str
     dry_run: bool

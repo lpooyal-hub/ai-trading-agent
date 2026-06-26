@@ -21,6 +21,7 @@
 - `/settings/llm-budget`
 - `/demo/status`
 - `/demo/seed`
+- `/broker/status`
 - `/portfolio/initialize-legacy`
 - `/portfolio/legacy`
 - `/portfolio/bot`
@@ -76,6 +77,7 @@ docker compose up --build
 - LLM 호출 전 budget guard를 확인하고, 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - decision evaluation은 mock snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
+- `/broker/status`는 Toss Open API credential 설정 여부와 live readiness를 마스킹된 상태값으로만 보여줍니다.
 
 ## Universe
 

@@ -146,6 +146,12 @@ curl http://localhost:8000/llm-usage/summary
 curl http://localhost:8000/settings/llm-budget
 ```
 
+Broker readiness:
+
+```bash
+curl http://localhost:8000/broker/status
+```
+
 Frontend:
 
 ```bash
