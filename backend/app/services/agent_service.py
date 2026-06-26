@@ -5,6 +5,7 @@ from app.clients.mock_llm_client import MockLLMClient
 from app.config import Settings, get_settings
 from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, MarketSnapshot
 from app.risk.llm_budget_manager import LLMBudgetManager
+from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 from app.services.market_service import MarketService
 
@@ -17,6 +18,7 @@ class AgentService:
         self.market_service = MarketService(self.settings)
         self.llm_client = MockLLMClient() if self.settings.use_mock_data else LLMClient(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
+        self.llm_cost_service = LLMCostService(self.settings)
         self.llm_usage_service = LLMUsageService()
 
     def run_once(self, db: Session) -> AgentDecision:
@@ -42,6 +44,10 @@ class AgentService:
         response = llm_result.parsed_response
         selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
         usage = llm_result.usage
+        estimated_cost = self.llm_cost_service.estimate_cost_usd(
+            usage["prompt_tokens"],
+            usage["completion_tokens"],
+        )
         decision = AgentDecision(
             symbol=response["symbol"],
             sector=self.settings.allowed_sector,
@@ -61,7 +67,7 @@ class AgentService:
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
-            estimated_llm_cost_usd=0,
+            estimated_llm_cost_usd=estimated_cost,
             status=self._status_for_response(response, llm_result.success),
             rejection_reason=self._rejection_reason(response, llm_result),
             dry_run=True,
@@ -77,13 +83,14 @@ class AgentService:
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
-            estimated_cost_usd=0,
+            estimated_cost_usd=estimated_cost,
             latency_ms=llm_result.latency_ms,
             success=llm_result.success,
             error_message=llm_result.error_message,
             raw_usage_json={
                 **usage,
                 "source": self.llm_client.__class__.__name__,
+                "pricing_configured": self.llm_cost_service.pricing_configured(),
                 "raw_response": llm_result.raw_response,
             },
             commit=False,

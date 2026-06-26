@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     llm_model_decision: str | None = None
     llm_model_evaluation: str | None = None
     llm_model_reflection: str | None = None
+    llm_input_cost_per_1m_tokens_usd: float = 0
+    llm_output_cost_per_1m_tokens_usd: float = 0
     openai_responses_url: str = "https://api.openai.com/v1/responses"
     openai_timeout_seconds: int = 30
 

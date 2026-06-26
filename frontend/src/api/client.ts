@@ -147,6 +147,8 @@ export type SafetySettings = {
   hard_max_position_loss_percent: number;
   hard_daily_loss_limit_percent: number;
   llm_model_decision: string | null;
+  llm_input_cost_per_1m_tokens_usd: number;
+  llm_output_cost_per_1m_tokens_usd: number;
   openai_timeout_seconds: number;
   real_llm_enabled: boolean;
   toss_base_url: string;

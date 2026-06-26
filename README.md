@@ -72,6 +72,13 @@ cp .env.example .env
 
 이 조건이 맞지 않으면 실제 OpenAI API를 호출하지 않고 안전한 HOLD / SKIPPED 결과를 남깁니다.
 
+LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`이며, 가격은 모델과 시점에 따라 바뀔 수 있어 코드에 고정하지 않습니다.
+
+```bash
+LLM_INPUT_COST_PER_1M_TOKENS_USD=0
+LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
+```
+
 ## Broker Integration
 
 기본 브로커 provider는 `toss_securities`입니다.

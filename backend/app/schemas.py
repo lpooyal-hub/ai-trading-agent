@@ -286,6 +286,8 @@ class SafetySettingsRead(BaseModel):
     hard_max_position_loss_percent: float
     hard_daily_loss_limit_percent: float
     llm_model_decision: str | None
+    llm_input_cost_per_1m_tokens_usd: float
+    llm_output_cost_per_1m_tokens_usd: float
     openai_timeout_seconds: int
     real_llm_enabled: bool
     toss_base_url: str

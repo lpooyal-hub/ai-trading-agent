@@ -31,6 +31,8 @@ def get_safety_settings() -> SafetySettingsRead:
         hard_max_position_loss_percent=settings.hard_max_position_loss_percent,
         hard_daily_loss_limit_percent=settings.hard_daily_loss_limit_percent,
         llm_model_decision=settings.llm_model_decision,
+        llm_input_cost_per_1m_tokens_usd=settings.llm_input_cost_per_1m_tokens_usd,
+        llm_output_cost_per_1m_tokens_usd=settings.llm_output_cost_per_1m_tokens_usd,
         openai_timeout_seconds=settings.openai_timeout_seconds,
         real_llm_enabled=settings.real_llm_enabled,
         toss_base_url=settings.toss_base_url,
