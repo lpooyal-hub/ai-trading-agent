@@ -1,9 +1,14 @@
+from app.clients.llm_client import LLMCallResult, estimate_usage_from_payload
+
+
 class MockLLMClient:
     """Public-safe LLM mock. It returns deterministic fake decisions."""
 
-    def create_decision(self, candidates: list[dict]) -> dict:
+    model = "mock-llm"
+
+    def create_decision(self, candidates: list[dict]) -> LLMCallResult:
         if not candidates:
-            return {
+            parsed_response = {
                 "symbol": None,
                 "action": "HOLD",
                 "confidence": 0,
@@ -13,9 +18,10 @@ class MockLLMClient:
                 "time_horizon": "short_term",
                 "should_execute": False,
             }
+            return self._result(candidates, parsed_response)
 
         candidate = candidates[0]
-        return {
+        parsed_response = {
             "symbol": candidate["symbol"],
             "action": "BUY",
             "confidence": 0.68,
@@ -25,3 +31,18 @@ class MockLLMClient:
             "time_horizon": "short_term",
             "should_execute": True,
         }
+        return self._result(candidates, parsed_response)
+
+    def _result(self, candidates: list[dict], parsed_response: dict) -> LLMCallResult:
+        usage = estimate_usage_from_payload(candidates, parsed_response)
+        return LLMCallResult(
+            parsed_response=parsed_response,
+            raw_response={
+                "provider": "mock",
+                "model": self.model,
+                "response": parsed_response,
+            },
+            usage=usage,
+            latency_ms=10,
+            success=True,
+        )

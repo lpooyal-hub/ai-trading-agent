@@ -7,6 +7,46 @@ from app.models import LLMPurpose, LLMUsage
 
 
 class LLMUsageService:
+    def record_usage(
+        self,
+        db: Session,
+        *,
+        model: str,
+        purpose: LLMPurpose,
+        symbol: str | None,
+        decision_id: int | None = None,
+        evaluation_id: int | None = None,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        total_tokens: int = 0,
+        estimated_cost_usd: float = 0,
+        latency_ms: int = 0,
+        success: bool = True,
+        error_message: str | None = None,
+        raw_usage_json: dict | None = None,
+        commit: bool = True,
+    ) -> LLMUsage:
+        usage = LLMUsage(
+            model=model,
+            purpose=purpose,
+            symbol=symbol,
+            decision_id=decision_id,
+            evaluation_id=evaluation_id,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated_cost_usd,
+            latency_ms=latency_ms,
+            success=success,
+            error_message=error_message,
+            raw_usage_json=raw_usage_json or {},
+        )
+        db.add(usage)
+        if commit:
+            db.commit()
+            db.refresh(usage)
+        return usage
+
     def list_usage(
         self,
         db: Session,

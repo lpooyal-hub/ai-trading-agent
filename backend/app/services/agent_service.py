@@ -2,15 +2,9 @@ from sqlalchemy.orm import Session
 
 from app.clients.mock_llm_client import MockLLMClient
 from app.config import Settings, get_settings
-from app.models import (
-    AgentAction,
-    AgentDecision,
-    DecisionStatus,
-    LLMUsage,
-    LLMPurpose,
-    MarketSnapshot,
-)
+from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, MarketSnapshot
 from app.risk.llm_budget_manager import LLMBudgetManager
+from app.services.llm_usage_service import LLMUsageService
 from app.services.market_service import MarketService
 
 
@@ -22,6 +16,7 @@ class AgentService:
         self.market_service = MarketService(self.settings)
         self.llm_client = MockLLMClient()
         self.llm_budget_manager = LLMBudgetManager(self.settings)
+        self.llm_usage_service = LLMUsageService()
 
     def run_once(self, db: Session) -> AgentDecision:
         snapshots = self.market_service.refresh_top_universe_snapshots(db)
@@ -42,9 +37,10 @@ class AgentService:
                 reason=f"LLM budget exceeded: {budget['reason']}",
             )
 
-        response = self.llm_client.create_decision([self._snapshot_to_dict(item) for item in candidates])
+        llm_result = self.llm_client.create_decision([self._snapshot_to_dict(item) for item in candidates])
+        response = llm_result.parsed_response
         selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
-        usage = self._estimate_mock_usage(candidates, response)
+        usage = llm_result.usage
         decision = AgentDecision(
             symbol=response["symbol"],
             sector=self.settings.allowed_sector,
@@ -59,8 +55,8 @@ class AgentService:
                 "active_universe": self.settings.active_universe,
                 "source": "mock_market_data",
             },
-            agent_response_json=response,
-            llm_model="mock-llm",
+            agent_response_json=llm_result.raw_response,
+            llm_model=self.llm_client.model,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
@@ -71,20 +67,25 @@ class AgentService:
         )
         db.add(decision)
         db.flush()
-        db.add(
-            LLMUsage(
-                model="mock-llm",
-                purpose=LLMPurpose.DECISION,
-                symbol=decision.symbol,
-                decision_id=decision.id,
-                prompt_tokens=usage["prompt_tokens"],
-                completion_tokens=usage["completion_tokens"],
-                total_tokens=usage["total_tokens"],
-                estimated_cost_usd=0,
-                latency_ms=usage["latency_ms"],
-                success=True,
-                raw_usage_json={"estimated": True, "source": "mock_llm_client"},
-            )
+        self.llm_usage_service.record_usage(
+            db,
+            model=self.llm_client.model,
+            purpose=LLMPurpose.DECISION,
+            symbol=decision.symbol,
+            decision_id=decision.id,
+            prompt_tokens=usage["prompt_tokens"],
+            completion_tokens=usage["completion_tokens"],
+            total_tokens=usage["total_tokens"],
+            estimated_cost_usd=0,
+            latency_ms=llm_result.latency_ms,
+            success=llm_result.success,
+            error_message=llm_result.error_message,
+            raw_usage_json={
+                **usage,
+                "source": "mock_llm_client",
+                "raw_response": llm_result.raw_response,
+            },
+            commit=False,
         )
         db.commit()
         db.refresh(decision)
@@ -165,17 +166,6 @@ class AgentService:
             "change_percent": snapshot.change_percent,
             "volume": snapshot.volume,
             "sector": snapshot.sector,
-        }
-
-    @staticmethod
-    def _estimate_mock_usage(candidates: list[MarketSnapshot], response: dict) -> dict:
-        prompt_tokens = 80 + len(candidates) * 40
-        completion_tokens = max(40, len(str(response)) // 4)
-        return {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-            "latency_ms": 10,
         }
 
     @staticmethod

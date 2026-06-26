@@ -15,6 +15,7 @@
 - 핵심 ORM 모델
 - Pydantic 스키마
 - 에이전트 판단별 LLM 토큰/예상 비용 기록 필드
+- LLM client result wrapper: parsed response, raw response, usage, latency, success status
 - `/health`
 - `/settings/safety`
 - `/settings/llm-budget`
@@ -101,10 +102,11 @@ docker compose up --build
 4. 후보가 있으면 LLM budget guard를 확인합니다.
 5. budget이 초과되면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 6. budget이 남아 있으면 mock LLM 응답으로 `AgentDecision`을 저장합니다.
-7. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
-8. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
-9. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
-10. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
+7. mock LLM client는 parsed response, raw response, usage, latency, success status를 반환합니다.
+8. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
+9. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
+10. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
+11. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다.
 

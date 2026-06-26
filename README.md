@@ -31,6 +31,7 @@
 - Decision approval API for DRY_RUN order simulation
 - LLM token/cost tracking
 - LLM usage summary and budget guardrails
+- LLM client result wrapper for parsed/raw response, usage, latency, and success tracking
 - rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한
 - decision evaluation and reflection
 - React dashboard 구조
