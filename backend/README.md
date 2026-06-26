@@ -52,6 +52,13 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+Docker Compose를 사용할 경우 아래 명령을 프로젝트 루트에서 직접 실행합니다.
+
+```bash
+cd /home/ubuntu/ai-trading-agent
+docker compose up --build
+```
+
 ## 안전 원칙
 
 - 기본 브로커 provider는 `toss_securities`입니다.

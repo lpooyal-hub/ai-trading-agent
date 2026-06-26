@@ -25,6 +25,13 @@ npm install
 npm run dev
 ```
 
+Docker Compose를 사용할 경우 프로젝트 루트에서 실행합니다.
+
+```bash
+cd /home/ubuntu/ai-trading-agent
+docker compose up --build
+```
+
 Backend 주소를 바꾸려면 `.env` 또는 실행 환경에 아래 값을 설정합니다.
 
 ```bash
