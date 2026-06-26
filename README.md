@@ -11,38 +11,38 @@
 - 기본 예시는 `$250` 자본 제한과 반도체 Top 10 Universe를 사용하지만, 사용자는 `.env`에서 자신의 연구 설정으로 바꿀 수 있습니다.
 - 현재 public demo는 mock market data와 mock LLM 응답으로 동작합니다.
 
-## 이 프로젝트가 아닌 것
+## 이 프로젝트가 하지 않는 일
 
-- 수익 보장 자동매매 봇이 아닙니다.
-- 투자 조언 도구가 아닙니다.
-- 기본 설정 그대로 실행했을 때 실주문이 나가는 도구가 아닙니다.
-- 여러 증권사 API를 동시에 지원하는 범용 브로커 플랫폼이 아닙니다.
-- 실제 계좌 데이터, 실제 주문 기록, 실제 API 응답을 저장소에 포함하지 않습니다.
+- 수익을 보장하지 않습니다.
+- 투자 판단을 대신해주지 않습니다.
+- 기본 설정만으로 실제 주문을 보내지 않습니다.
+- 여러 증권사를 한 번에 지원하는 범용 브로커 플랫폼이 아닙니다.
+- 실제 계좌 정보, 실거래 기록, 실제 API 응답을 저장소에 포함하지 않습니다.
 
 ## 핵심 기능
 
-- AI Agent decision logging
-- 설정 가능한 trading universe
-- 기본 예시: semiconductor Top 10 universe
-- 기본 예시: `$250` paper trading capital
+- AI 에이전트 의사결정 기록
+- 설정 가능한 매매 universe
+- 기본 예시: 반도체 Top 10 universe
+- 기본 예시: `$250` paper trading 자본
 - RiskManager 기반 최종 승인/거절
-- legacy position protection
-- DRY_RUN simulated orders
-- Decision approval API for DRY_RUN order simulation
-- LLM token/cost tracking
-- LLM usage summary and budget guardrails
-- LLM client result wrapper for parsed/raw response, usage, latency, and success tracking
+- 기존 보유 포지션 보호
+- DRY_RUN 기반 모의 주문
+- decision 승인 후 DRY_RUN 주문 시뮬레이션
+- LLM 토큰/예상 비용 기록
+- LLM 사용량 요약과 예산 제한
+- LLM 응답, 사용량, 지연 시간, 성공 여부 기록
 - rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한
-- decision evaluation and reflection
+- decision 사후 평가와 회고 기록
 - React dashboard 구조
 
 ## 보안 원칙
 
 - `.env`는 절대 커밋하지 않습니다.
-- API Key는 환경변수로만 관리합니다.
+- API 키는 환경변수로만 관리합니다.
 - 실계좌 데이터는 저장소에 포함하지 않습니다.
-- public demo는 `USE_MOCK_DATA=true`로 실행합니다.
-- live trading은 사용자가 명시적으로 설정을 바꾸고, 코드와 주문 동작을 검토한 뒤 자기 책임으로 활성화해야 합니다.
+- 공개 데모는 `USE_MOCK_DATA=true`로 실행합니다.
+- 실거래는 사용자가 명시적으로 설정을 바꾸고, 코드와 주문 동작을 검토한 뒤 자기 책임으로 활성화해야 합니다.
 
 ## 환경변수 설정
 
@@ -216,4 +216,6 @@ Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false
 
 ## 면책 문구
 
-This project is for research and educational purposes only.
+이 프로젝트는 소프트웨어 엔지니어링, AI 에이전트 연구, paper trading 실험을 위한 도구입니다.
+
+투자 조언이나 금융 자문을 제공하지 않으며, 수익을 보장하지 않습니다. 실제 API 키를 연결하거나 설정을 변경해 운용하는 경우, 모든 거래 판단과 그 결과는 사용자 본인의 책임입니다.

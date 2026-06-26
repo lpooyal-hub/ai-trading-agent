@@ -1,9 +1,9 @@
-# Disclaimer
+# 면책 고지
 
-This project is for software engineering, AI agent research, and trading automation experiments.
+이 프로젝트는 소프트웨어 엔지니어링, AI 에이전트 연구, 트레이딩 자동화 실험을 위한 도구입니다.
 
-It is not financial advice. It is not investment advice. It is not a guaranteed profit system.
+투자 조언, 금융 자문, 매매 권유를 제공하지 않습니다. 또한 수익을 보장하는 시스템이 아닙니다.
 
-Users are responsible for their own trading decisions and for complying with applicable laws, brokerage terms, and platform policies.
+사용자는 자신의 거래 판단, API 키 사용, 브로커 약관 준수, 관련 법규 준수에 대해 스스로 책임져야 합니다.
 
-The default configuration is DRY_RUN / paper trading. Any user who enables live trading or connects brokerage credentials does so at their own risk and is responsible for reviewing the code, configuration, and order behavior before use.
+기본 설정은 `DRY_RUN` / paper trading입니다. 사용자가 실계좌 credential을 연결하거나 live trading 관련 설정을 변경하는 경우, 그에 따른 주문과 결과는 전적으로 사용자 책임입니다.

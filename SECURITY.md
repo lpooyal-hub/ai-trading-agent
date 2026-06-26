@@ -1,26 +1,28 @@
-# Security Policy
+# 보안 정책
 
-This repository is designed to be safe by default, with DRY_RUN and mock data enabled unless the user explicitly changes the configuration.
+이 저장소는 기본값 기준으로 안전하게 실행되도록 설계되어 있습니다. 사용자가 명시적으로 설정을 바꾸지 않는 한 `DRY_RUN=true`, `USE_MOCK_DATA=true`를 기준으로 동작합니다.
 
-## Do Not Commit
+## 커밋하면 안 되는 정보
 
-- API keys
-- `.env` files
-- Real brokerage account IDs
-- Real account numbers
-- Real holdings
-- Real order history
-- Real API responses
-- Real logs or local database files
+- API 키
+- `.env` 파일
+- 실제 증권 계좌 ID
+- 실제 계좌번호
+- 실제 보유 종목과 수량
+- 실제 주문 내역
+- 실제 API 응답 원문
+- 로컬 DB 파일, 로그 파일, 기타 민감한 운영 데이터
 
-## Public Demo Mode
+## 공개 데모 모드
 
-Use `USE_MOCK_DATA=true` for public demos. Mock mode must not call Toss Securities or OpenAI APIs.
+공개 데모나 포트폴리오 시연에서는 `USE_MOCK_DATA=true`를 사용하세요. Mock mode에서는 Toss Securities API나 OpenAI API를 호출하지 않아야 합니다.
 
-## If A Secret Leaks
+## 비밀값이 노출된 경우
 
-Rotate the key immediately, remove it from git history, and audit any systems that used the key.
+키가 노출되었다면 즉시 폐기하거나 재발급하세요. 이후 git history, 배포 환경, 로컬 로그, 사용된 시스템을 함께 점검해야 합니다.
 
-## Live Trading
+## 실거래 관련 주의
 
-Live trading must remain opt-in. Keep `DRY_RUN=true` and `LIVE_TRADING_ENABLED=false` unless you have reviewed the code, configured credentials, and accepted responsibility for any resulting orders. Do not commit credentials, account data, real logs, or real API responses.
+실거래는 반드시 사용자가 명시적으로 opt-in해야 합니다. `DRY_RUN=false` 또는 `LIVE_TRADING_ENABLED=true`로 바꾸기 전에는 코드, 환경변수, 주문 경로, 브로커 약관을 직접 검토해야 합니다.
+
+API 키, 계좌 정보, 실제 로그, 실제 API 응답은 저장소에 커밋하지 않습니다.
