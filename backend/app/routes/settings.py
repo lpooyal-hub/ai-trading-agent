@@ -55,10 +55,12 @@ def get_security_readiness() -> SecurityReadinessRead:
         warnings.append("LIVE_TRADING_ENABLED is true. Public V1 still has no live order implementation.")
     if settings.use_mock_data and settings.has_external_api_credentials:
         warnings.append("Mock mode is enabled while external API credentials are configured.")
-    if not settings.use_mock_data and not settings.toss_credentials_ready:
-        next_actions.append("Configure Toss API credentials or turn USE_MOCK_DATA back on.")
+    if not settings.use_mock_data and not settings.toss_api_credentials_ready:
+        next_actions.append("Configure Toss API key and secret or turn USE_MOCK_DATA back on.")
+    if settings.toss_api_credentials_ready and not settings.toss_account_id:
+        next_actions.append("Set TOSS_ACCOUNT_ID to enable holdings lookup and legacy sync.")
     if settings.toss_credentials_ready and not settings.toss_read_only_ready:
-        next_actions.append("Configure Toss read-only endpoint paths before using broker account or position lookup.")
+        next_actions.append("Configure Toss read-only endpoint paths before using holdings lookup or legacy sync.")
     if not settings.real_llm_enabled:
         next_actions.append("Set USE_MOCK_DATA=false, OPENAI_API_KEY, and LLM_MODEL_DECISION to enable real LLM calls.")
     if settings.real_llm_enabled:

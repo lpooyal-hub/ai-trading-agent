@@ -78,8 +78,10 @@ export function BrokerPage() {
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Credentials" value={booleanStatus(status?.credentials_ready, "Ready", "Incomplete")} />
-        <StatCard label="Read Only" value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")} />
+        <StatCard label="API Credentials" value={booleanStatus(status?.api_credentials_ready, "Ready", "Incomplete")} />
+        <StatCard label="Account Lookup" value={booleanStatus(status?.account_lookup_ready, "Ready", "Not Ready")} />
+        <StatCard label="Account ID" value={booleanStatus(status?.has_account_id, "Set", "Missing")} />
+        <StatCard label="Holdings Lookup" value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")} />
         <StatCard label="Mock Data" value={booleanStatus(status?.use_mock_data, "On", "Off")} />
         <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "On", "Off")} />
       </div>

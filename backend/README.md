@@ -98,7 +98,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - `/decisions/{decision_id}/preview`는 승인 전 예상 주문 수량, 금액, 예산 영향, legacy 보호 여부, RiskManager 결과를 보여줍니다.
 - decision evaluation은 최신 snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
-- `/broker/status`는 Toss Open API credential 설정 여부와 live readiness를 마스킹된 상태값으로만 보여줍니다.
+- `/broker/status`는 Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, live readiness를 마스킹된 상태값으로만 보여줍니다.
 - `/broker/accounts`, `/broker/positions`는 Toss read-only endpoint path가 `.env`에 설정된 경우에만 호출됩니다.
 - `/broker/accounts/normalized`는 Toss 계좌 응답을 마스킹된 내부 표준 계좌 형태로 변환해 보여줍니다.
 - `/broker/positions/normalized`는 Toss 잔고 응답을 내부 표준 포지션 형태로 변환해 보여줍니다.

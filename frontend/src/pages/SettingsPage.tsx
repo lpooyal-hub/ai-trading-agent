@@ -29,8 +29,10 @@ export function SettingsPage() {
       <dl className="settings-list">
         <div><dt>BROKER_PROVIDER</dt><dd>{settings?.broker_provider ?? "toss_securities"}</dd></div>
         <div><dt>Broker Status</dt><dd>{broker?.status_reason ?? "-"}</dd></div>
-        <div><dt>Toss Credentials Ready</dt><dd>{String(broker?.credentials_ready ?? false)}</dd></div>
-        <div><dt>Toss Read-Only Ready</dt><dd>{String(broker?.read_only_ready ?? false)}</dd></div>
+        <div><dt>Toss API Credentials Ready</dt><dd>{String(broker?.api_credentials_ready ?? false)}</dd></div>
+        <div><dt>Toss Account ID Set</dt><dd>{String(broker?.has_account_id ?? false)}</dd></div>
+        <div><dt>Toss Account Lookup Ready</dt><dd>{String(broker?.account_lookup_ready ?? false)}</dd></div>
+        <div><dt>Toss Holdings Lookup Ready</dt><dd>{String(broker?.read_only_ready ?? false)}</dd></div>
         <div><dt>OpenAI Configured</dt><dd>{String(broker?.openai_configured ?? false)}</dd></div>
         <div><dt>Real LLM Ready</dt><dd>{String(broker?.real_llm_ready ?? false)}</dd></div>
         <div><dt>Live Ready</dt><dd>{String(broker?.live_ready ?? false)}</dd></div>

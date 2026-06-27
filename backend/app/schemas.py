@@ -332,7 +332,9 @@ class BrokerStatusRead(BaseModel):
     has_app_key: bool
     has_app_secret: bool
     has_account_id: bool
+    api_credentials_ready: bool
     credentials_ready: bool
+    account_lookup_ready: bool
     read_only_ready: bool
     openai_configured: bool
     real_llm_ready: bool

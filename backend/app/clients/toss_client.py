@@ -13,7 +13,14 @@ class TossClient:
         has_app_key = bool(self.settings.toss_app_key)
         has_app_secret = bool(self.settings.toss_app_secret)
         has_account_id = bool(self.settings.toss_account_id)
-        credentials_ready = has_app_key and has_app_secret and has_account_id
+        api_credentials_ready = has_app_key and has_app_secret
+        credentials_ready = api_credentials_ready and has_account_id
+        account_lookup_ready = bool(
+            not self.settings.use_mock_data
+            and api_credentials_ready
+            and self.settings.toss_token_path
+            and self.settings.toss_accounts_path
+        )
         live_ready = (
             credentials_ready
             and not self.settings.dry_run
@@ -29,12 +36,14 @@ class TossClient:
             "has_app_key": has_app_key,
             "has_app_secret": has_app_secret,
             "has_account_id": has_account_id,
+            "api_credentials_ready": api_credentials_ready,
             "credentials_ready": credentials_ready,
+            "account_lookup_ready": account_lookup_ready,
             "read_only_ready": self.settings.toss_read_only_ready,
             "openai_configured": openai_configured,
             "real_llm_ready": self.settings.real_llm_enabled,
             "live_ready": live_ready,
-            "status_reason": self._status_reason(credentials_ready, live_ready),
+            "status_reason": self._status_reason(api_credentials_ready, credentials_ready, live_ready),
         }
 
     def place_live_order(self, *args, **kwargs):
@@ -169,15 +178,17 @@ class TossClient:
             "raw_response_saved": False,
         }
 
-    def _status_reason(self, credentials_ready: bool, live_ready: bool) -> str:
+    def _status_reason(self, api_credentials_ready: bool, credentials_ready: bool, live_ready: bool) -> str:
         if live_ready:
             return "Toss credentials are configured and live trading flags are enabled."
         if self.settings.use_mock_data:
             return "Mock data mode is enabled."
+        if not api_credentials_ready:
+            return "Toss API key and secret are incomplete."
+        if not credentials_ready:
+            return "Toss API credentials are configured, but TOSS_ACCOUNT_ID is missing."
         if self.settings.dry_run:
             return "DRY_RUN is enabled."
         if not self.settings.live_trading_enabled:
             return "LIVE_TRADING_ENABLED is false."
-        if not credentials_ready:
-            return "Toss credentials are incomplete."
         return "Live trading is not ready."

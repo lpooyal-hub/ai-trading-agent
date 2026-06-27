@@ -272,7 +272,9 @@ export type BrokerStatus = {
   has_app_key: boolean;
   has_app_secret: boolean;
   has_account_id: boolean;
+  api_credentials_ready: boolean;
   credentials_ready: boolean;
+  account_lookup_ready: boolean;
   read_only_ready: boolean;
   openai_configured: boolean;
   real_llm_ready: boolean;
