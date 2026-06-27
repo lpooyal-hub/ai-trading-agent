@@ -8,6 +8,7 @@ export function PortfolioPage() {
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
 
   useEffect(() => {
     Promise.all([api.getPortfolioSummary(), api.getBotPositions(), api.getLegacyPositions()])
@@ -42,15 +43,18 @@ export function PortfolioPage() {
           <p className="eyebrow">Portfolio</p>
           <h2>Bot-Only Positions</h2>
         </div>
-        <button className="secondary-button" onClick={syncLegacyFromBroker} type="button">
+        <button className="secondary-button" disabled={legacySyncBlocked} onClick={syncLegacyFromBroker} type="button">
           Sync Legacy From Broker
         </button>
       </header>
+      {legacySyncBlocked ? <div className="notice">Broker legacy sync is blocked after bot positions exist.</div> : null}
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
         <StatCard label="Available Budget" value={`$${summary?.available_budget_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="Invested" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="PnL" value={`${summary?.unrealized_pnl_percent.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="Bot Positions" value={`${summary?.bot_position_count ?? 0}`} />
+        <StatCard label="Legacy Positions" value={`${summary?.legacy_position_count ?? 0}`} />
       </div>
       <section>
         <h3>Bot Positions</h3>

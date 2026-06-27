@@ -5,6 +5,10 @@ type PositionTableProps = {
   legacyPositions?: LegacyPosition[];
 };
 
+function formatOptionalCurrency(value: number) {
+  return value > 0 ? `$${value.toFixed(2)}` : "-";
+}
+
 export function PositionTable({ botPositions = [], legacyPositions = [] }: PositionTableProps) {
   if (legacyPositions.length) {
     return (
@@ -25,7 +29,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
                 <td>{position.symbol}</td>
                 <td>{position.name}</td>
                 <td>{position.quantity}</td>
-                <td>${position.avg_price.toFixed(2)}</td>
+                <td>{formatOptionalCurrency(position.avg_price)}</td>
                 <td>{position.is_protected ? "Yes" : "No"}</td>
               </tr>
             ))}
