@@ -12,6 +12,7 @@ Dashboard의 `Seed Demo Data` 버튼은 backend `/demo/seed`를 호출해 fictio
 - Decisions
 - Decision Detail
 - Orders
+- Broker
 - Portfolio
 - Evaluations
 - LLM Usage

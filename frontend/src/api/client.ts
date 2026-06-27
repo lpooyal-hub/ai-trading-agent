@@ -258,6 +258,39 @@ export type BrokerStatus = {
   status_reason: string;
 };
 
+export type BrokerAccount = {
+  accountNo?: string;
+  accountSeq?: number;
+  accountType?: string;
+};
+
+export type BrokerPosition = {
+  symbol: string;
+  name: string;
+  quantity: number;
+  avg_price: number;
+  current_price: number;
+  source: string;
+};
+
+export type BrokerAccountsResponse = {
+  success: boolean;
+  status: string;
+  message?: string;
+  data?: {
+    result?: BrokerAccount[];
+  };
+  raw_response_saved: boolean;
+};
+
+export type BrokerPositionsResponse = {
+  success: boolean;
+  status: string;
+  message?: string;
+  positions: BrokerPosition[];
+  raw_response_saved: boolean;
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -296,4 +329,6 @@ export const api = {
   getDemoStatus: () => request<DemoStatus>("/demo/status"),
   seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
   getBrokerStatus: () => request<BrokerStatus>("/broker/status"),
+  getBrokerAccounts: () => request<BrokerAccountsResponse>("/broker/accounts"),
+  getBrokerPositions: () => request<BrokerPositionsResponse>("/broker/positions/normalized"),
 };

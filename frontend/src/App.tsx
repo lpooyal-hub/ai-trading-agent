@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Layout } from "./components/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { BrokerPage } from "./pages/BrokerPage";
 import { DecisionDetailPage } from "./pages/DecisionDetailPage";
 import { DecisionsPage } from "./pages/DecisionsPage";
 import { EvaluationsPage } from "./pages/EvaluationsPage";
@@ -15,6 +16,7 @@ const navItems = [
   { id: "decisions", label: "Decisions" },
   { id: "decision-detail", label: "Decision Detail" },
   { id: "orders", label: "Orders" },
+  { id: "broker", label: "Broker" },
   { id: "portfolio", label: "Portfolio" },
   { id: "market", label: "Market" },
   { id: "evaluations", label: "Evaluations" },
@@ -37,6 +39,7 @@ export default function App() {
       {activePage === "decisions" ? <DecisionsPage onSelectDecision={selectDecision} /> : null}
       {activePage === "decision-detail" ? <DecisionDetailPage decisionId={selectedDecisionId} /> : null}
       {activePage === "orders" ? <OrdersPage /> : null}
+      {activePage === "broker" ? <BrokerPage /> : null}
       {activePage === "portfolio" ? <PortfolioPage /> : null}
       {activePage === "market" ? <MarketPage /> : null}
       {activePage === "evaluations" ? <EvaluationsPage /> : null}
