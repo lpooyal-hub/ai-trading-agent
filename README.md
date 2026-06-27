@@ -205,6 +205,7 @@ Frontend의 `Broker` 화면에서는 backend health, Toss API key/secret 준비 
 Toss holdings 응답에 평균단가나 현재가 필드가 없으면 Broker 화면에서는 `0` 대신 `-`로 표시합니다. 별도 현재가 시세 조회는 아직 연결하지 않았습니다.
 계좌 목록 endpoint가 Toss 권한 또는 상품 범위 문제로 `401 Unauthorized`를 반환해도, `TOSS_ACCOUNT_ID` 기반 holdings 조회가 성공하면 보유 종목은 계속 표시됩니다.
 Toss rate limit을 피하기 위해 Broker 화면의 계좌 목록 조회는 자동 실행하지 않고 `Load Accounts` 버튼으로 수동 호출합니다.
+Toss read-only 성공 응답은 기본 15초 동안 in-memory cache로 재사용합니다. 401/429 같은 실패 응답은 캐시하지 않습니다.
 
 Frontend:
 

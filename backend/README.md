@@ -172,6 +172,8 @@ Toss API 응답 지연 때문에 확인 명령이 오래 걸리면 `--max-time`�
 curl --max-time 10 http://localhost:8000/broker/accounts/normalized
 ```
 
+Toss read-only 성공 응답은 `TOSS_READ_CACHE_TTL_SECONDS` 동안 in-memory cache로 재사용합니다. 기본값은 15초이며, 401/429 같은 실패 응답은 캐시하지 않습니다.
+
 토큰과 API 응답 원문은 저장하지 않습니다.
 
 Endpoint path는 `https://openapi.tossinvest.com` 뒤에 붙는 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 아래와 같습니다.

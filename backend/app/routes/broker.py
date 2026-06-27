@@ -31,6 +31,7 @@ def get_normalized_broker_accounts() -> BrokerAccountPreviewRead:
         message=response.get("message"),
         accounts=accounts,
         raw_response_saved=bool(response.get("raw_response_saved", False)),
+        cache_hit=bool(response.get("cache_hit", False)),
     )
 
 
@@ -51,4 +52,5 @@ def get_normalized_broker_positions() -> BrokerPositionPreviewRead:
         message=response.get("message"),
         positions=positions,
         raw_response_saved=bool(response.get("raw_response_saved", False)),
+        cache_hit=bool(response.get("cache_hit", False)),
     )

@@ -70,6 +70,7 @@ class BrokerAccountPreviewRead(BaseModel):
     message: str | None = None
     accounts: list[BrokerAccountRead]
     raw_response_saved: bool = False
+    cache_hit: bool = False
 
 
 class BrokerPositionPreviewRead(BaseModel):
@@ -78,6 +79,7 @@ class BrokerPositionPreviewRead(BaseModel):
     message: str | None = None
     positions: list[BrokerPositionRead]
     raw_response_saved: bool = False
+    cache_hit: bool = False
 
 
 class LegacyPositionBrokerSyncResponse(BaseModel):

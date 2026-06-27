@@ -1,8 +1,12 @@
 import json
+import time
 from urllib import error, parse, request
 
 from app.config import Settings, get_settings
 from app.models import OrderStatus
+
+
+_READ_CACHE: dict[tuple[str, bool, str], tuple[float, dict]] = {}
 
 
 class TossClient:
@@ -82,6 +86,11 @@ class TossClient:
         if not path:
             return self._todo_read_only_response("Toss read-only endpoint path is not configured.")
 
+        cache_key = self._cache_key(path, include_account_header)
+        cached_response = self._cached_response(cache_key)
+        if cached_response:
+            return cached_response
+
         token_result = self._issue_access_token()
         if not token_result["success"]:
             return token_result
@@ -98,14 +107,46 @@ class TossClient:
         try:
             with request.urlopen(req, timeout=self.settings.toss_timeout_seconds) as response:
                 body = json.loads(response.read().decode("utf-8"))
-            return {
+            response_payload = {
                 "success": True,
                 "status": "OK",
                 "data": body,
                 "raw_response_saved": False,
             }
+            self._store_cached_response(cache_key, response_payload)
+            return response_payload
         except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             return self._safe_error_response(exc)
+
+    def _cache_key(self, path: str, include_account_header: bool) -> tuple[str, bool, str]:
+        account_id = self.settings.toss_account_id or ""
+        return (path, include_account_header, account_id)
+
+    def _cached_response(self, cache_key: tuple[str, bool, str]) -> dict | None:
+        ttl_seconds = self.settings.toss_read_cache_ttl_seconds
+        if ttl_seconds <= 0:
+            return None
+
+        cached = _READ_CACHE.get(cache_key)
+        if not cached:
+            return None
+
+        cached_at, payload = cached
+        if time.monotonic() - cached_at > ttl_seconds:
+            _READ_CACHE.pop(cache_key, None)
+            return None
+
+        return {
+            **payload,
+            "cache_hit": True,
+        }
+
+    def _store_cached_response(self, cache_key: tuple[str, bool, str], payload: dict) -> None:
+        ttl_seconds = self.settings.toss_read_cache_ttl_seconds
+        if ttl_seconds <= 0 or not payload.get("success"):
+            return
+
+        _READ_CACHE[cache_key] = (time.monotonic(), payload)
 
     def _issue_access_token(self) -> dict:
         if not self.settings.toss_token_path:

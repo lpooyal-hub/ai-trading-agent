@@ -309,6 +309,7 @@ export type BrokerAccountsResponse = {
   message?: string;
   accounts: BrokerAccount[];
   raw_response_saved: boolean;
+  cache_hit: boolean;
 };
 
 export type BrokerPositionsResponse = {
@@ -318,6 +319,7 @@ export type BrokerPositionsResponse = {
   message?: string;
   positions: BrokerPosition[];
   raw_response_saved: boolean;
+  cache_hit: boolean;
 };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
