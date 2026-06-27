@@ -7,6 +7,7 @@ from app.schemas import (
     MarketSnapshotBulkCreateResponse,
     MarketSnapshotRead,
     MarketSnapshotRefreshResponse,
+    MarketSnapshotStatusRead,
 )
 from app.services.market_service import MarketService
 
@@ -22,6 +23,12 @@ def list_market_snapshots(db: Session = Depends(get_db)) -> list[MarketSnapshotR
 @router.get("/snapshots/latest", response_model=list[MarketSnapshotRead])
 def list_latest_universe_snapshots(db: Session = Depends(get_db)) -> list[MarketSnapshotRead]:
     return MarketService().get_latest_universe_snapshots(db)
+
+
+@router.get("/snapshots/status", response_model=MarketSnapshotStatusRead)
+def get_market_snapshot_status(db: Session = Depends(get_db)) -> MarketSnapshotStatusRead:
+    result = MarketService().get_snapshot_status(db)
+    return MarketSnapshotStatusRead(**result)
 
 
 @router.post("/snapshots", response_model=MarketSnapshotBulkCreateResponse)

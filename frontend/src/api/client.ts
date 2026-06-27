@@ -179,6 +179,16 @@ export type MarketSnapshotRefreshResponse = MarketSnapshotCreateResponse & {
   message: string;
 };
 
+export type MarketSnapshotStatus = {
+  active_universe: string[];
+  fresh_symbol_count: number;
+  missing_symbol_count: number;
+  missing_symbols: string[];
+  max_age_minutes: number;
+  ready_for_agent: boolean;
+  message: string;
+};
+
 export type LLMUsage = {
   id: number;
   created_at: string;
@@ -368,6 +378,7 @@ export const api = {
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
   getMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots"),
   getLatestMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots/latest"),
+  getMarketSnapshotStatus: () => request<MarketSnapshotStatus>("/market/snapshots/status"),
   refreshMarketSnapshots: () => request<MarketSnapshotRefreshResponse>("/market/snapshots/refresh", { method: "POST" }),
   createMarketSnapshots: (snapshots: MarketSnapshotInput[]) => request<MarketSnapshotCreateResponse>("/market/snapshots", {
     method: "POST",

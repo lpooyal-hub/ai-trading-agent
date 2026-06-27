@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { api, MarketSnapshot } from "../api/client";
+import { api, MarketSnapshot, MarketSnapshotStatus } from "../api/client";
+import { StatCard } from "../components/StatCard";
 
 export function MarketPage() {
   const [snapshots, setSnapshots] = useState<MarketSnapshot[]>([]);
+  const [status, setStatus] = useState<MarketSnapshotStatus | null>(null);
   const [symbol, setSymbol] = useState("NVDA");
   const [price, setPrice] = useState("0");
   const [changePercent, setChangePercent] = useState("0");
@@ -10,9 +12,15 @@ export function MarketPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const refresh = () => {
-    api.getLatestMarketSnapshots()
-      .then(setSnapshots)
-      .catch(() => setSnapshots([]));
+    Promise.all([api.getLatestMarketSnapshots(), api.getMarketSnapshotStatus()])
+      .then(([snapshotRows, snapshotStatus]) => {
+        setSnapshots(snapshotRows);
+        setStatus(snapshotStatus);
+      })
+      .catch(() => {
+        setSnapshots([]);
+        setStatus(null);
+      });
   };
 
   useEffect(() => {
@@ -32,7 +40,11 @@ export function MarketPage() {
     ])
       .then((result) => {
         setMessage(`${result.created_count} saved, ${result.skipped_count} skipped.`);
-        refresh();
+        return Promise.all([api.getLatestMarketSnapshots(), api.getMarketSnapshotStatus()]);
+      })
+      .then(([snapshotRows, snapshotStatus]) => {
+        setSnapshots(snapshotRows);
+        setStatus(snapshotStatus);
       })
       .catch(() => setMessage("Market snapshot save failed."));
   };
@@ -42,7 +54,9 @@ export function MarketPage() {
       .then((result) => {
         setSnapshots(result.snapshots);
         setMessage(`${result.message} ${result.created_count} saved, ${result.skipped_count} skipped.`);
+        return api.getMarketSnapshotStatus();
       })
+      .then(setStatus)
       .catch(() => setMessage("Market snapshot refresh failed."));
   };
 
@@ -59,6 +73,11 @@ export function MarketPage() {
         </div>
       </header>
       {message ? <div className="notice">{message}</div> : null}
+      <div className="stat-grid">
+        <StatCard label="Agent Ready" value={status?.ready_for_agent ? "Ready" : "Not Ready"} detail={status?.message} />
+        <StatCard label="Fresh Symbols" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}m freshness window`} />
+        <StatCard label="Missing Symbols" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.slice(0, 4).join(", ") || "None"} />
+      </div>
       <div className="filter-row">
         <label>
           Symbol

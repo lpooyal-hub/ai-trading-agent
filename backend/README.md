@@ -143,6 +143,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 실전 운용 전에는 `/market/snapshots`로 Top 10 universe 종목의 최신 가격, 등락률, 거래량을 저장할 수 있습니다.
 
 ```bash
+curl http://localhost:8000/market/snapshots/status
 curl http://localhost:8000/market/snapshots/latest
 curl -X POST http://localhost:8000/market/snapshots/refresh
 curl -X POST http://localhost:8000/market/snapshots \
@@ -151,6 +152,7 @@ curl -X POST http://localhost:8000/market/snapshots \
 ```
 
 `/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 호출하지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
+`/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다.
 
 허용 universe 밖의 심볼이나 semiconductor가 아닌 sector는 저장하지 않습니다.
 

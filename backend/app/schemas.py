@@ -275,6 +275,16 @@ class MarketSnapshotRefreshResponse(BaseModel):
     snapshots: list[MarketSnapshotRead]
 
 
+class MarketSnapshotStatusRead(BaseModel):
+    active_universe: list[str]
+    fresh_symbol_count: int
+    missing_symbol_count: int
+    missing_symbols: list[str]
+    max_age_minutes: int
+    ready_for_agent: bool
+    message: str
+
+
 class LLMUsageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -63,6 +63,26 @@ class MarketService:
             "snapshots": snapshots,
         }
 
+    def get_snapshot_status(self, db: Session) -> dict:
+        latest_snapshots = self.get_latest_universe_snapshots(db)
+        fresh_symbols = {snapshot.symbol for snapshot in latest_snapshots}
+        active_universe = self.settings.active_universe
+        missing_symbols = [symbol for symbol in active_universe if symbol not in fresh_symbols]
+        ready_for_agent = bool(latest_snapshots)
+        if ready_for_agent:
+            message = f"{len(latest_snapshots)} fresh market snapshots are available for agent input."
+        else:
+            message = "No fresh market snapshots are available for agent input."
+        return {
+            "active_universe": active_universe,
+            "fresh_symbol_count": len(latest_snapshots),
+            "missing_symbol_count": len(missing_symbols),
+            "missing_symbols": missing_symbols,
+            "max_age_minutes": self.settings.market_snapshot_max_age_minutes,
+            "ready_for_agent": ready_for_agent,
+            "message": message,
+        }
+
     def create_snapshots(
         self,
         db: Session,
