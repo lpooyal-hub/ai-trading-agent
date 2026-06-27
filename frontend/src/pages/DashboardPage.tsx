@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, DemoStatus, LLMBudget, LLMUsageSummary, PortfolioSummary, TradeOrder } from "../api/client";
+import { api, AgentDecision, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioSummary, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -9,6 +9,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [llmSummary, setLlmSummary] = useState<LLMUsageSummary | null>(null);
   const [llmBudget, setLlmBudget] = useState<LLMBudget | null>(null);
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null);
+  const [marketStatus, setMarketStatus] = useState<MarketSnapshotStatus | null>(null);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -19,14 +20,16 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getLLMSummary(),
       api.getLLMBudget(),
       api.getDemoStatus(),
+      api.getMarketSnapshotStatus(),
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, usage, budget, demo, decisionRows, orderRows]) => {
+      .then(([portfolio, usage, budget, demo, market, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setLlmSummary(usage);
         setLlmBudget(budget);
         setDemoStatus(demo);
+        setMarketStatus(market);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
       })
@@ -38,13 +41,14 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .then((status) => {
         setDemoStatus(status);
         setError(status.message);
-        return Promise.all([api.getPortfolioSummary(), api.getDecisions(), api.getOrders(), api.getLLMSummary()]);
+        return Promise.all([api.getPortfolioSummary(), api.getDecisions(), api.getOrders(), api.getLLMSummary(), api.getMarketSnapshotStatus()]);
       })
-      .then(([portfolio, decisionRows, orderRows, usage]) => {
+      .then(([portfolio, decisionRows, orderRows, usage, market]) => {
         setSummary(portfolio);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
         setLlmSummary(usage);
+        setMarketStatus(market);
       })
       .catch(() => setError("Demo seed failed."));
   };
@@ -80,6 +84,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Monthly LLM Cost" value={`$${llmSummary?.monthly_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />
         <StatCard label="LLM Budget Left" value={`$${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
         <StatCard label="Average Latency" value={`${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`} />
+        <StatCard label="Market Ready" value={marketStatus?.ready_for_agent ? "Ready" : "Not Ready"} detail={marketStatus?.message} />
+        <StatCard label="Fresh Symbols" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0} missing`} />
         <StatCard
           label="Demo Mode"
           value={demoStatus?.demo_enabled ? "Enabled" : "Disabled"}
