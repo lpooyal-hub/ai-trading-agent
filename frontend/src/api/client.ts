@@ -23,6 +23,12 @@ function resolveApiBaseUrl() {
 export const API_BASE_URL = resolveApiBaseUrl();
 const REQUEST_TIMEOUT_MS = 12000;
 
+export type HealthResponse = {
+  status: string;
+  app_name: string;
+  dry_run: boolean;
+};
+
 export type PortfolioSummary = {
   bot_capital_limit_usd: number;
   invested_amount_usd: number;
@@ -341,6 +347,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  getHealth: () => request<HealthResponse>("/health"),
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),

@@ -201,7 +201,7 @@ Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss O
 
 `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
 
-Frontend의 `Broker` 화면에서는 Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
+Frontend의 `Broker` 화면에서는 backend health, Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
 
 Frontend:
 

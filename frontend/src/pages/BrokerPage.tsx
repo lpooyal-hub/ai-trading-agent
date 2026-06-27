@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus } from "../api/client";
+import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus, HealthResponse } from "../api/client";
 import { StatCard } from "../components/StatCard";
 
 function errorMessage(error: unknown, fallback: string) {
@@ -12,6 +12,7 @@ function booleanStatus(value: boolean | undefined, trueLabel: string, falseLabel
 }
 
 export function BrokerPage() {
+  const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
   const [positions, setPositions] = useState<BrokerPosition[]>([]);
@@ -23,6 +24,13 @@ export function BrokerPage() {
 
   const refresh = () => {
     setMessage(null);
+
+    api.getHealth()
+      .then((health) => setBackendHealth(health))
+      .catch((error) => {
+        setBackendHealth(null);
+        appendMessage(`Backend health is not available: ${errorMessage(error, "Request failed")}`);
+      });
 
     api.getBrokerStatus()
       .then((brokerStatus) => setStatus(brokerStatus))
@@ -79,6 +87,7 @@ export function BrokerPage() {
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
+        <StatCard label="Backend API" value={backendHealth?.status === "ok" ? "Online" : "Unknown"} detail={backendHealth?.dry_run ? "DRY_RUN backend" : undefined} />
         <StatCard label="API Credentials" value={booleanStatus(status?.api_credentials_ready, "Ready", "Incomplete")} />
         <StatCard label="Account Lookup" value={booleanStatus(status?.account_lookup_ready, "Ready", "Not Ready")} />
         <StatCard label="Account ID" value={booleanStatus(status?.has_account_id, "Set", "Missing")} />
