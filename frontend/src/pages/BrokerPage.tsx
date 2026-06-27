@@ -15,6 +15,11 @@ function formatOptionalNumber(value: number) {
   return value > 0 ? value.toLocaleString() : "-";
 }
 
+function brokerResponseMessage(label: string, response: { status: string; http_status_code?: number | null; message?: string }) {
+  const statusCode = response.http_status_code ? `HTTP ${response.http_status_code}` : response.status;
+  return `${label} failed: ${statusCode}${response.message ? ` - ${response.message}` : ""}`;
+}
+
 export function BrokerPage() {
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
@@ -23,7 +28,10 @@ export function BrokerPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const appendMessage = (nextMessage: string) => {
-    setMessage((current) => current ? `${current} ${nextMessage}` : nextMessage);
+    setMessage((current) => {
+      if (!current) return nextMessage;
+      return current.includes(nextMessage) ? current : `${current} ${nextMessage}`;
+    });
   };
 
   const refresh = () => {
@@ -47,7 +55,7 @@ export function BrokerPage() {
       .then((accountResponse) => {
         setAccounts(accountResponse.accounts ?? []);
         if (!accountResponse.success) {
-          appendMessage(accountResponse.message ?? accountResponse.status ?? "Broker accounts are not available.");
+          appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
         }
       })
       .catch((error) => {
@@ -59,7 +67,7 @@ export function BrokerPage() {
       .then((positionResponse) => {
         setPositions(positionResponse.positions ?? []);
         if (!positionResponse.success) {
-          appendMessage(positionResponse.message ?? positionResponse.status ?? "Broker holdings are not available.");
+          appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
         }
       })
       .catch((error) => {

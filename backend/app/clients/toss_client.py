@@ -171,9 +171,11 @@ class TossClient:
 
     @staticmethod
     def _safe_error_response(exc: Exception) -> dict:
+        http_status_code = exc.code if isinstance(exc, error.HTTPError) else None
         return {
             "success": False,
             "status": "FAILED",
+            "http_status_code": http_status_code,
             "message": str(exc).replace("\n", " ")[:500],
             "raw_response_saved": False,
         }

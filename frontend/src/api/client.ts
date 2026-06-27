@@ -305,6 +305,7 @@ export type BrokerPosition = {
 export type BrokerAccountsResponse = {
   success: boolean;
   status: string;
+  http_status_code?: number | null;
   message?: string;
   accounts: BrokerAccount[];
   raw_response_saved: boolean;
@@ -313,6 +314,7 @@ export type BrokerAccountsResponse = {
 export type BrokerPositionsResponse = {
   success: boolean;
   status: string;
+  http_status_code?: number | null;
   message?: string;
   positions: BrokerPosition[];
   raw_response_saved: boolean;

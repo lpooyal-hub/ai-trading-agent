@@ -203,6 +203,7 @@ Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss O
 
 Frontend의 `Broker` 화면에서는 backend health, Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
 Toss holdings 응답에 평균단가나 현재가 필드가 없으면 Broker 화면에서는 `0` 대신 `-`로 표시합니다. 별도 현재가 시세 조회는 아직 연결하지 않았습니다.
+계좌 목록 endpoint가 Toss 권한 또는 상품 범위 문제로 `401 Unauthorized`를 반환해도, `TOSS_ACCOUNT_ID` 기반 holdings 조회가 성공하면 보유 종목은 계속 표시됩니다.
 
 Frontend:
 
