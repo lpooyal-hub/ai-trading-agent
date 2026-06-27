@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     app_name: str = "AI Trading Agent Research Platform"
     environment: str = "development"
     database_url: str = "sqlite:///./data/trading_agent.db"
+    cors_allowed_origins_csv: str = Field(
+        default="http://localhost:5173,http://localhost:3000",
+        validation_alias="CORS_ALLOWED_ORIGINS",
+    )
 
     broker_provider: str = "toss_securities"
     dry_run: bool = True
@@ -80,6 +84,14 @@ class Settings(BaseSettings):
     @staticmethod
     def _split_csv(value: str) -> list[str]:
         return [item.strip().upper() for item in value.split(",") if item.strip()]
+
+    @staticmethod
+    def _split_csv_preserve_case(value: str) -> list[str]:
+        return [item.strip() for item in value.split(",") if item.strip()]
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        return self._split_csv_preserve_case(self.cors_allowed_origins_csv)
 
     @property
     def allowed_symbols(self) -> list[str]:

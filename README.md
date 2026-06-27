@@ -228,6 +228,12 @@ curl http://localhost:81/health
 VITE_API_BASE_URL=http://<SERVER_IP>:81 docker compose up --build
 ```
 
+이때 backend가 브라우저 요청을 허용하도록 `backend/.env`의 `CORS_ALLOWED_ORIGINS`에도 frontend 주소를 추가합니다.
+
+```bash
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_IP>:3000
+```
+
 다른 포트를 쓰려면 실행 시 `BACKEND_PORT`, `FRONTEND_PORT`, `VITE_API_BASE_URL`을 함께 지정합니다.
 
 ```bash
