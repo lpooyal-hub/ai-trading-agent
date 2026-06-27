@@ -34,10 +34,16 @@ cd /home/ubuntu/ai-trading-agent
 docker compose up --build
 ```
 
-Docker Compose 기본 frontend 주소는 `http://localhost:5176`입니다. Backend는 host `8022`로 노출됩니다.
+Docker Compose 기본 frontend 주소는 `http://localhost:3000`입니다. Backend는 host `81`로 노출됩니다.
 
 Backend 주소를 바꾸려면 `.env` 또는 실행 환경에 아래 값을 설정합니다.
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8022
+VITE_API_BASE_URL=http://localhost:81
+```
+
+외부 서버에서 브라우저로 확인할 때는 `localhost` 대신 서버 IP를 사용합니다.
+
+```bash
+VITE_API_BASE_URL=http://<SERVER_IP>:81
 ```
