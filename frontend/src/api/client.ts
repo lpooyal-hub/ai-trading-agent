@@ -1,4 +1,26 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+function resolveApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_BASE_URL;
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (typeof window === "undefined") {
+    return "http://localhost:8000";
+  }
+
+  const { protocol, hostname, port } = window.location;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+
+  if (isLocalhost && port === "5173") {
+    return "http://localhost:8000";
+  }
+  if (isLocalhost) {
+    return "http://localhost:81";
+  }
+  return `${protocol}//${hostname}:81`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export type PortfolioSummary = {
   bot_capital_limit_usd: number;

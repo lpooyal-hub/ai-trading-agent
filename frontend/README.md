@@ -37,13 +37,19 @@ docker compose up --build
 
 Docker Compose 기본 frontend 주소는 `http://localhost:3000`입니다. Backend는 host `81`로 노출됩니다.
 
-Backend 주소를 바꾸려면 `.env` 또는 실행 환경에 아래 값을 설정합니다.
+Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 접속한 frontend 주소를 기준으로 자동 추론합니다.
+
+- `http://localhost:5173`에서 열면 `http://localhost:8000`
+- `http://localhost:3000`에서 열면 `http://localhost:81`
+- `http://<SERVER_IP>:3000`에서 열면 `http://<SERVER_IP>:81`
+
+Backend 주소를 직접 고정하려면 `.env` 또는 실행 환경에 아래 값을 설정합니다.
 
 ```bash
 VITE_API_BASE_URL=http://localhost:81
 ```
 
-외부 서버에서 브라우저로 확인할 때는 `localhost` 대신 서버 IP를 사용합니다.
+외부 서버에서 backend 주소를 직접 고정할 때는 `localhost` 대신 서버 IP를 사용합니다.
 
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81

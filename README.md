@@ -211,7 +211,13 @@ npm install
 npm run dev
 ```
 
-기본 frontend API 주소는 `http://localhost:8000`입니다. 다른 주소를 쓰려면 `VITE_API_BASE_URL`을 설정합니다.
+Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 접속한 frontend 주소를 기준으로 자동 추론합니다.
+
+- `http://localhost:5173`에서 열면 `http://localhost:8000`
+- `http://localhost:3000`에서 열면 `http://localhost:81`
+- `http://<SERVER_IP>:3000`에서 열면 `http://<SERVER_IP>:81`
+
+다른 주소를 쓰려면 `VITE_API_BASE_URL`을 명시합니다.
 
 Docker Compose:
 
@@ -229,7 +235,7 @@ Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다.
 curl http://localhost:81/health
 ```
 
-외부 서버에서 브라우저로 확인할 때는 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
+외부 서버에서 브라우저로 확인할 때도 기본값은 `http://<SERVER_IP>:81`로 자동 추론됩니다. 명시적으로 고정하려면 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
 
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81 docker compose up --build
