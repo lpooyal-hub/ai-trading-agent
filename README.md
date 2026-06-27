@@ -227,7 +227,7 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다.
+Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다. Frontend는 `VITE_API_BASE_URL`을 지정하지 않으면 브라우저 접속 주소 기준으로 backend 주소를 자동 추론합니다.
 
 Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다.
 
@@ -235,7 +235,7 @@ Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다.
 curl http://localhost:81/health
 ```
 
-외부 서버에서 브라우저로 확인할 때도 기본값은 `http://<SERVER_IP>:81`로 자동 추론됩니다. 명시적으로 고정하려면 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
+외부 서버에서 브라우저로 확인할 때도 기본값은 `http://<SERVER_IP>:81`로 자동 추론됩니다. 명시적으로 고정해야 할 때만 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
 
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81 docker compose up --build
