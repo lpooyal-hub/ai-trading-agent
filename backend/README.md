@@ -144,10 +144,13 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 
 ```bash
 curl http://localhost:8000/market/snapshots/latest
+curl -X POST http://localhost:8000/market/snapshots/refresh
 curl -X POST http://localhost:8000/market/snapshots \
   -H "Content-Type: application/json" \
   -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
 ```
+
+`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 호출하지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
 
 허용 universe 밖의 심볼이나 semiconductor가 아닌 sector는 저장하지 않습니다.
 

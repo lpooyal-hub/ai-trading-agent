@@ -6,6 +6,7 @@ from app.schemas import (
     MarketSnapshotBulkCreate,
     MarketSnapshotBulkCreateResponse,
     MarketSnapshotRead,
+    MarketSnapshotRefreshResponse,
 )
 from app.services.market_service import MarketService
 
@@ -34,3 +35,9 @@ def create_market_snapshots(
         skipped_count=skipped_count,
         snapshots=created,
     )
+
+
+@router.post("/snapshots/refresh", response_model=MarketSnapshotRefreshResponse)
+def refresh_market_snapshots(db: Session = Depends(get_db)) -> MarketSnapshotRefreshResponse:
+    result = MarketService().refresh_top_universe_snapshot_result(db)
+    return MarketSnapshotRefreshResponse(**result)

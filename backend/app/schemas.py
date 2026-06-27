@@ -267,6 +267,14 @@ class MarketSnapshotBulkCreateResponse(BaseModel):
     snapshots: list[MarketSnapshotRead]
 
 
+class MarketSnapshotRefreshResponse(BaseModel):
+    created_count: int
+    skipped_count: int
+    source: str
+    message: str
+    snapshots: list[MarketSnapshotRead]
+
+
 class LLMUsageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -44,6 +44,25 @@ class MarketService:
 
         return snapshots
 
+    def refresh_top_universe_snapshot_result(self, db: Session) -> dict:
+        if not self.settings.use_mock_data:
+            return {
+                "created_count": 0,
+                "skipped_count": 0,
+                "source": "stored_market_snapshots",
+                "message": "External market data refresh is not connected yet. Use manual snapshots or an external feeder.",
+                "snapshots": self.get_latest_universe_snapshots(db),
+            }
+
+        snapshots = self.refresh_top_universe_snapshots(db)
+        return {
+            "created_count": len(snapshots),
+            "skipped_count": 0,
+            "source": "fictional_demo_data",
+            "message": "Demo market snapshots refreshed from mock data.",
+            "snapshots": snapshots,
+        }
+
     def create_snapshots(
         self,
         db: Session,

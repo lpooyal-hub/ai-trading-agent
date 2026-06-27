@@ -37,6 +37,15 @@ export function MarketPage() {
       .catch(() => setMessage("Market snapshot save failed."));
   };
 
+  const refreshFromSource = () => {
+    api.refreshMarketSnapshots()
+      .then((result) => {
+        setSnapshots(result.snapshots);
+        setMessage(`${result.message} ${result.created_count} saved, ${result.skipped_count} skipped.`);
+      })
+      .catch(() => setMessage("Market snapshot refresh failed."));
+  };
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -44,7 +53,10 @@ export function MarketPage() {
           <p className="eyebrow">Market Inputs</p>
           <h2>Manual Snapshots</h2>
         </div>
-        <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
+        <div className="button-row">
+          <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
+          <button className="primary-button" onClick={refreshFromSource} type="button">Refresh Source</button>
+        </div>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="filter-row">

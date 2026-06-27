@@ -158,10 +158,13 @@ Update market snapshots:
 
 ```bash
 curl http://localhost:8000/market/snapshots/latest
+curl -X POST http://localhost:8000/market/snapshots/refresh
 curl -X POST http://localhost:8000/market/snapshots \
   -H "Content-Type: application/json" \
   -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
 ```
+
+`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 직접 호출하지 않으며, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
 
 `USE_MOCK_DATA=false`에서는 agent가 저장된 최신 market snapshot만 사용합니다. 허용 Top 10 universe 밖의 심볼은 저장하지 않으며, `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 

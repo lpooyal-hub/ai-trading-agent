@@ -124,6 +124,13 @@ section h3 {
   background: #4f6356;
 }
 
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .primary-button {
   padding: 10px 14px;
 }
@@ -301,5 +308,9 @@ dd {
   .page-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .button-row {
+    justify-content: flex-start;
   }
 }
