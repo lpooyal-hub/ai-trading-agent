@@ -2,12 +2,6 @@ import { useEffect, useState } from "react";
 import { api, BrokerAccount, BrokerPosition, BrokerStatus } from "../api/client";
 import { StatCard } from "../components/StatCard";
 
-function maskAccountNo(accountNo?: string) {
-  if (!accountNo) return "-";
-  if (accountNo.length <= 4) return "****";
-  return `${accountNo.slice(0, 3)}****${accountNo.slice(-4)}`;
-}
-
 export function BrokerPage() {
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
@@ -15,14 +9,40 @@ export function BrokerPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const refresh = () => {
-    Promise.all([api.getBrokerStatus(), api.getBrokerAccounts(), api.getBrokerPositions()])
-      .then(([brokerStatus, accountResponse, positionResponse]) => {
-        setStatus(brokerStatus);
-        setAccounts(accountResponse.data?.result ?? []);
-        setPositions(positionResponse.positions ?? []);
-        setMessage(positionResponse.success ? null : positionResponse.message ?? positionResponse.status);
-      })
-      .catch(() => setMessage("Broker data is not available."));
+    Promise.allSettled([api.getBrokerStatus(), api.getBrokerAccounts(), api.getBrokerPositions()])
+      .then(([statusResult, accountResult, positionResult]) => {
+        const messages: string[] = [];
+
+        if (statusResult.status === "fulfilled") {
+          setStatus(statusResult.value);
+        } else {
+          messages.push("Broker status is not available.");
+        }
+
+        if (accountResult.status === "fulfilled") {
+          const accountResponse = accountResult.value;
+          setAccounts(accountResponse.accounts ?? []);
+          if (!accountResponse.success) {
+            messages.push(accountResponse.message ?? accountResponse.status ?? "Broker accounts are not available.");
+          }
+        } else {
+          setAccounts([]);
+          messages.push("Broker accounts are not available.");
+        }
+
+        if (positionResult.status === "fulfilled") {
+          const positionResponse = positionResult.value;
+          setPositions(positionResponse.positions ?? []);
+          if (!positionResponse.success) {
+            messages.push(positionResponse.message ?? positionResponse.status ?? "Broker holdings are not available.");
+          }
+        } else {
+          setPositions([]);
+          messages.push("Broker holdings are not available.");
+        }
+
+        setMessage(messages.length ? messages.join(" ") : null);
+      });
   };
 
   useEffect(() => {
@@ -65,10 +85,10 @@ export function BrokerPage() {
             </thead>
             <tbody>
               {accounts.map((account) => (
-                <tr key={`${account.accountSeq}-${account.accountNo}`}>
-                  <td>{maskAccountNo(account.accountNo)}</td>
-                  <td>{account.accountSeq ?? "-"}</td>
-                  <td>{account.accountType ?? "-"}</td>
+                <tr key={`${account.account_seq}-${account.masked_account_no}`}>
+                  <td>{account.masked_account_no}</td>
+                  <td>{account.account_seq ?? "-"}</td>
+                  <td>{account.account_type ?? "-"}</td>
                 </tr>
               ))}
               {!accounts.length ? (

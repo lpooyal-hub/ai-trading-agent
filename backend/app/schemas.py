@@ -57,6 +57,21 @@ class BrokerPositionRead(BaseModel):
     source: str
 
 
+class BrokerAccountRead(BaseModel):
+    masked_account_no: str
+    account_seq: int | None = None
+    account_type: str | None = None
+    source: str
+
+
+class BrokerAccountPreviewRead(BaseModel):
+    success: bool
+    status: str
+    message: str | None = None
+    accounts: list[BrokerAccountRead]
+    raw_response_saved: bool = False
+
+
 class BrokerPositionPreviewRead(BaseModel):
     success: bool
     status: str

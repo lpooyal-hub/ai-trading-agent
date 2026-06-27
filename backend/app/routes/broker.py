@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
 from app.clients.toss_client import TossClient
-from app.schemas import BrokerPositionPreviewRead, BrokerStatusRead
+from app.schemas import BrokerAccountPreviewRead, BrokerPositionPreviewRead, BrokerStatusRead
+from app.services.broker_account_normalizer import BrokerAccountNormalizer
 from app.services.broker_position_normalizer import BrokerPositionNormalizer
 
 
@@ -16,6 +17,21 @@ def get_broker_status() -> BrokerStatusRead:
 @router.get("/accounts")
 def get_broker_accounts() -> dict:
     return TossClient().get_accounts()
+
+
+@router.get("/accounts/normalized", response_model=BrokerAccountPreviewRead)
+def get_normalized_broker_accounts() -> BrokerAccountPreviewRead:
+    response = TossClient().get_accounts()
+    accounts = []
+    if response.get("success"):
+        accounts = BrokerAccountNormalizer().normalize_accounts(response.get("data"))
+    return BrokerAccountPreviewRead(
+        success=bool(response.get("success")),
+        status=str(response.get("status", "UNKNOWN")),
+        message=response.get("message"),
+        accounts=accounts,
+        raw_response_saved=bool(response.get("raw_response_saved", False)),
+    )
 
 
 @router.get("/positions")

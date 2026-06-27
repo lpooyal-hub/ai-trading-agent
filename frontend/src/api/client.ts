@@ -259,9 +259,10 @@ export type BrokerStatus = {
 };
 
 export type BrokerAccount = {
-  accountNo?: string;
-  accountSeq?: number;
-  accountType?: string;
+  masked_account_no: string;
+  account_seq?: number | null;
+  account_type?: string | null;
+  source: string;
 };
 
 export type BrokerPosition = {
@@ -277,9 +278,7 @@ export type BrokerAccountsResponse = {
   success: boolean;
   status: string;
   message?: string;
-  data?: {
-    result?: BrokerAccount[];
-  };
+  accounts: BrokerAccount[];
   raw_response_saved: boolean;
 };
 
@@ -329,6 +328,6 @@ export const api = {
   getDemoStatus: () => request<DemoStatus>("/demo/status"),
   seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
   getBrokerStatus: () => request<BrokerStatus>("/broker/status"),
-  getBrokerAccounts: () => request<BrokerAccountsResponse>("/broker/accounts"),
+  getBrokerAccounts: () => request<BrokerAccountsResponse>("/broker/accounts/normalized"),
   getBrokerPositions: () => request<BrokerPositionsResponse>("/broker/positions/normalized"),
 };

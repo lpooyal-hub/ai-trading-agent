@@ -181,12 +181,13 @@ Broker readiness:
 ```bash
 curl http://localhost:8000/broker/status
 curl http://localhost:8000/broker/accounts
+curl http://localhost:8000/broker/accounts/normalized
 curl http://localhost:8000/broker/positions
 curl http://localhost:8000/broker/positions/normalized
 curl -X POST http://localhost:8000/portfolio/sync-legacy-from-broker
 ```
 
-Toss read-only API 연결은 `USE_MOCK_DATA=false`, `TOSS_API_KEY`, `TOSS_SECRET_KEY`, `TOSS_ACCOUNT_ID`가 필요합니다.
+Toss read-only 계좌 목록 조회는 `USE_MOCK_DATA=false`, `TOSS_API_KEY`, `TOSS_SECRET_KEY`가 필요합니다. 보유 주식 조회와 legacy sync에는 `TOSS_ACCOUNT_ID`도 필요합니다.
 
 Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 `TOSS_TOKEN_PATH=/oauth2/token`, `TOSS_ACCOUNT_LIST_PATH=/api/v1/accounts`, `TOSS_HOLDINGS_PATH=/api/v1/holdings`입니다.
 
@@ -194,7 +195,7 @@ Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss O
 
 `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
 
-Frontend의 `Broker` 화면에서는 Toss 계좌 연결 상태, 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
+Frontend의 `Broker` 화면에서는 Toss 계좌 연결 상태, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
 
 Frontend:
 
