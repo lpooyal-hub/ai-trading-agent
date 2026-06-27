@@ -42,9 +42,9 @@ class TossClient:
         raise NotImplementedError("Real Toss Securities order execution is not connected yet.")
 
     def get_accounts(self) -> dict:
-        if not self._read_only_endpoint_ready(self.settings.toss_accounts_path):
+        if not self._read_only_endpoint_ready(self.settings.toss_accounts_path, require_account=False):
             return self._todo_read_only_response("Toss read-only account endpoint is not configured.")
-        return self._authenticated_get(self.settings.toss_accounts_path)
+        return self._authenticated_get(self.settings.toss_accounts_path, include_account_header=False)
 
     def get_positions(self) -> dict:
         if not self._read_only_endpoint_ready(self.settings.toss_positions_path):
@@ -69,7 +69,7 @@ class TossClient:
             "message": "Live Toss Securities order status lookup is not connected yet.",
         }
 
-    def _authenticated_get(self, path: str | None) -> dict:
+    def _authenticated_get(self, path: str | None, include_account_header: bool = True) -> dict:
         if not path:
             return self._todo_read_only_response("Toss read-only endpoint path is not configured.")
 
@@ -78,15 +78,14 @@ class TossClient:
             return token_result
 
         url = self._url(path)
-        req = request.Request(
-            url,
-            headers={
-                "Authorization": f"Bearer {token_result['access_token']}",
-                "X-Tossinvest-Account": self.settings.toss_account_id or "",
-                "Content-Type": "application/json",
-            },
-            method="GET",
-        )
+        headers = {
+            "Authorization": f"Bearer {token_result['access_token']}",
+            "Content-Type": "application/json",
+        }
+        if include_account_header:
+            headers["X-Tossinvest-Account"] = self.settings.toss_account_id or ""
+
+        req = request.Request(url, headers=headers, method="GET")
         try:
             with request.urlopen(req, timeout=self.settings.toss_timeout_seconds) as response:
                 body = json.loads(response.read().decode("utf-8"))
@@ -143,10 +142,11 @@ class TossClient:
         normalized_path = path if path.startswith("/") else f"/{path}"
         return f"{base}{normalized_path}"
 
-    def _read_only_endpoint_ready(self, path: str | None) -> bool:
+    def _read_only_endpoint_ready(self, path: str | None, require_account: bool = True) -> bool:
         return bool(
             not self.settings.use_mock_data
-            and self.settings.toss_credentials_ready
+            and self.settings.toss_api_credentials_ready
+            and (self.settings.toss_account_id or not require_account)
             and self.settings.toss_token_path
             and path
         )

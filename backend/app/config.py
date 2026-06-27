@@ -129,8 +129,12 @@ class Settings(BaseSettings):
         )
 
     @property
+    def toss_api_credentials_ready(self) -> bool:
+        return bool(self.toss_app_key and self.toss_app_secret)
+
+    @property
     def toss_credentials_ready(self) -> bool:
-        return bool(self.toss_app_key and self.toss_app_secret and self.toss_account_id)
+        return bool(self.toss_api_credentials_ready and self.toss_account_id)
 
     @property
     def toss_read_only_ready(self) -> bool:

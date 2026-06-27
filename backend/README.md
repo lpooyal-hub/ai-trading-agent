@@ -165,6 +165,8 @@ Endpoint path는 `https://openapi.tossinvest.com` 뒤에 붙는 경로입니다.
 - `TOSS_ACCOUNT_LIST_PATH=/api/v1/accounts`
 - `TOSS_HOLDINGS_PATH=/api/v1/holdings`
 
+처음에는 `TOSS_ACCOUNT_ID`가 비어 있어도 `/broker/accounts`로 계좌 목록을 조회할 수 있습니다. 응답에서 계좌 식별값을 확인한 뒤 `TOSS_ACCOUNT_ID`에 넣으면 `/broker/positions`와 legacy sync를 사용할 수 있습니다.
+
 이전 이름인 `TOSS_APP_KEY`, `TOSS_APP_SECRET`, `TOSS_ACCOUNTS_PATH`, `TOSS_POSITIONS_PATH`도 호환됩니다.
 
 ## Demo Data

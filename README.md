@@ -190,6 +190,8 @@ Toss read-only API 연결은 `USE_MOCK_DATA=false`, `TOSS_API_KEY`, `TOSS_SECRET
 
 Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 `TOSS_TOKEN_PATH=/oauth2/token`, `TOSS_ACCOUNT_LIST_PATH=/api/v1/accounts`, `TOSS_HOLDINGS_PATH=/api/v1/holdings`입니다.
 
+처음에는 `TOSS_ACCOUNT_ID`가 비어 있어도 `/broker/accounts`로 계좌 목록을 조회할 수 있습니다. 응답에서 계좌 식별값을 확인한 뒤 `TOSS_ACCOUNT_ID`에 넣으면 보유 주식 조회와 legacy sync를 사용할 수 있습니다.
+
 `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
 
 Frontend:
