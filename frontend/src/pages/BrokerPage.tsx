@@ -11,6 +11,10 @@ function booleanStatus(value: boolean | undefined, trueLabel: string, falseLabel
   return value ? trueLabel : falseLabel;
 }
 
+function formatOptionalNumber(value: number) {
+  return value > 0 ? value.toLocaleString() : "-";
+}
+
 export function BrokerPage() {
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
@@ -142,9 +146,9 @@ export function BrokerPage() {
                 <tr key={position.symbol}>
                   <td>{position.symbol}</td>
                   <td>{position.name}</td>
-                  <td>{position.quantity.toLocaleString()}</td>
-                  <td>{position.avg_price.toLocaleString()}</td>
-                  <td>{position.current_price.toLocaleString()}</td>
+                  <td>{formatOptionalNumber(position.quantity)}</td>
+                  <td>{formatOptionalNumber(position.avg_price)}</td>
+                  <td>{formatOptionalNumber(position.current_price)}</td>
                   <td>{position.source}</td>
                 </tr>
               ))}
