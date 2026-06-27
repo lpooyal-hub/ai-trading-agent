@@ -26,6 +26,8 @@ export function BrokerPage() {
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
   const [positions, setPositions] = useState<BrokerPosition[]>([]);
+  const [accountsCacheHit, setAccountsCacheHit] = useState<boolean | null>(null);
+  const [positionsCacheHit, setPositionsCacheHit] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const appendMessage = (nextMessage: string) => {
@@ -39,12 +41,14 @@ export function BrokerPage() {
     api.getBrokerAccounts()
       .then((accountResponse) => {
         setAccounts(accountResponse.accounts ?? []);
+        setAccountsCacheHit(accountResponse.cache_hit);
         if (!accountResponse.success) {
           appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
         }
       })
       .catch((error) => {
         setAccounts([]);
+        setAccountsCacheHit(null);
         appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
       });
   };
@@ -69,12 +73,14 @@ export function BrokerPage() {
     api.getBrokerPositions()
       .then((positionResponse) => {
         setPositions(positionResponse.positions ?? []);
+        setPositionsCacheHit(positionResponse.cache_hit);
         if (!positionResponse.success) {
           appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
         }
       })
       .catch((error) => {
         setPositions([]);
+        setPositionsCacheHit(null);
         appendMessage(`Broker holdings are not available: ${errorMessage(error, "Request failed")}`);
       });
   };
@@ -107,9 +113,17 @@ export function BrokerPage() {
       <div className="stat-grid">
         <StatCard label="Backend API" value={backendHealth?.status === "ok" ? "Online" : "Unknown"} detail={backendHealth?.dry_run ? "DRY_RUN backend" : undefined} />
         <StatCard label="API Credentials" value={booleanStatus(status?.api_credentials_ready, "Ready", "Incomplete")} />
-        <StatCard label="Account Lookup" value={booleanStatus(status?.account_lookup_ready, "Ready", "Not Ready")} />
+        <StatCard
+          label="Account Lookup"
+          value={booleanStatus(status?.account_lookup_ready, "Ready", "Not Ready")}
+          detail={accountsCacheHit === null ? undefined : accountsCacheHit ? "cached response" : "fresh response"}
+        />
         <StatCard label="Account ID" value={booleanStatus(status?.has_account_id, "Set", "Missing")} />
-        <StatCard label="Holdings Lookup" value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")} />
+        <StatCard
+          label="Holdings Lookup"
+          value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")}
+          detail={positionsCacheHit === null ? undefined : positionsCacheHit ? "cached response" : "fresh response"}
+        />
         <StatCard label="Mock Data" value={booleanStatus(status?.use_mock_data, "On", "Off")} />
         <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "On", "Off")} />
       </div>
