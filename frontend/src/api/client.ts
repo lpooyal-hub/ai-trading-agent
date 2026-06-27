@@ -5,19 +5,16 @@ function resolveApiBaseUrl() {
   }
 
   if (typeof window === "undefined") {
-    return "http://localhost:8000";
+    return "/api";
   }
 
-  const { protocol, hostname, port } = window.location;
+  const { hostname, port } = window.location;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
   if (isLocalhost && port === "5173") {
     return "http://localhost:8000";
   }
-  if (isLocalhost) {
-    return "http://localhost:81";
-  }
-  return `${protocol}//${hostname}:81`;
+  return "/api";
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

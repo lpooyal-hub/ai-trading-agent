@@ -211,11 +211,10 @@ npm install
 npm run dev
 ```
 
-Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 접속한 frontend 주소를 기준으로 자동 추론합니다.
+Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 기본값 `/api`를 사용하고, Vite dev server가 backend로 프록시합니다.
 
-- `http://localhost:5173`에서 열면 `http://localhost:8000`
-- `http://localhost:3000`에서 열면 `http://localhost:81`
-- `http://<SERVER_IP>:3000`에서 열면 `http://<SERVER_IP>:81`
+- `http://localhost:5173`에서 열면 local backend `http://localhost:8000`
+- Docker Compose에서 `http://localhost:3000` 또는 `http://<SERVER_IP>:3000`으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
 
 다른 주소를 쓰려면 `VITE_API_BASE_URL`을 명시합니다.
 
@@ -227,15 +226,15 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다. Frontend는 `VITE_API_BASE_URL`을 지정하지 않으면 브라우저 접속 주소 기준으로 backend 주소를 자동 추론합니다.
+Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다. Frontend는 기본적으로 `/api`를 호출하고 Vite proxy가 backend container로 전달합니다.
 
-Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다.
+Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다. 브라우저 대시보드는 기본적으로 frontend `3000`만 호출하고, API 요청은 `/api` proxy를 거쳐 backend로 전달됩니다.
 
 ```bash
 curl http://localhost:81/health
 ```
 
-외부 서버에서 브라우저로 확인할 때도 기본값은 `http://<SERVER_IP>:81`로 자동 추론됩니다. 명시적으로 고정해야 할 때만 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
+외부 서버에서 브라우저로 확인할 때는 기본적으로 `http://<SERVER_IP>:3000`만 열면 됩니다. backend `81` 포트를 브라우저에 직접 노출하거나 호출할 필요는 없습니다. 명시적으로 고정해야 할 때만 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
 
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81 docker compose up --build
