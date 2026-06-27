@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export type PortfolioSummary = {
   bot_capital_limit_usd: number;
@@ -291,12 +291,19 @@ export type BrokerPositionsResponse = {
 };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const url = `${API_BASE_URL}${path}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network request failed";
+    throw new Error(`${url} - ${message}`);
+  }
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw new Error(`${url} - Request failed: ${response.status}`);
   }
   return response.json() as Promise<T>;
 }

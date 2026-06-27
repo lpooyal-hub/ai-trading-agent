@@ -165,6 +165,12 @@ dt {
   font-size: 13px;
 }
 
+.helper-text {
+  color: #5e6f63;
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+
 .stat-card strong {
   font-size: 26px;
 }

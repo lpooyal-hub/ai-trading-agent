@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
-import { api, BrokerAccount, BrokerPosition, BrokerStatus } from "../api/client";
+import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus } from "../api/client";
 import { StatCard } from "../components/StatCard";
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function booleanStatus(value: boolean | undefined, trueLabel: string, falseLabel: string) {
+  if (value === undefined) return "Unknown";
+  return value ? trueLabel : falseLabel;
+}
 
 export function BrokerPage() {
   const [status, setStatus] = useState<BrokerStatus | null>(null);
@@ -16,7 +25,8 @@ export function BrokerPage() {
         if (statusResult.status === "fulfilled") {
           setStatus(statusResult.value);
         } else {
-          messages.push("Broker status is not available.");
+          setStatus(null);
+          messages.push(`Broker status is not available: ${errorMessage(statusResult.reason, "Request failed")}`);
         }
 
         if (accountResult.status === "fulfilled") {
@@ -27,7 +37,7 @@ export function BrokerPage() {
           }
         } else {
           setAccounts([]);
-          messages.push("Broker accounts are not available.");
+          messages.push(`Broker accounts are not available: ${errorMessage(accountResult.reason, "Request failed")}`);
         }
 
         if (positionResult.status === "fulfilled") {
@@ -38,7 +48,7 @@ export function BrokerPage() {
           }
         } else {
           setPositions([]);
-          messages.push("Broker holdings are not available.");
+          messages.push(`Broker holdings are not available: ${errorMessage(positionResult.reason, "Request failed")}`);
         }
 
         setMessage(messages.length ? messages.join(" ") : null);
@@ -61,16 +71,17 @@ export function BrokerPage() {
         <div>
           <p className="eyebrow">Toss Securities</p>
           <h2>Broker Account</h2>
+          <p className="helper-text">API base: {API_BASE_URL}</p>
         </div>
         <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
         <button className="primary-button" onClick={syncLegacy} type="button">Sync Legacy</button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Credentials" value={status?.credentials_ready ? "Ready" : "Incomplete"} />
-        <StatCard label="Read Only" value={status?.read_only_ready ? "Ready" : "Not Ready"} />
-        <StatCard label="Mock Data" value={status?.use_mock_data ? "On" : "Off"} />
-        <StatCard label="DRY_RUN" value={status?.dry_run ? "On" : "Off"} />
+        <StatCard label="Credentials" value={booleanStatus(status?.credentials_ready, "Ready", "Incomplete")} />
+        <StatCard label="Read Only" value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")} />
+        <StatCard label="Mock Data" value={booleanStatus(status?.use_mock_data, "On", "Off")} />
+        <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "On", "Off")} />
       </div>
       <section>
         <h3>Accounts</h3>
