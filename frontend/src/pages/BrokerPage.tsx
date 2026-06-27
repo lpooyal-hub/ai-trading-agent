@@ -17,41 +17,42 @@ export function BrokerPage() {
   const [positions, setPositions] = useState<BrokerPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
+  const appendMessage = (nextMessage: string) => {
+    setMessage((current) => current ? `${current} ${nextMessage}` : nextMessage);
+  };
+
   const refresh = () => {
-    Promise.allSettled([api.getBrokerStatus(), api.getBrokerAccounts(), api.getBrokerPositions()])
-      .then(([statusResult, accountResult, positionResult]) => {
-        const messages: string[] = [];
+    setMessage(null);
 
-        if (statusResult.status === "fulfilled") {
-          setStatus(statusResult.value);
-        } else {
-          setStatus(null);
-          messages.push(`Broker status is not available: ${errorMessage(statusResult.reason, "Request failed")}`);
+    api.getBrokerStatus()
+      .then((brokerStatus) => setStatus(brokerStatus))
+      .catch((error) => {
+        setStatus(null);
+        appendMessage(`Broker status is not available: ${errorMessage(error, "Request failed")}`);
+      });
+
+    api.getBrokerAccounts()
+      .then((accountResponse) => {
+        setAccounts(accountResponse.accounts ?? []);
+        if (!accountResponse.success) {
+          appendMessage(accountResponse.message ?? accountResponse.status ?? "Broker accounts are not available.");
         }
+      })
+      .catch((error) => {
+        setAccounts([]);
+        appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
+      });
 
-        if (accountResult.status === "fulfilled") {
-          const accountResponse = accountResult.value;
-          setAccounts(accountResponse.accounts ?? []);
-          if (!accountResponse.success) {
-            messages.push(accountResponse.message ?? accountResponse.status ?? "Broker accounts are not available.");
-          }
-        } else {
-          setAccounts([]);
-          messages.push(`Broker accounts are not available: ${errorMessage(accountResult.reason, "Request failed")}`);
+    api.getBrokerPositions()
+      .then((positionResponse) => {
+        setPositions(positionResponse.positions ?? []);
+        if (!positionResponse.success) {
+          appendMessage(positionResponse.message ?? positionResponse.status ?? "Broker holdings are not available.");
         }
-
-        if (positionResult.status === "fulfilled") {
-          const positionResponse = positionResult.value;
-          setPositions(positionResponse.positions ?? []);
-          if (!positionResponse.success) {
-            messages.push(positionResponse.message ?? positionResponse.status ?? "Broker holdings are not available.");
-          }
-        } else {
-          setPositions([]);
-          messages.push(`Broker holdings are not available: ${errorMessage(positionResult.reason, "Request failed")}`);
-        }
-
-        setMessage(messages.length ? messages.join(" ") : null);
+      })
+      .catch((error) => {
+        setPositions([]);
+        appendMessage(`Broker holdings are not available: ${errorMessage(error, "Request failed")}`);
       });
   };
 

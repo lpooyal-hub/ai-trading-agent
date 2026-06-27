@@ -21,6 +21,7 @@ function resolveApiBaseUrl() {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+const REQUEST_TIMEOUT_MS = 12000;
 
 export type PortfolioSummary = {
   bot_capital_limit_usd: number;
@@ -316,15 +317,22 @@ export type BrokerPositionsResponse = {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(url, {
       headers: { "Content-Type": "application/json" },
       ...options,
+      signal: controller.signal,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Network request failed";
+    const message = error instanceof Error && error.name === "AbortError"
+      ? `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`
+      : error instanceof Error ? error.message : "Network request failed";
     throw new Error(`${url} - ${message}`);
+  } finally {
+    window.clearTimeout(timeoutId);
   }
   if (!response.ok) {
     throw new Error(`${url} - Request failed: ${response.status}`);
