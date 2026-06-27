@@ -51,8 +51,8 @@ export function SettingsPage() {
         <div><dt>OPENAI_TIMEOUT_SECONDS</dt><dd>{settings?.openai_timeout_seconds ?? 30}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
-        <div><dt>TOSS_ACCOUNTS_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>
-        <div><dt>TOSS_POSITIONS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
+        <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>
+        <div><dt>TOSS_HOLDINGS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
         <div><dt>MARKET_SNAPSHOT_MAX_AGE_MINUTES</dt><dd>{settings?.market_snapshot_max_age_minutes ?? 30}</dd></div>
         <div><dt>Safe Public Demo</dt><dd>{String(security?.safe_for_public_demo ?? false)}</dd></div>
         <div><dt>Security Warnings</dt><dd>{security?.warnings.length ? security.warnings.join(" / ") : "None"}</dd></div>

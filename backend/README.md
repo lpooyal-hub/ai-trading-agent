@@ -150,14 +150,22 @@ LLM 예상 비용은 `LLM_INPUT_COST_PER_1M_TOKENS_USD`, `LLM_OUTPUT_COST_PER_1M
 Toss Open API 조회 연결은 아래 조건이 모두 맞을 때만 시도합니다.
 
 - `USE_MOCK_DATA=false`
-- `TOSS_APP_KEY`
-- `TOSS_APP_SECRET`
+- `TOSS_API_KEY`
+- `TOSS_SECRET_KEY`
 - `TOSS_ACCOUNT_ID`
 - `TOSS_TOKEN_PATH`
-- `TOSS_ACCOUNTS_PATH`
-- `TOSS_POSITIONS_PATH`
+- `TOSS_ACCOUNT_LIST_PATH`
+- `TOSS_HOLDINGS_PATH`
 
-토큰과 API 응답 원문은 저장하지 않습니다. Endpoint path는 Toss Open API 공식 문서 기준으로 `.env`에 직접 설정합니다.
+토큰과 API 응답 원문은 저장하지 않습니다.
+
+Endpoint path는 `https://openapi.tossinvest.com` 뒤에 붙는 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 아래와 같습니다.
+
+- `TOSS_TOKEN_PATH=/oauth2/token`
+- `TOSS_ACCOUNT_LIST_PATH=/api/v1/accounts`
+- `TOSS_HOLDINGS_PATH=/api/v1/holdings`
+
+이전 이름인 `TOSS_APP_KEY`, `TOSS_APP_SECRET`, `TOSS_ACCOUNTS_PATH`, `TOSS_POSITIONS_PATH`도 호환됩니다.
 
 ## Demo Data
 

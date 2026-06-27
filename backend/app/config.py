@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,13 +52,28 @@ class Settings(BaseSettings):
     openai_timeout_seconds: int = 30
     market_snapshot_max_age_minutes: int = 30
 
-    toss_app_key: str | None = None
-    toss_app_secret: str | None = None
+    toss_app_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TOSS_API_KEY", "TOSS_APP_KEY"),
+    )
+    toss_app_secret: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TOSS_SECRET_KEY", "TOSS_APP_SECRET"),
+    )
     toss_account_id: str | None = None
     toss_base_url: str = "https://openapi.tossinvest.com"
-    toss_token_path: str | None = None
-    toss_accounts_path: str | None = None
-    toss_positions_path: str | None = None
+    toss_token_path: str | None = Field(
+        default="/oauth2/token",
+        validation_alias=AliasChoices("TOSS_TOKEN_PATH", "TOSS_OAUTH_TOKEN_PATH"),
+    )
+    toss_accounts_path: str | None = Field(
+        default="/api/v1/accounts",
+        validation_alias=AliasChoices("TOSS_ACCOUNT_LIST_PATH", "TOSS_ACCOUNTS_PATH"),
+    )
+    toss_positions_path: str | None = Field(
+        default="/api/v1/holdings",
+        validation_alias=AliasChoices("TOSS_HOLDINGS_PATH", "TOSS_POSITIONS_PATH"),
+    )
     toss_timeout_seconds: int = 30
     openai_api_key: str | None = None
 
