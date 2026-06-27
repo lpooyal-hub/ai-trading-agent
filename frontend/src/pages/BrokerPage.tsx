@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus, HealthResponse } from "../api/client";
 import { StatCard } from "../components/StatCard";
 
@@ -21,6 +21,7 @@ function brokerResponseMessage(label: string, response: { status: string; http_s
 }
 
 export function BrokerPage() {
+  const didInitialLoad = useRef(false);
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
@@ -32,6 +33,20 @@ export function BrokerPage() {
       if (!current) return nextMessage;
       return current.includes(nextMessage) ? current : `${current} ${nextMessage}`;
     });
+  };
+
+  const refreshAccounts = () => {
+    api.getBrokerAccounts()
+      .then((accountResponse) => {
+        setAccounts(accountResponse.accounts ?? []);
+        if (!accountResponse.success) {
+          appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
+        }
+      })
+      .catch((error) => {
+        setAccounts([]);
+        appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
+      });
   };
 
   const refresh = () => {
@@ -51,18 +66,6 @@ export function BrokerPage() {
         appendMessage(`Broker status is not available: ${errorMessage(error, "Request failed")}`);
       });
 
-    api.getBrokerAccounts()
-      .then((accountResponse) => {
-        setAccounts(accountResponse.accounts ?? []);
-        if (!accountResponse.success) {
-          appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
-        }
-      })
-      .catch((error) => {
-        setAccounts([]);
-        appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
-      });
-
     api.getBrokerPositions()
       .then((positionResponse) => {
         setPositions(positionResponse.positions ?? []);
@@ -77,6 +80,8 @@ export function BrokerPage() {
   };
 
   useEffect(() => {
+    if (didInitialLoad.current) return;
+    didInitialLoad.current = true;
     refresh();
   }, []);
 
@@ -95,6 +100,7 @@ export function BrokerPage() {
           <p className="helper-text">API base: {API_BASE_URL}</p>
         </div>
         <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
+        <button className="secondary-button" onClick={refreshAccounts} type="button">Load Accounts</button>
         <button className="primary-button" onClick={syncLegacy} type="button">Sync Legacy</button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
@@ -128,7 +134,7 @@ export function BrokerPage() {
               ))}
               {!accounts.length ? (
                 <tr>
-                  <td colSpan={3}>No broker accounts loaded.</td>
+                  <td colSpan={3}>Accounts are loaded on demand to avoid Toss rate limits.</td>
                 </tr>
               ) : null}
             </tbody>
