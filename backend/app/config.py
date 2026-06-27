@@ -78,7 +78,7 @@ class Settings(BaseSettings):
         default="/api/v1/holdings",
         validation_alias=AliasChoices("TOSS_HOLDINGS_PATH", "TOSS_POSITIONS_PATH"),
     )
-    toss_timeout_seconds: int = 30
+    toss_timeout_seconds: int = 8
     openai_api_key: str | None = None
 
     @staticmethod

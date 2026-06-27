@@ -166,6 +166,12 @@ Toss Open API 조회 연결은 아래 조건이 모두 맞을 때만 시도합�
 
 계좌 목록 조회(`/broker/accounts`, `/broker/accounts/normalized`)는 `TOSS_ACCOUNT_ID` 없이도 시도할 수 있습니다. 보유 주식 조회와 legacy sync에는 `TOSS_ACCOUNT_ID`가 필요합니다.
 
+Toss API 응답 지연 때문에 확인 명령이 오래 걸리면 `--max-time`으로 클라이언트 대기 시간을 제한할 수 있습니다. backend의 Toss API 대기 시간은 `TOSS_TIMEOUT_SECONDS`로 조정하며, 기본 예시는 8초입니다.
+
+```bash
+curl --max-time 10 http://localhost:8000/broker/accounts/normalized
+```
+
 토큰과 API 응답 원문은 저장하지 않습니다.
 
 Endpoint path는 `https://openapi.tossinvest.com` 뒤에 붙는 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 아래와 같습니다.
