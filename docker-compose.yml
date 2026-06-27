@@ -2,27 +2,10 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: sqlite:////app/data/trading_agent.db
-      BROKER_PROVIDER: toss_securities
-      DRY_RUN: "true"
-      LIVE_TRADING_ENABLED: "false"
-      USE_MOCK_DATA: "true"
-      BOT_CAPITAL_LIMIT_USD: "250"
-      MAX_ORDER_AMOUNT_USD: "100"
-      MAX_POSITIONS: "3"
-      MAX_DAILY_TRADES: "5"
-      MIN_CASH_RESERVE_USD: "25"
-      ALLOWED_SECTOR: semiconductor
-      ALLOWED_SYMBOLS: NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT
-      FORBIDDEN_KEYWORDS: leveraged,inverse,2x,3x,bull,bear,short
-      PROTECTED_SYMBOLS: SPACE_X
-      DEFAULT_STOP_MODE: agent_with_hard_guardrails
-      HARD_MAX_POSITION_LOSS_PERCENT: "25"
-      HARD_DAILY_LOSS_LIMIT_PERCENT: "10"
-      LLM_DAILY_COST_LIMIT_USD: "2"
-      LLM_MONTHLY_COST_LIMIT_USD: "30"
-      LLM_DAILY_TOKEN_LIMIT: "100000"
     ports:
       - "${BACKEND_PORT:-81}:8000"
     volumes:

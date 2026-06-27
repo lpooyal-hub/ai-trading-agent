@@ -67,8 +67,11 @@ Docker Compose를 사용할 경우 아래 명령을 프로젝트 루트에서 �
 
 ```bash
 cd /home/ubuntu/ai-trading-agent
+cp backend/.env.example backend/.env
 docker compose up --build
 ```
+
+Docker Compose backend는 `backend/.env`를 읽습니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
 
 ## 안전 원칙
 

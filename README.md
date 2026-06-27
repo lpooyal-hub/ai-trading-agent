@@ -204,8 +204,11 @@ Docker Compose:
 
 ```bash
 cd /home/ubuntu/ai-trading-agent
+cp backend/.env.example backend/.env
 docker compose up --build
 ```
+
+Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다.
 
 Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다.
 
