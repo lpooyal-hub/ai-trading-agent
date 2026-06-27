@@ -34,6 +34,7 @@
 - `/portfolio/summary`
 - `/agent/run-once`
 - `/agent/status`
+- `/agent/readiness`
 - `/decisions`
 - `/decisions/{decision_id}`
 - `/decisions/{decision_id}/preview`
@@ -135,6 +136,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 9. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
 10. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
 11. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
+
+`/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다. 실제 OpenAI 호출은 Responses API의 `model`, `input`, `text.format` 구조를 사용하며, API 키는 로그나 DB에 저장하지 않습니다.
 

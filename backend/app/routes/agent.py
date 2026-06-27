@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import AgentDecisionRead, AgentStatusRead
+from app.schemas import AgentDecisionRead, AgentReadinessRead, AgentStatusRead
 from app.services.agent_service import AgentService
 
 
@@ -19,3 +19,9 @@ def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
 def get_agent_status(db: Session = Depends(get_db)) -> AgentStatusRead:
     service = AgentService()
     return AgentStatusRead(**service.get_status(db))
+
+
+@router.get("/readiness", response_model=AgentReadinessRead)
+def get_agent_readiness(db: Session = Depends(get_db)) -> AgentReadinessRead:
+    service = AgentService()
+    return AgentReadinessRead(**service.get_readiness(db))

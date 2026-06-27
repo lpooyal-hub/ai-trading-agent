@@ -114,6 +114,29 @@ class AgentService:
             "last_decision_status": latest_decision.status.value if latest_decision else None,
         }
 
+    def get_readiness(self, db: Session) -> dict:
+        market_status = self.market_service.get_snapshot_status(db)
+        snapshots = self._readiness_snapshots(db)
+        candidates = self._select_candidates(snapshots)
+        budget = self.llm_budget_manager.check_budget(db)
+        budget_ready = bool(budget["approved"])
+        market_ready = bool(candidates)
+        ready = market_ready and budget_ready
+        reason = "Agent can run once." if ready else self._readiness_reason(market_ready, budget_ready, budget)
+        return {
+            "ready": ready,
+            "reason": reason,
+            "dry_run": self.settings.dry_run,
+            "use_mock_data": self.settings.use_mock_data,
+            "real_llm_ready": self.settings.real_llm_enabled,
+            "market_ready": market_ready,
+            "budget_ready": budget_ready,
+            "candidate_symbols": [snapshot.symbol for snapshot in candidates],
+            "fresh_symbol_count": market_status["fresh_symbol_count"],
+            "missing_symbols": market_status["missing_symbols"],
+            "llm_budget_reason": str(budget["reason"]),
+        }
+
     def _select_candidates(self, snapshots: list[MarketSnapshot]) -> list[MarketSnapshot]:
         eligible = [
             item
@@ -129,6 +152,38 @@ class AgentService:
             reverse=True,
         )
         return ranked[:3]
+
+    def _readiness_snapshots(self, db: Session) -> list[MarketSnapshot]:
+        snapshots = self.market_service.get_latest_universe_snapshots(db)
+        if snapshots or not self.settings.use_mock_data:
+            return snapshots
+
+        allowed_symbols = set(self.settings.active_universe)
+        preview_snapshots: list[MarketSnapshot] = []
+        for item in self.market_service.mock_client.get_semiconductor_snapshots():
+            symbol = item["symbol"].upper()
+            if symbol not in allowed_symbols:
+                continue
+            preview_snapshots.append(
+                MarketSnapshot(
+                    symbol=symbol,
+                    price=item["price"],
+                    change_percent=item["change_percent"],
+                    volume=item["volume"],
+                    sector=item["sector"],
+                    extra_json=item.get("extra_json", {}),
+                )
+            )
+        return preview_snapshots
+
+    @staticmethod
+    def _readiness_reason(market_ready: bool, budget_ready: bool, budget: dict) -> str:
+        reasons: list[str] = []
+        if not market_ready:
+            reasons.append("No market candidate passed the rule-based pre-filter.")
+        if not budget_ready:
+            reasons.append(f"LLM budget blocked: {budget['reason']}")
+        return " ".join(reasons)
 
     @staticmethod
     def _find_snapshot(snapshots: list[MarketSnapshot], symbol: str) -> MarketSnapshot | None:

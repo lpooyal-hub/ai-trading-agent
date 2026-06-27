@@ -129,7 +129,10 @@ Agent status:
 
 ```bash
 curl http://localhost:8000/agent/status
+curl http://localhost:8000/agent/readiness
 ```
+
+`/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 
 Preview and approve a decision:
 

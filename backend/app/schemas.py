@@ -192,6 +192,20 @@ class AgentStatusRead(BaseModel):
     last_decision_status: str | None
 
 
+class AgentReadinessRead(BaseModel):
+    ready: bool
+    reason: str
+    dry_run: bool
+    use_mock_data: bool
+    real_llm_ready: bool
+    market_ready: bool
+    budget_ready: bool
+    candidate_symbols: list[str]
+    fresh_symbol_count: int
+    missing_symbols: list[str]
+    llm_budget_reason: str
+
+
 class TradeOrderRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
