@@ -28,12 +28,34 @@ export function MarketPage() {
   }, []);
 
   const saveSnapshot = () => {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+    const parsedPrice = Number(price);
+    const parsedChangePercent = Number(changePercent);
+    const parsedVolume = Number(volume);
+
+    if (!normalizedSymbol) {
+      setMessage("Symbol is required.");
+      return;
+    }
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      setMessage("Price must be greater than zero.");
+      return;
+    }
+    if (!Number.isFinite(parsedChangePercent)) {
+      setMessage("Change percent must be a valid number.");
+      return;
+    }
+    if (!Number.isFinite(parsedVolume) || parsedVolume < 0) {
+      setMessage("Volume must be zero or greater.");
+      return;
+    }
+
     api.createMarketSnapshots([
       {
-        symbol,
-        price: Number(price),
-        change_percent: Number(changePercent),
-        volume: Number(volume),
+        symbol: normalizedSymbol,
+        price: parsedPrice,
+        change_percent: parsedChangePercent,
+        volume: parsedVolume,
         sector: "semiconductor",
         extra_json: { source: "manual_dashboard" },
       },
