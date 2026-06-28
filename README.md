@@ -72,6 +72,7 @@ http://<SERVER_IP>:3000
 ```
 
 Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy가 backend container로 넘깁니다. 그래서 일반 실행에서는 browser가 backend `81` 포트를 직접 호출할 필요가 없습니다.
+각 Docker build context는 `.dockerignore`로 `.env`, DB 파일, cache, `node_modules` 같은 로컬 파일을 제외합니다.
 
 ## 기본 설정
 
