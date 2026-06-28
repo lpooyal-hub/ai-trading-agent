@@ -5,15 +5,20 @@ import { EvaluationCard } from "../components/EvaluationCard";
 export function EvaluationsPage() {
   const [evaluations, setEvaluations] = useState<DecisionEvaluation[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   const refresh = () => api.getEvaluations().then(setEvaluations).catch(() => setEvaluations([]));
 
   const runEvaluations = () => {
     if (isRunning) return;
     setIsRunning(true);
+    setMessage(null);
     api.runEvaluations()
-      .then(refresh)
-      .catch(() => undefined)
+      .then(() => {
+        setMessage("Evaluations refreshed.");
+        return refresh();
+      })
+      .catch(() => setMessage("Evaluation run failed."))
       .finally(() => setIsRunning(false));
   };
 
@@ -32,6 +37,7 @@ export function EvaluationsPage() {
           {isRunning ? "Running..." : "Run Evaluations"}
         </button>
       </header>
+      {message ? <div className="notice">{message}</div> : null}
       <div className="evaluation-grid">
         {evaluations.map((evaluation) => <EvaluationCard evaluation={evaluation} key={evaluation.id} />)}
       </div>
