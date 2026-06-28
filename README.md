@@ -225,6 +225,8 @@ Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false
 curl http://localhost:81/settings/live-readiness
 ```
 
+차단된 live order는 Orders와 Decision Detail에서 확인할 수 있으며, raw payload에는 order intent와 idempotency key가 남습니다. 이 값은 실제 주문 전송이 아니라 향후 broker adapter 구현을 검토하기 위한 감사용 정보입니다.
+
 ## Public Repo 운영 방침
 
 - 기본 설정: DRY_RUN / demo / paper trading
