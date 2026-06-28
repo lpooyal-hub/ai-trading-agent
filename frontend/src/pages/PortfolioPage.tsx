@@ -95,6 +95,7 @@ export function PortfolioPage() {
         <StatCard label="Total PnL" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="Bought" value={`$${performance?.gross_bought_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="Sold" value={`$${performance?.gross_sold_usd.toFixed(2) ?? "0.00"}`} />
+        <StatCard label="Win Rate" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0} wins / ${performance?.losing_sell_count ?? 0} losses`} />
         <StatCard label="Sim Orders" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} buy / ${performance?.sell_order_count ?? 0} sell`} />
         <StatCard label="Bot Positions" value={`${summary?.bot_position_count ?? 0}`} />
         <StatCard label="Legacy Positions" value={`${summary?.legacy_position_count ?? 0}`} />

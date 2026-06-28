@@ -149,6 +149,9 @@ export type PortfolioPerformance = {
   unrealized_pnl_usd: number;
   total_pnl_usd: number;
   total_pnl_percent: number;
+  winning_sell_count: number;
+  losing_sell_count: number;
+  win_rate_percent: number;
   open_bot_position_count: number;
   closed_bot_position_count: number;
 };
