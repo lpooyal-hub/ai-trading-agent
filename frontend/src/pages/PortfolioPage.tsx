@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, BotPosition, LegacyPosition, PortfolioSummary } from "../api/client";
+import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioSummary } from "../api/client";
 import { PositionTable } from "../components/PositionTable";
 import { StatCard } from "../components/StatCard";
 
 export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
+  const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -14,9 +15,10 @@ export function PortfolioPage() {
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
 
   const loadPortfolioData = () => (
-    Promise.all([api.getPortfolioSummary(), api.getBotPositions(), api.getLegacyPositions()])
-      .then(([portfolio, bot, legacy]) => {
+    Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getBotPositions(), api.getLegacyPositions()])
+      .then(([portfolio, portfolioPerformance, bot, legacy]) => {
         setSummary(portfolio);
+        setPerformance(portfolioPerformance);
         setBotPositions(bot);
         setLegacyPositions(legacy);
       })
@@ -25,6 +27,7 @@ export function PortfolioPage() {
   useEffect(() => {
     loadPortfolioData()
       .catch(() => {
+        setPerformance(null);
         setBotPositions([]);
         setLegacyPositions([]);
       });
