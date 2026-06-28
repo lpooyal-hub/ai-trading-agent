@@ -8,6 +8,7 @@ from app.risk.llm_budget_manager import LLMBudgetManager
 from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 from app.services.market_service import MarketService
+from app.strategy.semiconductor_agent import SemiconductorAgent
 
 
 class AgentService:
@@ -20,6 +21,10 @@ class AgentService:
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.llm_cost_service = LLMCostService(self.settings)
         self.llm_usage_service = LLMUsageService()
+        self.strategy = SemiconductorAgent(
+            active_universe=self.settings.active_universe,
+            allowed_sector=self.settings.allowed_sector,
+        )
 
     def run_once(self, db: Session) -> AgentDecision:
         snapshots = self.market_service.refresh_top_universe_snapshots(db)
@@ -138,20 +143,7 @@ class AgentService:
         }
 
     def _select_candidates(self, snapshots: list[MarketSnapshot]) -> list[MarketSnapshot]:
-        eligible = [
-            item
-            for item in snapshots
-            if item.symbol in self.settings.active_universe
-            and item.sector.lower() == self.settings.allowed_sector.lower()
-            and item.volume > 0
-            and item.change_percent > 0
-        ]
-        ranked = sorted(
-            eligible,
-            key=lambda item: (abs(item.change_percent), item.volume),
-            reverse=True,
-        )
-        return ranked[:3]
+        return self.strategy.select_candidates(snapshots)
 
     def _readiness_snapshots(self, db: Session) -> list[MarketSnapshot]:
         snapshots = self.market_service.get_latest_universe_snapshots(db)
