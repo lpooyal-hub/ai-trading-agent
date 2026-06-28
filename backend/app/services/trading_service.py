@@ -343,6 +343,7 @@ class TradingService:
             "price": decision.current_price,
             "order_amount": decision.recommended_order_amount,
             "decision_id": decision.id,
+            "idempotency_key": f"decision-{decision.id}-{decision.symbol}-{decision.action.value}",
         }
 
     def _execution_mode(self) -> str:
