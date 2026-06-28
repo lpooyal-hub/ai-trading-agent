@@ -28,6 +28,7 @@ function brokerResponseMessage(label: string, response: { status: string; http_s
 
 export function BrokerPage() {
   const didInitialLoad = useRef(false);
+  const cooldownTimers = useRef<number[]>([]);
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
@@ -48,6 +49,12 @@ export function BrokerPage() {
     });
   };
 
+  const startCooldown = (setCooldown: (value: boolean) => void) => {
+    setCooldown(true);
+    const timerId = window.setTimeout(() => setCooldown(false), 15000);
+    cooldownTimers.current.push(timerId);
+  };
+
   const refreshAccounts = () => {
     if (isLoadingAccounts || isAccountCooldown) return;
     setIsLoadingAccounts(true);
@@ -59,8 +66,7 @@ export function BrokerPage() {
         if (!accountResponse.success) {
           appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
           if (accountResponse.http_status_code === 429) {
-            setIsAccountCooldown(true);
-            window.setTimeout(() => setIsAccountCooldown(false), 15000);
+            startCooldown(setIsAccountCooldown);
           }
         }
       })
@@ -97,8 +103,7 @@ export function BrokerPage() {
           if (!positionResponse.success) {
             appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
             if (positionResponse.http_status_code === 429) {
-              setIsRefreshCooldown(true);
-              window.setTimeout(() => setIsRefreshCooldown(false), 15000);
+              startCooldown(setIsRefreshCooldown);
             }
           }
         })
@@ -114,6 +119,10 @@ export function BrokerPage() {
     if (didInitialLoad.current) return;
     didInitialLoad.current = true;
     refresh();
+    return () => {
+      cooldownTimers.current.forEach((timerId) => window.clearTimeout(timerId));
+      cooldownTimers.current = [];
+    };
   }, []);
 
   const syncLegacy = () => {
