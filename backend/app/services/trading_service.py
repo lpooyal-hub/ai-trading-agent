@@ -111,6 +111,9 @@ class TradingService:
         commit: bool = True,
     ) -> TradeOrder:
         quantity = self._quantity_from_decision(decision)
+        position = self._get_bot_position(db, decision.symbol)
+        quantity_before = position.quantity if position else 0
+        quantity_after = quantity_before + quantity
         order = TradeOrder(
             decision_id=decision.id,
             symbol=decision.symbol,
@@ -129,6 +132,8 @@ class TradingService:
                     "quantity": quantity,
                     "price": decision.current_price,
                     "order_amount": decision.recommended_order_amount,
+                    "position_quantity_before": quantity_before,
+                    "position_quantity_after": quantity_after,
                 },
             },
         )
