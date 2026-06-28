@@ -12,6 +12,7 @@ export function MarketPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRefreshingSource, setIsRefreshingSource] = useState(false);
+  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
 
   const refresh = () => {
     if (isRefreshing) return;
@@ -33,6 +34,7 @@ export function MarketPage() {
   }, []);
 
   const saveSnapshot = () => {
+    if (isSavingSnapshot) return;
     const normalizedSymbol = symbol.trim().toUpperCase();
     const parsedPrice = Number(price);
     const parsedChangePercent = Number(changePercent);
@@ -55,6 +57,7 @@ export function MarketPage() {
       return;
     }
 
+    setIsSavingSnapshot(true);
     api.createMarketSnapshots([
       {
         symbol: normalizedSymbol,
@@ -73,7 +76,8 @@ export function MarketPage() {
         setSnapshots(snapshotRows);
         setStatus(snapshotStatus);
       })
-      .catch(() => setMessage("Market snapshot save failed."));
+      .catch(() => setMessage("Market snapshot save failed."))
+      .finally(() => setIsSavingSnapshot(false));
   };
 
   const refreshFromSource = () => {
@@ -129,7 +133,9 @@ export function MarketPage() {
           Volume
           <input value={volume} onChange={(event) => setVolume(event.target.value)} type="number" />
         </label>
-        <button className="primary-button" onClick={saveSnapshot} type="button">Save Snapshot</button>
+        <button className="primary-button" disabled={isSavingSnapshot} onClick={saveSnapshot} type="button">
+          {isSavingSnapshot ? "Saving..." : "Save Snapshot"}
+        </button>
       </div>
       <div className="table-wrap">
         <table>
