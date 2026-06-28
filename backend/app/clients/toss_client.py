@@ -52,7 +52,12 @@ class TossClient:
 
     def place_live_order(self, *args, **kwargs):
         # Live trading must stay behind explicit configuration and safety review.
-        raise NotImplementedError("Real Toss Securities order execution is not connected yet.")
+        return {
+            "success": False,
+            "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
+            "message": "Real Toss Securities order execution is not connected yet.",
+            "raw_response_saved": False,
+        }
 
     def get_accounts(self) -> dict:
         if not self._read_only_endpoint_ready(self.settings.toss_accounts_path, require_account=False):
