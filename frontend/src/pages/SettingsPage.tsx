@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
-import { api, BrokerStatus, LLMBudget, SafetySettings, SecurityReadiness } from "../api/client";
+import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, SafetySettings, SecurityReadiness } from "../api/client";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<SafetySettings | null>(null);
   const [budget, setBudget] = useState<LLMBudget | null>(null);
   const [broker, setBroker] = useState<BrokerStatus | null>(null);
   const [security, setSecurity] = useState<SecurityReadiness | null>(null);
+  const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshSettings = () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus(), api.getSecurityReadiness()])
-      .then(([safety, llmBudget, brokerStatus, securityReadiness]) => {
+    Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus(), api.getSecurityReadiness(), api.getLiveTradingReadiness()])
+      .then(([safety, llmBudget, brokerStatus, securityReadiness, liveTradingReadiness]) => {
         setSettings(safety);
         setBudget(llmBudget);
         setBroker(brokerStatus);
         setSecurity(securityReadiness);
+        setLiveReadiness(liveTradingReadiness);
       })
       .catch(() => setSettings(null))
       .finally(() => setIsRefreshing(false));
@@ -68,6 +70,10 @@ export function SettingsPage() {
         <div><dt>TOSS_HOLDINGS_PATH</dt><dd>{String(settings?.toss_positions_path_configured ?? false)}</dd></div>
         <div><dt>MARKET_SNAPSHOT_MAX_AGE_MINUTES</dt><dd>{settings?.market_snapshot_max_age_minutes ?? 30}</dd></div>
         <div><dt>Safe Public Demo</dt><dd>{String(security?.safe_for_public_demo ?? false)}</dd></div>
+        <div><dt>Live Order Ready</dt><dd>{String(liveReadiness?.live_order_ready ?? false)}</dd></div>
+        <div><dt>Live Execution Mode</dt><dd>{liveReadiness?.execution_mode ?? "-"}</dd></div>
+        <div><dt>Live Order Implementation</dt><dd>{liveReadiness?.live_order_implementation ?? "-"}</dd></div>
+        <div><dt>Live Blockers</dt><dd>{liveReadiness?.blockers.length ? liveReadiness.blockers.join(" / ") : "None"}</dd></div>
         <div><dt>Security Warnings</dt><dd>{security?.warnings.length ? security.warnings.join(" / ") : "None"}</dd></div>
         <div><dt>Next Actions</dt><dd>{security?.next_actions.length ? security.next_actions.join(" / ") : "None"}</dd></div>
       </dl>
