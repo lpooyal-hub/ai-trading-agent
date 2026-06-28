@@ -43,16 +43,39 @@
 - 공개 데모는 `USE_MOCK_DATA=true`로 실행합니다.
 - 실거래는 사용자가 명시적으로 설정을 바꾸고, 코드와 주문 동작을 검토한 뒤 자기 책임으로 활성화해야 합니다.
 
-## 환경변수 설정
+## Quick Start
 
-`backend/.env.example`을 참고해 `backend/.env`를 만듭니다. 기본값은 안전하게 실행되도록 mock/paper trading 중심입니다.
+처음 한 번만 `.env`를 만들고 실행합니다.
 
 ```bash
-cd backend
-cp .env.example .env
+cd /home/ubuntu/ai-trading-agent
+cp backend/.env.example backend/.env
+docker compose up --build
 ```
 
-중요 설정:
+이미 `backend/.env`가 있으면 아래만 실행하면 됩니다.
+
+```bash
+cd /home/ubuntu/ai-trading-agent
+docker compose up --build
+```
+
+기본 접속 주소:
+
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:81/health`
+
+서버에서 실행 중이면 브라우저에서는 frontend만 열면 됩니다.
+
+```text
+http://<SERVER_IP>:3000
+```
+
+Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy가 backend container로 넘깁니다. 그래서 일반 실행에서는 browser가 backend `81` 포트를 직접 호출할 필요가 없습니다.
+
+## 기본 설정
+
+`backend/.env`는 Docker Compose backend가 읽습니다. 기본값은 안전한 demo / paper trading입니다.
 
 - `DRY_RUN=true`
 - `LIVE_TRADING_ENABLED=false`
@@ -61,36 +84,98 @@ cp .env.example .env
 - `BOT_CAPITAL_LIMIT_USD=250`
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
 
-다른 사용자는 `BOT_CAPITAL_LIMIT_USD`, `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`, LLM 예산 제한을 자신의 연구 목적에 맞게 바꿀 수 있습니다. 브로커 연동은 기본적으로 토스증권 Open API 키 구조를 기준으로 합니다.
+실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
+
+## Dashboard 사용 흐름
+
+Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
+
+1. `Dashboard`: demo 상태, market readiness, agent readiness 확인
+2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장
+3. `Decisions`: `Run Agent Once`로 paper decision 생성
+4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
+5. `Portfolio`: bot-only position, protected legacy position, PnL 확인
+6. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
+
+## 서버 반영
+
+코드를 받은 뒤 컨테이너를 다시 만들 때는 아래만 실행하면 됩니다.
+
+```bash
+cd /home/ubuntu/ai-trading-agent
+docker compose up --build -d --force-recreate
+```
+
+브라우저에서 `Ctrl+Shift+R`로 강력 새로고침합니다.
+
+## API 참고
+
+Dashboard에서 대부분의 기능을 사용할 수 있지만, 직접 확인할 때는 아래 endpoint를 사용할 수 있습니다.
+
+Agent:
+
+```bash
+curl http://localhost:81/agent/status
+curl http://localhost:81/agent/readiness
+curl -X POST http://localhost:81/agent/run-once
+```
+
+Market snapshots:
+
+```bash
+curl http://localhost:81/market/snapshots/status
+curl http://localhost:81/market/snapshots/latest
+curl -X POST http://localhost:81/market/snapshots/refresh
+```
+
+Portfolio:
+
+```bash
+curl http://localhost:81/portfolio/summary
+curl http://localhost:81/portfolio/bot
+curl http://localhost:81/portfolio/legacy
+curl -X POST http://localhost:81/portfolio/sync-bot-from-market
+```
+
+Broker read-only:
+
+```bash
+curl http://localhost:81/broker/status
+curl http://localhost:81/broker/accounts/normalized
+curl http://localhost:81/broker/positions/normalized
+```
+
+## Toss / OpenAI 설정
+
+기본 demo 실행에는 외부 API 키가 필요 없습니다.
+
+Toss read-only 조회를 사용하려면 `backend/.env`에 아래 값을 설정합니다.
+
+- `USE_MOCK_DATA=false`
+- `TOSS_API_KEY`
+- `TOSS_SECRET_KEY`
+- `TOSS_ACCOUNT_ID`
+
+계좌 목록 조회는 `TOSS_ACCOUNT_ID` 없이도 시도할 수 있지만, 보유 주식 조회와 legacy sync에는 `TOSS_ACCOUNT_ID`가 필요합니다. 계좌 목록 endpoint가 Toss 권한 또는 상품 범위 문제로 `401 Unauthorized`를 반환해도, `TOSS_ACCOUNT_ID` 기반 holdings 조회가 성공하면 보유 종목은 계속 표시됩니다.
 
 실제 OpenAI LLM 호출을 사용하려면 아래 조건을 모두 만족해야 합니다.
 
 - `USE_MOCK_DATA=false`
-- `OPENAI_API_KEY` 설정
-- `LLM_MODEL_DECISION` 설정
+- `OPENAI_API_KEY`
+- `LLM_MODEL_DECISION`
 
 이 조건이 맞지 않으면 실제 OpenAI API를 호출하지 않고 안전한 HOLD / SKIPPED 결과를 남깁니다.
 
-LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`이며, 가격은 모델과 시점에 따라 바뀔 수 있어 코드에 고정하지 않습니다.
+LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
 ```bash
 LLM_INPUT_COST_PER_1M_TOKENS_USD=0
 LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
 ```
 
-## Broker Integration
+## Local Development
 
-기본 브로커 provider는 `toss_securities`입니다.
-
-- `TOSS_API_KEY`
-- `TOSS_SECRET_KEY`
-- `TOSS_ACCOUNT_ID`
-
-위 값은 토스증권 Open API 사용자가 자신의 `.env`에 직접 넣는 값입니다. 저장소에는 실제 키나 계좌 정보를 포함하지 않습니다. 예전 이름인 `TOSS_APP_KEY`, `TOSS_APP_SECRET`도 호환되지만, 새 설정에는 `TOSS_API_KEY`, `TOSS_SECRET_KEY`를 권장합니다.
-
-## 실행 방법
-
-아래 명령은 사용자가 직접 실행합니다.
+Docker가 기본 실행 방법입니다. backend/frontend를 따로 띄우고 싶을 때만 아래를 사용합니다.
 
 Backend:
 
@@ -102,125 +187,6 @@ pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
 ```
-
-Demo seed data:
-
-```bash
-cd /home/ubuntu/ai-trading-agent/backend
-python -m app.seed_demo_data
-```
-
-Demo seed API:
-
-```bash
-curl http://localhost:8000/demo/status
-curl -X POST http://localhost:8000/demo/seed
-```
-
-Demo seed는 `USE_MOCK_DATA=true`이고 Toss/OpenAI 같은 외부 API credential이 설정되지 않은 경우에만 활성화됩니다.
-
-Agent run once:
-
-```bash
-curl -X POST http://localhost:8000/agent/run-once
-```
-
-Agent status:
-
-```bash
-curl http://localhost:8000/agent/status
-curl http://localhost:8000/agent/readiness
-```
-
-`/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
-Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
-Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision/order 요약을 다시 불러올 수 있습니다.
-
-Preview and approve a decision:
-
-```bash
-curl http://localhost:8000/decisions/1/preview
-curl -X POST http://localhost:8000/decisions/1/approve
-```
-
-`/decisions/{id}/preview`는 예상 side, 수량, 가격, 주문금액, 예산 영향, bot-owned 수량, legacy 보호 여부, RiskManager 결과를 먼저 보여줍니다.
-
-List simulated orders:
-
-```bash
-curl http://localhost:8000/orders
-```
-
-Run decision evaluations:
-
-```bash
-curl -X POST http://localhost:8000/evaluations/run
-curl -X POST http://localhost:8000/evaluations/1
-curl http://localhost:8000/evaluations
-```
-
-Update market snapshots:
-
-```bash
-curl http://localhost:8000/market/snapshots/status
-curl http://localhost:8000/market/snapshots/latest
-curl -X POST http://localhost:8000/market/snapshots/refresh
-curl -X POST http://localhost:8000/market/snapshots \
-  -H "Content-Type: application/json" \
-  -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
-```
-
-`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 직접 호출하지 않으며, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
-`/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다.
-Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
-
-`USE_MOCK_DATA=false`에서는 agent가 저장된 최신 market snapshot만 사용합니다. 허용 Top 10 universe 밖의 심볼은 저장하지 않으며, `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
-
-Review LLM usage and budget:
-
-```bash
-curl http://localhost:8000/llm-usage
-curl http://localhost:8000/llm-usage/summary
-curl http://localhost:8000/settings/llm-budget
-curl http://localhost:8000/settings/security-readiness
-```
-
-`/settings/security-readiness`는 API 키 값을 반환하지 않고, mock/demo 안전 상태, Toss/OpenAI 설정 여부, 필요한 다음 조치만 boolean과 문구로 보여줍니다.
-
-Broker readiness:
-
-```bash
-curl http://localhost:8000/broker/status
-curl http://localhost:8000/broker/accounts
-curl http://localhost:8000/broker/accounts/normalized
-curl http://localhost:8000/broker/positions
-curl http://localhost:8000/broker/positions/normalized
-curl -X POST http://localhost:8000/portfolio/sync-bot-from-market
-curl -X POST http://localhost:8000/portfolio/sync-legacy-from-broker
-```
-
-Toss read-only 계좌 목록 조회는 `USE_MOCK_DATA=false`, `TOSS_API_KEY`, `TOSS_SECRET_KEY`가 필요합니다. 보유 주식 조회와 legacy sync에는 `TOSS_ACCOUNT_ID`도 필요합니다.
-
-Toss API 응답 지연 때문에 확인 명령이 오래 걸리면 `--max-time`으로 클라이언트 대기 시간을 제한할 수 있습니다. backend의 Toss API 대기 시간은 `TOSS_TIMEOUT_SECONDS`로 조정하며, 기본 예시는 8초입니다.
-
-```bash
-curl --max-time 10 http://localhost:8000/broker/accounts/normalized
-```
-
-Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss OpenAPI 1.1.5 기준으로 `TOSS_TOKEN_PATH=/oauth2/token`, `TOSS_ACCOUNT_LIST_PATH=/api/v1/accounts`, `TOSS_HOLDINGS_PATH=/api/v1/holdings`입니다.
-
-처음에는 `TOSS_ACCOUNT_ID`가 비어 있어도 `/broker/accounts`로 계좌 목록을 조회할 수 있습니다. 응답에서 계좌 식별값을 확인한 뒤 `TOSS_ACCOUNT_ID`에 넣으면 보유 주식 조회와 legacy sync를 사용할 수 있습니다.
-
-`/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
-Frontend의 `Portfolio` 화면에서도 bot position이 이미 있으면 broker legacy sync 버튼을 비활성화합니다.
-`/portfolio/sync-bot-from-market`는 freshness window 안의 최신 market snapshot으로 bot-only position의 현재가와 미실현 PnL을 갱신합니다. legacy position은 건드리지 않습니다.
-
-Frontend의 `Broker` 화면에서는 backend health, Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
-Toss holdings 응답에 평균단가나 현재가 필드가 없으면 Broker 화면에서는 `0` 대신 `-`로 표시합니다. 별도 현재가 시세 조회는 아직 연결하지 않았습니다.
-계좌 목록 endpoint가 Toss 권한 또는 상품 범위 문제로 `401 Unauthorized`를 반환해도, `TOSS_ACCOUNT_ID` 기반 holdings 조회가 성공하면 보유 종목은 계속 표시됩니다.
-Toss rate limit을 피하기 위해 Broker 화면의 계좌 목록 조회는 자동 실행하지 않고 `Load Accounts` 버튼으로 수동 호출합니다.
-Toss read-only 성공 응답은 기본 15초 동안 in-memory cache로 재사용합니다. 401/429 같은 실패 응답은 캐시하지 않습니다.
-Broker 화면의 Account/Holdings lookup 카드에서는 fresh response인지 cached response인지 확인할 수 있습니다.
 
 Frontend:
 
@@ -235,43 +201,7 @@ Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용
 - `http://localhost:5173`에서 열면 local backend `http://localhost:8000`
 - Docker Compose에서 `http://localhost:3000` 또는 `http://<SERVER_IP>:3000`으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
 
-다른 주소를 쓰려면 `VITE_API_BASE_URL`을 명시합니다.
-
-Docker Compose:
-
-```bash
-cd /home/ubuntu/ai-trading-agent
-cp backend/.env.example backend/.env
-docker compose up --build
-```
-
-Docker Compose backend는 `backend/.env`를 읽습니다. Toss/OpenAI 키, `USE_MOCK_DATA`, 리스크 제한값은 이 파일에서 관리합니다. Frontend는 기본적으로 `/api`를 호출하고 Vite proxy가 backend container로 전달합니다.
-
-Docker Compose 기본 host port는 frontend `3000`, backend `81`입니다. 브라우저 대시보드는 기본적으로 frontend `3000`만 호출하고, API 요청은 `/api` proxy를 거쳐 backend로 전달됩니다.
-
-```bash
-curl http://localhost:81/health
-```
-
-외부 서버에서 브라우저로 확인할 때는 기본적으로 `http://<SERVER_IP>:3000`만 열면 됩니다. backend `81` 포트를 브라우저에 직접 노출하거나 호출할 필요는 없습니다. 명시적으로 고정해야 할 때만 frontend가 호출할 backend 주소를 서버 IP 기준으로 지정합니다.
-
-```bash
-VITE_API_BASE_URL=http://<SERVER_IP>:81 docker compose up --build
-```
-
-이때 backend가 브라우저 요청을 허용하도록 `backend/.env`의 `CORS_ALLOWED_ORIGINS`에도 frontend 주소를 추가합니다.
-
-```bash
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_IP>:3000
-```
-
-다른 포트를 쓰려면 실행 시 `BACKEND_PORT`, `FRONTEND_PORT`, `VITE_API_BASE_URL`을 함께 지정합니다.
-
-```bash
-BACKEND_PORT=8083 FRONTEND_PORT=3001 VITE_API_BASE_URL=http://<SERVER_IP>:8083 docker compose up --build
-```
-
-Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다. 실제 키를 넣은 `.env` 파일은 커밋하지 않습니다.
+Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다.
 
 ## Public Repo 운영 방침
 

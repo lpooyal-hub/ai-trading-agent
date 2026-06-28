@@ -55,7 +55,17 @@
 
 ## 실행 명령어
 
-아래 명령은 필요할 때 사용자가 직접 실행합니다.
+기본 실행은 프로젝트 루트에서 Docker Compose를 사용합니다.
+
+```bash
+cd /home/ubuntu/ai-trading-agent
+cp backend/.env.example backend/.env
+docker compose up --build
+```
+
+Docker Compose backend는 `backend/.env`를 읽습니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
+
+로컬에서 backend만 따로 개발할 때만 아래 명령을 사용합니다.
 
 ```bash
 cd /home/ubuntu/ai-trading-agent/backend
@@ -65,16 +75,6 @@ pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
 ```
-
-Docker Compose를 사용할 경우 아래 명령을 프로젝트 루트에서 직접 실행합니다.
-
-```bash
-cd /home/ubuntu/ai-trading-agent
-cp backend/.env.example backend/.env
-docker compose up --build
-```
-
-Docker Compose backend는 `backend/.env`를 읽습니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
 
 외부 서버에서 frontend를 열어 backend를 호출하려면 `backend/.env`의 `CORS_ALLOWED_ORIGINS`에 브라우저에서 접속하는 frontend 주소를 함께 넣습니다.
 
