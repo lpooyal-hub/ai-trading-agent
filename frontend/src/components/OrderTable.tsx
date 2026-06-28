@@ -1,6 +1,7 @@
 import { TradeOrder } from "../api/client";
 
 function fillSummary(order: TradeOrder) {
+  if (order.raw_response_json.live_order_blocked) return "Live blocked";
   const fill = order.raw_response_json.simulated_fill;
   if (!fill || typeof fill !== "object") return "-";
 
