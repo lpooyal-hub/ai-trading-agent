@@ -15,7 +15,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadDashboardData = () => (
     Promise.all([
       api.getPortfolioSummary(),
       api.getLLMSummary(),
@@ -36,7 +36,10 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
       })
-      .catch(() => setError("Backend is not available yet."));
+  );
+
+  useEffect(() => {
+    loadDashboardData().catch(() => setError("Backend is not available yet."));
   }, []);
 
   const seedDemoData = () => {
@@ -44,17 +47,14 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .then((status) => {
         setDemoStatus(status);
         setError(status.message);
-        return Promise.all([api.getPortfolioSummary(), api.getDecisions(), api.getOrders(), api.getLLMSummary(), api.getMarketSnapshotStatus(), api.getAgentReadiness()]);
-      })
-      .then(([portfolio, decisionRows, orderRows, usage, market, readiness]) => {
-        setSummary(portfolio);
-        setDecisions(decisionRows.slice(0, 5));
-        setOrders(orderRows.slice(0, 5));
-        setLlmSummary(usage);
-        setMarketStatus(market);
-        setAgentReadiness(readiness);
+        return loadDashboardData();
       })
       .catch(() => setError("Demo seed failed."));
+  };
+
+  const refreshDashboard = () => {
+    setError(null);
+    loadDashboardData().catch(() => setError("Dashboard refresh failed."));
   };
 
   const runAgentOnce = () => {
@@ -71,6 +71,9 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           <h2>Decision Review</h2>
         </div>
         <div className="button-row">
+          <button className="secondary-button" onClick={refreshDashboard} type="button">
+            Refresh
+          </button>
           <button className="primary-button" onClick={runAgentOnce} type="button">
             Run Agent Once
           </button>
