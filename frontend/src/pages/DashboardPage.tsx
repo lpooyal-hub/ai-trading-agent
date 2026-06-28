@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, AgentReadiness, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
+import { api, AgentDecision, AgentReadiness, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -13,6 +13,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null);
   const [marketStatus, setMarketStatus] = useState<MarketSnapshotStatus | null>(null);
   const [agentReadiness, setAgentReadiness] = useState<AgentReadiness | null>(null);
+  const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +31,11 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getDemoStatus(),
       api.getMarketSnapshotStatus(),
       api.getAgentReadiness(),
+      api.getLiveTradingReadiness(),
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, decisionRows, orderRows]) => {
+      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, liveTradingReadiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
         setSymbolPerformance(symbolRows);
@@ -42,6 +44,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         setDemoStatus(demo);
         setMarketStatus(market);
         setAgentReadiness(readiness);
+        setLiveReadiness(liveTradingReadiness);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
       })
@@ -131,6 +134,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Market Ready" value={marketStatus?.ready_for_agent ? "Ready" : "Not Ready"} detail={marketStatus?.message} />
         <StatCard label="Fresh Symbols" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0} missing`} />
         <StatCard label="Agent Preflight" value={agentReadiness?.ready ? "Ready" : "Check"} detail={agentReadiness?.reason} />
+        <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />
         <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />
         <StatCard
           label="Demo Mode"
