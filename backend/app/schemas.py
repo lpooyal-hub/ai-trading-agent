@@ -463,3 +463,16 @@ class SecurityReadinessRead(BaseModel):
     real_llm_ready: bool
     warnings: list[str]
     next_actions: list[str]
+
+
+class LiveTradingReadinessRead(BaseModel):
+    live_order_ready: bool
+    execution_mode: str
+    dry_run_enabled: bool
+    live_trading_enabled: bool
+    mock_data_enabled: bool
+    toss_credentials_ready: bool
+    toss_read_only_ready: bool
+    live_order_implementation: str
+    blockers: list[str]
+    next_actions: list[str]

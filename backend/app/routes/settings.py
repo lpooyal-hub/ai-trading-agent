@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.risk.llm_budget_manager import LLMBudgetManager
-from app.schemas import LLMBudgetRead, SafetySettingsRead, SecurityReadinessRead
+from app.schemas import LLMBudgetRead, LiveTradingReadinessRead, SafetySettingsRead, SecurityReadinessRead
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -77,6 +77,41 @@ def get_security_readiness() -> SecurityReadinessRead:
         openai_configured=bool(settings.openai_api_key),
         real_llm_ready=settings.real_llm_enabled,
         warnings=warnings,
+        next_actions=next_actions,
+    )
+
+
+@router.get("/live-readiness", response_model=LiveTradingReadinessRead)
+def get_live_trading_readiness() -> LiveTradingReadinessRead:
+    settings = get_settings()
+    blockers: list[str] = []
+    next_actions: list[str] = []
+
+    if settings.dry_run:
+        blockers.append("DRY_RUN is true.")
+        next_actions.append("Keep DRY_RUN=true until live order implementation is reviewed.")
+    if not settings.live_trading_enabled:
+        blockers.append("LIVE_TRADING_ENABLED is false.")
+    if settings.use_mock_data:
+        blockers.append("USE_MOCK_DATA is true.")
+    if not settings.toss_credentials_ready:
+        blockers.append("Toss API credentials or TOSS_ACCOUNT_ID are incomplete.")
+    if not settings.toss_read_only_ready:
+        blockers.append("Toss read-only readiness is incomplete.")
+
+    blockers.append("Live order implementation is intentionally not connected.")
+    next_actions.append("Complete a separate broker order adapter review before enabling real orders.")
+
+    return LiveTradingReadinessRead(
+        live_order_ready=False,
+        execution_mode="LIVE_ORDER_BLOCKED",
+        dry_run_enabled=settings.dry_run,
+        live_trading_enabled=settings.live_trading_enabled,
+        mock_data_enabled=settings.use_mock_data,
+        toss_credentials_ready=settings.toss_credentials_ready,
+        toss_read_only_ready=settings.toss_read_only_ready,
+        live_order_implementation="TODO_LIVE_ORDER_NOT_IMPLEMENTED",
+        blockers=blockers,
         next_actions=next_actions,
     )
 
