@@ -10,6 +10,7 @@ from app.schemas import (
     LegacyPositionInitializeRequest,
     LegacyPositionInitializeResponse,
     LegacyPositionRead,
+    PortfolioPerformanceRead,
     PortfolioSummaryRead,
 )
 from app.services.portfolio_service import PortfolioService
@@ -94,3 +95,9 @@ def sync_bot_positions_from_market(
 def get_portfolio_summary(db: Session = Depends(get_db)) -> PortfolioSummaryRead:
     service = PortfolioService()
     return PortfolioSummaryRead(**service.get_summary(db))
+
+
+@router.get("/performance", response_model=PortfolioPerformanceRead)
+def get_portfolio_performance(db: Session = Depends(get_db)) -> PortfolioPerformanceRead:
+    service = PortfolioService()
+    return PortfolioPerformanceRead(**service.get_performance(db))
