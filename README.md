@@ -28,7 +28,7 @@
 - 기존 보유 포지션 보호
 - DRY_RUN 기반 모의 주문
 - decision 승인 후 DRY_RUN 주문 시뮬레이션
-- simulated order 기반 realized/unrealized PnL, win rate, realized trade 요약
+- simulated order 기반 realized/unrealized PnL, win rate, symbol performance, realized trade 요약
 - LLM 토큰/예상 비용 기록
 - LLM 사용량 요약과 예산 제한
 - LLM 응답, 사용량, 지연 시간, 성공 여부 기록
@@ -143,6 +143,7 @@ Portfolio:
 curl http://localhost:81/portfolio/summary
 curl http://localhost:81/portfolio/performance
 curl http://localhost:81/portfolio/realized-trades
+curl http://localhost:81/portfolio/symbol-performance
 curl http://localhost:81/portfolio/bot
 curl http://localhost:81/portfolio/legacy
 curl -X POST http://localhost:81/portfolio/sync-bot-from-market

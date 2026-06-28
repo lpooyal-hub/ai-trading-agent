@@ -35,6 +35,7 @@
 - `/portfolio/summary`
 - `/portfolio/performance`
 - `/portfolio/realized-trades`
+- `/portfolio/symbol-performance`
 - `/agent/run-once`
 - `/agent/status`
 - `/agent/readiness`
