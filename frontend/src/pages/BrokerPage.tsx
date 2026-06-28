@@ -17,6 +17,12 @@ function formatOptionalNumber(value: number) {
 
 function brokerResponseMessage(label: string, response: { status: string; http_status_code?: number | null; message?: string }) {
   const statusCode = response.http_status_code ? `HTTP ${response.http_status_code}` : response.status;
+  if (response.http_status_code === 401) {
+    return `${label} failed: ${statusCode} - Check Toss credentials and read-only account permissions.`;
+  }
+  if (response.http_status_code === 429) {
+    return `${label} failed: ${statusCode} - Toss rate limit reached. Wait briefly before retrying.`;
+  }
   return `${label} failed: ${statusCode}${response.message ? ` - ${response.message}` : ""}`;
 }
 
