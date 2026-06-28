@@ -8,6 +8,7 @@ export function PortfolioPage() {
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
   const [isRefreshingValuation, setIsRefreshingValuation] = useState(false);
   const [isSyncingLegacy, setIsSyncingLegacy] = useState(false);
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
@@ -28,6 +29,15 @@ export function PortfolioPage() {
         setLegacyPositions([]);
       });
   }, []);
+
+  const refreshPortfolio = () => {
+    if (isRefreshingPortfolio) return;
+    setIsRefreshingPortfolio(true);
+    loadPortfolioData()
+      .then(() => setMessage("Portfolio refreshed."))
+      .catch(() => setMessage("Portfolio refresh failed."))
+      .finally(() => setIsRefreshingPortfolio(false));
+  };
 
   const syncLegacyFromBroker = () => {
     if (isSyncingLegacy || legacySyncBlocked) return;
@@ -61,6 +71,9 @@ export function PortfolioPage() {
           <h2>Bot-Only Positions</h2>
         </div>
         <div className="button-row">
+          <button className="secondary-button" disabled={isRefreshingPortfolio} onClick={refreshPortfolio} type="button">
+            {isRefreshingPortfolio ? "Refreshing..." : "Refresh"}
+          </button>
           <button className="secondary-button" disabled={isRefreshingValuation} onClick={syncBotFromMarket} type="button">
             {isRefreshingValuation ? "Refreshing..." : "Refresh Bot Valuation"}
           </button>
