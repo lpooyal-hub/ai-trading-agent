@@ -213,11 +213,16 @@ class TossClient:
     @staticmethod
     def _safe_error_response(exc: Exception) -> dict:
         http_status_code = exc.code if isinstance(exc, error.HTTPError) else None
+        message = str(exc).replace("\n", " ")[:500]
+        if http_status_code == 401:
+            message = f"{message} Check Toss API credentials, token path, and account permissions."
+        elif http_status_code == 429:
+            message = f"{message} Toss rate limit reached. Wait briefly before retrying."
         return {
             "success": False,
             "status": "FAILED",
             "http_status_code": http_status_code,
-            "message": str(exc).replace("\n", " ")[:500],
+            "message": message,
             "raw_response_saved": False,
         }
 
