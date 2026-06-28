@@ -14,6 +14,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isRunningAgent, setIsRunningAgent] = useState(false);
 
   const loadDashboardData = () => (
     Promise.all([
@@ -58,9 +59,13 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   };
 
   const runAgentOnce = () => {
+    if (isRunningAgent) return;
+    setError(null);
+    setIsRunningAgent(true);
     api.runAgentOnce()
       .then((decision) => onSelectDecision(decision.id))
-      .catch(() => setError("Agent run failed."));
+      .catch(() => setError("Agent run failed."))
+      .finally(() => setIsRunningAgent(false));
   };
 
   return (
@@ -74,8 +79,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           <button className="secondary-button" onClick={refreshDashboard} type="button">
             Refresh
           </button>
-          <button className="primary-button" onClick={runAgentOnce} type="button">
-            Run Agent Once
+          <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
+            {isRunningAgent ? "Running..." : "Run Agent Once"}
           </button>
           <button
             className="secondary-button"
