@@ -9,7 +9,13 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
   const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
-    if (!decisionId) return;
+    setOrder(null);
+    setMessage(null);
+    if (!decisionId) {
+      setDecision(null);
+      setPreview(null);
+      return;
+    }
     Promise.all([api.getDecision(decisionId), api.previewDecision(decisionId)])
       .then(([decisionResult, previewResult]) => {
         setDecision(decisionResult);
