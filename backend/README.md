@@ -33,6 +33,7 @@
 - `/portfolio/legacy`
 - `/portfolio/bot`
 - `/portfolio/summary`
+- `/portfolio/performance`
 - `/agent/run-once`
 - `/agent/status`
 - `/agent/readiness`
