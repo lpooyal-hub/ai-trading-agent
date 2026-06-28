@@ -305,13 +305,8 @@ class TradingService:
         decision: AgentDecision,
         commit: bool = True,
     ) -> TradeOrder:
-        broker_response = TossClient(self.settings).place_live_order(
-            symbol=decision.symbol,
-            side=OrderSide.BUY.value if decision.action == AgentAction.BUY else OrderSide.SELL.value,
-            quantity=self._quantity_from_decision(decision),
-            price=decision.current_price,
-            order_amount=decision.recommended_order_amount,
-        )
+        order_intent = self._live_order_intent(decision)
+        broker_response = TossClient(self.settings).place_live_order(**order_intent)
         order = TradeOrder(
             decision_id=decision.id,
             symbol=decision.symbol,
@@ -324,6 +319,7 @@ class TradingService:
             reason="Live order execution is not connected yet.",
             raw_response_json={
                 "source": "trading_service",
+                "order_intent": order_intent,
                 "broker_response": broker_response,
                 "live_order_blocked": True,
                 "live_order_implementation": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
@@ -338,6 +334,16 @@ class TradingService:
             db.commit()
             db.refresh(order)
         return order
+
+    def _live_order_intent(self, decision: AgentDecision) -> dict:
+        return {
+            "symbol": decision.symbol,
+            "side": OrderSide.BUY.value if decision.action == AgentAction.BUY else OrderSide.SELL.value,
+            "quantity": self._quantity_from_decision(decision),
+            "price": decision.current_price,
+            "order_amount": decision.recommended_order_amount,
+            "decision_id": decision.id,
+        }
 
     def _execution_mode(self) -> str:
         if self.settings.dry_run:
