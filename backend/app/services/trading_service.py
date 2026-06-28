@@ -247,8 +247,8 @@ class TradingService:
             else 0
         )
 
-    @staticmethod
     def _apply_sell_position(
+        self,
         position: BotPosition | None,
         quantity: float,
         order_amount: float,
@@ -262,6 +262,7 @@ class TradingService:
         position.total_invested_amount = max(position.total_invested_amount - sold_cost_basis, 0)
         position.current_price = order_amount / quantity if quantity else position.current_price
         position.status = "CLOSED" if remaining_quantity == 0 else "OPEN"
+        self._refresh_position_pnl(position)
 
     def _get_bot_position(self, db: Session, symbol: str) -> BotPosition | None:
         return (
