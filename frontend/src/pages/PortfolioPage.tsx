@@ -15,6 +15,7 @@ export function PortfolioPage() {
   const [isRefreshingValuation, setIsRefreshingValuation] = useState(false);
   const [isSyncingLegacy, setIsSyncingLegacy] = useState(false);
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
+  const recentRealizedTrades = realizedTrades.slice(0, 10);
 
   const loadPortfolioData = () => (
     Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getPortfolioRealizedTrades(), api.getPortfolioSymbolPerformance(), api.getBotPositions(), api.getLegacyPositions()])
@@ -140,6 +141,9 @@ export function PortfolioPage() {
       </section>
       <section>
         <h3>Realized Trades</h3>
+        {realizedTrades.length > recentRealizedTrades.length ? (
+          <p className="helper-text">Showing latest {recentRealizedTrades.length} of {realizedTrades.length} realized trades.</p>
+        ) : null}
         <div className="table-wrap">
           <table>
             <thead>
@@ -153,7 +157,7 @@ export function PortfolioPage() {
               </tr>
             </thead>
             <tbody>
-              {realizedTrades.map((trade) => (
+              {recentRealizedTrades.map((trade) => (
                 <tr key={trade.order_id}>
                   <td>{new Date(trade.created_at).toLocaleString()}</td>
                   <td>{trade.symbol}</td>
@@ -163,7 +167,7 @@ export function PortfolioPage() {
                   <td>${trade.realized_pnl_usd.toFixed(2)} ({trade.realized_pnl_percent.toFixed(2)}%)</td>
                 </tr>
               ))}
-              {!realizedTrades.length ? (
+              {!recentRealizedTrades.length ? (
                 <tr>
                   <td colSpan={6}>No realized trades yet.</td>
                 </tr>
