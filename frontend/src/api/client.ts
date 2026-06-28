@@ -139,6 +139,20 @@ export type BotPositionMarketSyncResponse = {
   positions: BotPosition[];
 };
 
+export type PortfolioPerformance = {
+  simulated_order_count: number;
+  buy_order_count: number;
+  sell_order_count: number;
+  gross_bought_usd: number;
+  gross_sold_usd: number;
+  realized_pnl_usd: number;
+  unrealized_pnl_usd: number;
+  total_pnl_usd: number;
+  total_pnl_percent: number;
+  open_bot_position_count: number;
+  closed_bot_position_count: number;
+};
+
 export type LegacyPosition = {
   id: number;
   symbol: string;
@@ -389,6 +403,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   getHealth: () => request<HealthResponse>("/health"),
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
+  getPortfolioPerformance: () => request<PortfolioPerformance>("/portfolio/performance"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
   syncBotFromMarket: () => request<BotPositionMarketSyncResponse>("/portfolio/sync-bot-from-market", { method: "POST" }),
