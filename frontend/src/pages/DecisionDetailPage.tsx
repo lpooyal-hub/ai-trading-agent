@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { api, AgentDecision, DecisionPreview, TradeOrder } from "../api/client";
 
+function orderFillSummary(order: TradeOrder) {
+  const fill = order.raw_response_json.simulated_fill;
+  if (!fill || typeof fill !== "object") return null;
+
+  const payload = fill as Record<string, unknown>;
+  const before = typeof payload.position_quantity_before === "number" ? payload.position_quantity_before : null;
+  const after = typeof payload.position_quantity_after === "number" ? payload.position_quantity_after : null;
+  if (before === null || after === null) return null;
+  return `Position ${before.toFixed(4)} -> ${after.toFixed(4)}`;
+}
+
 export function DecisionDetailPage({ decisionId }: { decisionId: number | null }) {
   const [decision, setDecision] = useState<AgentDecision | null>(null);
   const [preview, setPreview] = useState<DecisionPreview | null>(null);
@@ -93,6 +104,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
         <section>
           <h3>Linked Order</h3>
           <p>{order ? `Order #${order.id} ${order.status}` : decision.executed_order_id ?? "None"}</p>
+          <p>{order ? orderFillSummary(order) : null}</p>
         </section>
       </div>
       {preview?.warnings.length ? (
