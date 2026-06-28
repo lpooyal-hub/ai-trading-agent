@@ -13,6 +13,7 @@ from app.schemas import (
     PortfolioPerformanceRead,
     PortfolioRealizedTradeRead,
     PortfolioSummaryRead,
+    PortfolioSymbolPerformanceRead,
 )
 from app.services.portfolio_service import PortfolioService
 
@@ -108,3 +109,9 @@ def get_portfolio_performance(db: Session = Depends(get_db)) -> PortfolioPerform
 def list_realized_trades(db: Session = Depends(get_db)) -> list[PortfolioRealizedTradeRead]:
     service = PortfolioService()
     return [PortfolioRealizedTradeRead(**trade) for trade in service.list_realized_trades(db)]
+
+
+@router.get("/symbol-performance", response_model=list[PortfolioSymbolPerformanceRead])
+def list_symbol_performance(db: Session = Depends(get_db)) -> list[PortfolioSymbolPerformanceRead]:
+    service = PortfolioService()
+    return [PortfolioSymbolPerformanceRead(**row) for row in service.list_symbol_performance(db)]

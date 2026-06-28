@@ -165,6 +165,14 @@ class PortfolioRealizedTradeRead(BaseModel):
     realized_pnl_percent: float
 
 
+class PortfolioSymbolPerformanceRead(BaseModel):
+    symbol: str
+    realized_trade_count: int
+    realized_pnl_usd: float
+    sell_amount_usd: float
+    win_rate_percent: float
+
+
 class AgentDecisionBase(BaseModel):
     symbol: str
     sector: str

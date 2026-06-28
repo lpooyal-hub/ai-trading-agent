@@ -215,6 +215,39 @@ class PortfolioService:
         realized_trades = self._calculate_realized_trades(self._list_simulated_orders(db))
         return list(reversed(realized_trades))[:limit]
 
+    def list_symbol_performance(self, db: Session) -> list[dict]:
+        realized_trades = self._calculate_realized_trades(self._list_simulated_orders(db))
+        by_symbol: dict[str, dict] = {}
+        for trade in realized_trades:
+            symbol = trade["symbol"]
+            row = by_symbol.setdefault(
+                symbol,
+                {
+                    "symbol": symbol,
+                    "realized_trade_count": 0,
+                    "winning_trade_count": 0,
+                    "realized_pnl_usd": 0.0,
+                    "sell_amount_usd": 0.0,
+                },
+            )
+            row["realized_trade_count"] += 1
+            row["sell_amount_usd"] += trade["sell_amount_usd"]
+            row["realized_pnl_usd"] += trade["realized_pnl_usd"]
+            if trade["realized_pnl_usd"] > 0:
+                row["winning_trade_count"] += 1
+
+        result = []
+        for row in by_symbol.values():
+            trade_count = row["realized_trade_count"]
+            result.append({
+                "symbol": row["symbol"],
+                "realized_trade_count": trade_count,
+                "realized_pnl_usd": row["realized_pnl_usd"],
+                "sell_amount_usd": row["sell_amount_usd"],
+                "win_rate_percent": row["winning_trade_count"] / trade_count * 100 if trade_count else 0,
+            })
+        return sorted(result, key=lambda item: item["realized_pnl_usd"], reverse=True)
+
     @staticmethod
     def _list_simulated_orders(db: Session) -> list[TradeOrder]:
         return (
