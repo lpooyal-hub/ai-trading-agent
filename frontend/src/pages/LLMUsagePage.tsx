@@ -8,14 +8,22 @@ export function LLMUsagePage() {
   const [purposeFilter, setPurposeFilter] = useState("");
   const [symbolFilter, setSymbolFilter] = useState("");
   const [successFilter, setSuccessFilter] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
+  const refreshUsage = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
     Promise.all([api.getLLMUsage(), api.getLLMBudget()])
       .then(([rows, currentBudget]) => {
         setUsage(rows);
         setBudget(currentBudget);
       })
-      .catch(() => setUsage([]));
+      .catch(() => setUsage([]))
+      .finally(() => setIsRefreshing(false));
+  };
+
+  useEffect(() => {
+    refreshUsage();
   }, []);
 
   const filteredUsage = usage.filter((row) => {
@@ -33,6 +41,9 @@ export function LLMUsagePage() {
           <p className="eyebrow">Cost Guardrails</p>
           <h2>LLM Usage</h2>
         </div>
+        <button className="secondary-button" disabled={isRefreshing} onClick={refreshUsage} type="button">
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </header>
       <div className="stat-grid">
         <StatCard label="Today's Calls" value={`${budget?.today_calls ?? 0}`} />
