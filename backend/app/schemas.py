@@ -474,5 +474,6 @@ class LiveTradingReadinessRead(BaseModel):
     toss_credentials_ready: bool
     toss_read_only_ready: bool
     live_order_implementation: str
+    adapter_checklist: list[str]
     blockers: list[str]
     next_actions: list[str]

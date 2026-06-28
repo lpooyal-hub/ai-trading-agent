@@ -101,6 +101,13 @@ def get_live_trading_readiness() -> LiveTradingReadinessRead:
 
     blockers.append("Live order implementation is intentionally not connected.")
     next_actions.append("Complete a separate broker order adapter review before enabling real orders.")
+    adapter_checklist = [
+        "Map internal BUY/SELL order intent to Toss order request fields.",
+        "Confirm account scope, order endpoint path, and required headers from official Toss docs.",
+        "Add idempotency or duplicate-submit protection before any real order call.",
+        "Persist masked broker response metadata without storing secrets.",
+        "Run manual broker sandbox or minimum-size production validation outside public demo mode.",
+    ]
 
     return LiveTradingReadinessRead(
         live_order_ready=False,
@@ -111,6 +118,7 @@ def get_live_trading_readiness() -> LiveTradingReadinessRead:
         toss_credentials_ready=settings.toss_credentials_ready,
         toss_read_only_ready=settings.toss_read_only_ready,
         live_order_implementation="TODO_LIVE_ORDER_NOT_IMPLEMENTED",
+        adapter_checklist=adapter_checklist,
         blockers=blockers,
         next_actions=next_actions,
     )
