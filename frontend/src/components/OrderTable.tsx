@@ -1,7 +1,15 @@
 import { TradeOrder } from "../api/client";
 
 function fillSummary(order: TradeOrder) {
-  if (order.raw_response_json.live_order_blocked) return "Live blocked";
+  if (order.raw_response_json.live_order_blocked) {
+    const intent = order.raw_response_json.order_intent;
+    if (intent && typeof intent === "object") {
+      const payload = intent as Record<string, unknown>;
+      const key = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "no-key";
+      return `Live blocked · ${key}`;
+    }
+    return "Live blocked";
+  }
   const fill = order.raw_response_json.simulated_fill;
   if (!fill || typeof fill !== "object") return "-";
 
