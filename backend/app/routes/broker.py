@@ -28,6 +28,7 @@ def get_normalized_broker_accounts() -> BrokerAccountPreviewRead:
     return BrokerAccountPreviewRead(
         success=bool(response.get("success")),
         status=str(response.get("status", "UNKNOWN")),
+        http_status_code=response.get("http_status_code"),
         message=response.get("message"),
         accounts=accounts,
         raw_response_saved=bool(response.get("raw_response_saved", False)),
@@ -49,6 +50,7 @@ def get_normalized_broker_positions() -> BrokerPositionPreviewRead:
     return BrokerPositionPreviewRead(
         success=bool(response.get("success")),
         status=str(response.get("status", "UNKNOWN")),
+        http_status_code=response.get("http_status_code"),
         message=response.get("message"),
         positions=positions,
         raw_response_saved=bool(response.get("raw_response_saved", False)),

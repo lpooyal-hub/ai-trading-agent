@@ -67,6 +67,7 @@ class BrokerAccountRead(BaseModel):
 class BrokerAccountPreviewRead(BaseModel):
     success: bool
     status: str
+    http_status_code: int | None = None
     message: str | None = None
     accounts: list[BrokerAccountRead]
     raw_response_saved: bool = False
@@ -76,6 +77,7 @@ class BrokerAccountPreviewRead(BaseModel):
 class BrokerPositionPreviewRead(BaseModel):
     success: bool
     status: str
+    http_status_code: int | None = None
     message: str | None = None
     positions: list[BrokerPositionRead]
     raw_response_saved: bool = False
