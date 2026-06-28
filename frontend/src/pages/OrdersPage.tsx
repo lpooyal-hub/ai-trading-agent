@@ -4,9 +4,19 @@ import { OrderTable } from "../components/OrderTable";
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<TradeOrder[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    api.getOrders()
+      .then(setOrders)
+      .catch(() => setOrders([]))
+      .finally(() => setIsRefreshing(false));
+  };
 
   useEffect(() => {
-    api.getOrders().then(setOrders).catch(() => setOrders([]));
+    refresh();
   }, []);
 
   return (
@@ -16,6 +26,9 @@ export function OrdersPage() {
           <p className="eyebrow">DRY_RUN</p>
           <h2>Simulated Orders</h2>
         </div>
+        <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </header>
       <OrderTable orders={orders} />
     </section>
