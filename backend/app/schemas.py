@@ -109,6 +109,15 @@ class BotPositionRead(BaseModel):
     updated_at: datetime
 
 
+class BotPositionMarketSyncResponse(BaseModel):
+    updated_count: int
+    skipped_count: int
+    success: bool
+    status: str
+    message: str
+    positions: list[BotPositionRead]
+
+
 class PortfolioSummaryRead(BaseModel):
     bot_capital_limit_usd: float
     invested_amount_usd: float

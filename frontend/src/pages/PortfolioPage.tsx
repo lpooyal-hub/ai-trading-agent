@@ -10,13 +10,17 @@ export function PortfolioPage() {
   const [message, setMessage] = useState<string | null>(null);
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
 
-  useEffect(() => {
+  const loadPortfolioData = () => (
     Promise.all([api.getPortfolioSummary(), api.getBotPositions(), api.getLegacyPositions()])
       .then(([portfolio, bot, legacy]) => {
         setSummary(portfolio);
         setBotPositions(bot);
         setLegacyPositions(legacy);
       })
+  );
+
+  useEffect(() => {
+    loadPortfolioData()
       .catch(() => {
         setBotPositions([]);
         setLegacyPositions([]);
@@ -27,13 +31,18 @@ export function PortfolioPage() {
     api.syncLegacyFromBroker()
       .then((result) => {
         setMessage(result.message ?? `${result.imported_count} imported, ${result.skipped_count} skipped.`);
-        return Promise.all([api.getPortfolioSummary(), api.getLegacyPositions()]);
-      })
-      .then(([portfolio, legacy]) => {
-        setSummary(portfolio);
-        setLegacyPositions(legacy);
+        return loadPortfolioData();
       })
       .catch(() => setMessage("Broker legacy sync failed."));
+  };
+
+  const syncBotFromMarket = () => {
+    api.syncBotFromMarket()
+      .then((result) => {
+        setMessage(`${result.message} ${result.updated_count} updated, ${result.skipped_count} skipped.`);
+        return loadPortfolioData();
+      })
+      .catch(() => setMessage("Bot valuation refresh failed."));
   };
 
   return (
@@ -43,9 +52,14 @@ export function PortfolioPage() {
           <p className="eyebrow">Portfolio</p>
           <h2>Bot-Only Positions</h2>
         </div>
-        <button className="secondary-button" disabled={legacySyncBlocked} onClick={syncLegacyFromBroker} type="button">
-          Sync Legacy From Broker
-        </button>
+        <div className="button-row">
+          <button className="secondary-button" onClick={syncBotFromMarket} type="button">
+            Refresh Bot Valuation
+          </button>
+          <button className="secondary-button" disabled={legacySyncBlocked} onClick={syncLegacyFromBroker} type="button">
+            Sync Legacy From Broker
+          </button>
+        </div>
       </header>
       {legacySyncBlocked ? <div className="notice">Broker legacy sync is blocked after bot positions exist.</div> : null}
       {message ? <div className="notice">{message}</div> : null}

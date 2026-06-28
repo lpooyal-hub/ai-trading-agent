@@ -129,6 +129,15 @@ export type BotPosition = {
   status: string;
 };
 
+export type BotPositionMarketSyncResponse = {
+  updated_count: number;
+  skipped_count: number;
+  success: boolean;
+  status: string;
+  message: string;
+  positions: BotPosition[];
+};
+
 export type LegacyPosition = {
   id: number;
   symbol: string;
@@ -381,6 +390,7 @@ export const api = {
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
+  syncBotFromMarket: () => request<BotPositionMarketSyncResponse>("/portfolio/sync-bot-from-market", { method: "POST" }),
   getBotPositions: () => request<BotPosition[]>("/portfolio/bot"),
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
   getAgentReadiness: () => request<AgentReadiness>("/agent/readiness"),

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.clients.toss_client import TossClient
 from app.schemas import (
+    BotPositionMarketSyncResponse,
     BotPositionRead,
     LegacyPositionBrokerSyncResponse,
     LegacyPositionInitializeRequest,
@@ -71,6 +72,22 @@ def list_legacy_positions(db: Session = Depends(get_db)) -> list[LegacyPositionR
 def list_bot_positions(db: Session = Depends(get_db)) -> list[BotPositionRead]:
     service = PortfolioService()
     return service.list_bot_positions(db)
+
+
+@router.post("/sync-bot-from-market", response_model=BotPositionMarketSyncResponse)
+def sync_bot_positions_from_market(
+    db: Session = Depends(get_db),
+) -> BotPositionMarketSyncResponse:
+    service = PortfolioService()
+    updated, skipped_count, message = service.sync_bot_positions_from_market_snapshots(db)
+    return BotPositionMarketSyncResponse(
+        updated_count=len(updated),
+        skipped_count=skipped_count,
+        success=bool(updated),
+        status="UPDATED" if updated else "NO_UPDATES",
+        message=message,
+        positions=updated,
+    )
 
 
 @router.get("/summary", response_model=PortfolioSummaryRead)

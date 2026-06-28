@@ -29,6 +29,7 @@
 - `/broker/positions/normalized`
 - `/portfolio/initialize-legacy`
 - `/portfolio/sync-legacy-from-broker`
+- `/portfolio/sync-bot-from-market`
 - `/portfolio/legacy`
 - `/portfolio/bot`
 - `/portfolio/summary`
@@ -104,6 +105,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - `/broker/accounts/normalized`는 Toss 계좌 응답을 마스킹된 내부 표준 계좌 형태로 변환해 보여줍니다.
 - `/broker/positions/normalized`는 Toss 잔고 응답을 내부 표준 포지션 형태로 변환해 보여줍니다.
 - `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져오며, bot position이 이미 있으면 import를 차단합니다.
+- `/portfolio/sync-bot-from-market`는 freshness window 안의 최신 market snapshot으로 bot-only position의 현재가와 미실현 PnL을 갱신하며, legacy position은 건드리지 않습니다.
 - `/settings/security-readiness`는 secret 값을 노출하지 않고 demo 안전 상태, Toss/OpenAI 준비 여부, 경고와 다음 조치만 반환합니다.
 
 ## Universe

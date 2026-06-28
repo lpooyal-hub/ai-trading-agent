@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import BotPosition, LegacyPosition
+from app.models import BotPosition, LegacyPosition, MarketSnapshot
 from app.schemas import LegacyPositionCreate
 from app.services.broker_position_normalizer import BrokerPositionNormalizer
 
@@ -85,6 +87,45 @@ class PortfolioService:
             .all()
         )
 
+    def sync_bot_positions_from_market_snapshots(self, db: Session) -> tuple[list[BotPosition], int, str]:
+        positions = (
+            db.query(BotPosition)
+            .filter(BotPosition.status == "OPEN")
+            .order_by(BotPosition.symbol.asc())
+            .all()
+        )
+        updated: list[BotPosition] = []
+        skipped_count = 0
+
+        for position in positions:
+            snapshot = self._latest_market_snapshot_for_symbol(
+                db,
+                position.symbol,
+                self.settings.market_snapshot_max_age_minutes,
+            )
+            if not snapshot:
+                skipped_count += 1
+                continue
+
+            position.current_price = snapshot.price
+            position.unrealized_pnl = (position.current_price - position.avg_buy_price) * position.quantity
+            position.unrealized_pnl_percent = (
+                position.unrealized_pnl / position.total_invested_amount * 100
+                if position.total_invested_amount
+                else 0
+            )
+            updated.append(position)
+
+        db.commit()
+        for position in updated:
+            db.refresh(position)
+
+        if updated:
+            message = "Bot position valuation refreshed from latest market snapshots."
+        else:
+            message = "No bot positions were refreshed. Add fresh market snapshots first."
+        return updated, skipped_count, message
+
     def get_summary(self, db: Session) -> dict:
         invested_amount = float(
             db.query(func.coalesce(func.sum(BotPosition.total_invested_amount), 0)).scalar()
@@ -122,3 +163,18 @@ class PortfolioService:
             "use_mock_data": self.settings.use_mock_data,
             "active_universe": self.settings.active_universe,
         }
+
+    @staticmethod
+    def _latest_market_snapshot_for_symbol(
+        db: Session,
+        symbol: str,
+        max_age_minutes: int,
+    ) -> MarketSnapshot | None:
+        cutoff = datetime.utcnow() - timedelta(minutes=max_age_minutes)
+        return (
+            db.query(MarketSnapshot)
+            .filter(MarketSnapshot.symbol == symbol.upper())
+            .filter(MarketSnapshot.created_at >= cutoff)
+            .order_by(MarketSnapshot.created_at.desc())
+            .first()
+        )

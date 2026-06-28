@@ -195,6 +195,7 @@ curl http://localhost:8000/broker/accounts
 curl http://localhost:8000/broker/accounts/normalized
 curl http://localhost:8000/broker/positions
 curl http://localhost:8000/broker/positions/normalized
+curl -X POST http://localhost:8000/portfolio/sync-bot-from-market
 curl -X POST http://localhost:8000/portfolio/sync-legacy-from-broker
 ```
 
@@ -212,6 +213,7 @@ Endpoint path는 base URL 뒤에 붙는 API 경로입니다. 기본값은 Toss O
 
 `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져옵니다. 봇 포지션이 이미 있으면 기존 보유분과 봇 포지션이 섞이지 않도록 import를 차단합니다.
 Frontend의 `Portfolio` 화면에서도 bot position이 이미 있으면 broker legacy sync 버튼을 비활성화합니다.
+`/portfolio/sync-bot-from-market`는 freshness window 안의 최신 market snapshot으로 bot-only position의 현재가와 미실현 PnL을 갱신합니다. legacy position은 건드리지 않습니다.
 
 Frontend의 `Broker` 화면에서는 backend health, Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, `/broker/accounts/normalized` 기준의 마스킹된 계좌 목록, normalized holdings, legacy sync 버튼을 확인할 수 있습니다.
 Toss holdings 응답에 평균단가나 현재가 필드가 없으면 Broker 화면에서는 `0` 대신 `-`로 표시합니다. 별도 현재가 시세 조회는 아직 연결하지 않았습니다.
