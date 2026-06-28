@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, AgentReadiness, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, TradeOrder } from "../api/client";
+import { api, AgentDecision, AgentReadiness, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -7,6 +7,7 @@ import { StatCard } from "../components/StatCard";
 export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: number) => void }) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
+  const [symbolPerformance, setSymbolPerformance] = useState<PortfolioSymbolPerformance[]>([]);
   const [llmSummary, setLlmSummary] = useState<LLMUsageSummary | null>(null);
   const [llmBudget, setLlmBudget] = useState<LLMBudget | null>(null);
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null);
@@ -23,6 +24,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
     Promise.all([
       api.getPortfolioSummary(),
       api.getPortfolioPerformance(),
+      api.getPortfolioSymbolPerformance(),
       api.getLLMSummary(),
       api.getLLMBudget(),
       api.getDemoStatus(),
@@ -31,9 +33,10 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, portfolioPerformance, usage, budget, demo, market, readiness, decisionRows, orderRows]) => {
+      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
+        setSymbolPerformance(symbolRows);
         setLlmSummary(usage);
         setLlmBudget(budget);
         setDemoStatus(demo);
