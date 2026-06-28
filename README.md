@@ -60,6 +60,12 @@ cd /home/ubuntu/ai-trading-agent
 docker compose up --build
 ```
 
+컨테이너 상태 확인:
+
+```bash
+docker compose ps
+```
+
 기본 접속 주소:
 
 - Frontend: `http://localhost:3000`
