@@ -71,9 +71,11 @@ class MarketService:
         fresh_symbols = {snapshot.symbol for snapshot in latest_snapshots}
         active_universe = self.settings.active_universe
         missing_symbols = [symbol for symbol in active_universe if symbol not in fresh_symbols]
-        ready_for_agent = bool(latest_snapshots)
+        ready_for_agent = bool(active_universe) and not missing_symbols
         if ready_for_agent:
-            message = f"{len(latest_snapshots)} fresh market snapshots are available for agent input."
+            message = "Fresh market snapshots are available for every active universe symbol."
+        elif latest_snapshots:
+            message = f"{len(latest_snapshots)} fresh market snapshots are available, but {len(missing_symbols)} symbols are missing."
         else:
             message = "No fresh market snapshots are available for agent input."
         return {
