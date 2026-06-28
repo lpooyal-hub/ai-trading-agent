@@ -223,6 +223,7 @@ class TradingService:
                 unrealized_pnl_percent=0,
                 status="OPEN",
             )
+            self._refresh_position_pnl(position)
             db.add(position)
             return
 
@@ -232,6 +233,19 @@ class TradingService:
         position.avg_buy_price = new_total / new_quantity if new_quantity else 0
         position.total_invested_amount = new_total
         position.current_price = decision.current_price
+        self._refresh_position_pnl(position)
+
+    @staticmethod
+    def _refresh_position_pnl(position: BotPosition) -> None:
+        position.unrealized_pnl = (
+            position.current_price - position.avg_buy_price
+        ) * position.quantity
+        invested = position.total_invested_amount
+        position.unrealized_pnl_percent = (
+            position.unrealized_pnl / invested * 100
+            if invested
+            else 0
+        )
 
     @staticmethod
     def _apply_sell_position(
