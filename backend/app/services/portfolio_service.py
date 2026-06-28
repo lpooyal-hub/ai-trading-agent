@@ -165,47 +165,24 @@ class PortfolioService:
         }
 
     def get_performance(self, db: Session) -> dict:
-        orders = (
-            db.query(TradeOrder)
-            .filter(TradeOrder.status == OrderStatus.SIMULATED)
-            .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
-            .all()
-        )
-        quantity_by_symbol: dict[str, float] = {}
-        cost_by_symbol: dict[str, float] = {}
+        orders = self._list_simulated_orders(db)
+        realized_trades = self._calculate_realized_trades(orders)
         buy_order_count = 0
         sell_order_count = 0
         gross_bought = 0.0
         gross_sold = 0.0
-        realized_pnl = 0.0
-        winning_sell_count = 0
-        losing_sell_count = 0
 
         for order in orders:
-            symbol = order.symbol.upper()
             if order.side == OrderSide.BUY:
                 buy_order_count += 1
                 gross_bought += order.order_amount
-                quantity_by_symbol[symbol] = quantity_by_symbol.get(symbol, 0) + order.quantity
-                cost_by_symbol[symbol] = cost_by_symbol.get(symbol, 0) + order.order_amount
-                continue
+            else:
+                sell_order_count += 1
+                gross_sold += order.order_amount
 
-            sell_order_count += 1
-            gross_sold += order.order_amount
-            held_quantity = quantity_by_symbol.get(symbol, 0)
-            held_cost = cost_by_symbol.get(symbol, 0)
-            avg_cost = held_cost / held_quantity if held_quantity else 0
-            matched_quantity = min(order.quantity, held_quantity)
-            cost_basis = avg_cost * matched_quantity
-            order_realized_pnl = order.order_amount - cost_basis
-            realized_pnl += order_realized_pnl
-            if matched_quantity > 0 and order_realized_pnl > 0:
-                winning_sell_count += 1
-            elif matched_quantity > 0 and order_realized_pnl < 0:
-                losing_sell_count += 1
-            quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)
-            cost_by_symbol[symbol] = max(held_cost - cost_basis, 0)
-
+        realized_pnl = sum(trade["realized_pnl_usd"] for trade in realized_trades)
+        winning_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_usd"] > 0])
+        losing_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_usd"] < 0])
         unrealized_pnl = float(
             db.query(func.coalesce(func.sum(BotPosition.unrealized_pnl), 0)).scalar()
             or 0
@@ -235,12 +212,20 @@ class PortfolioService:
         }
 
     def list_realized_trades(self, db: Session, limit: int = 25) -> list[dict]:
-        orders = (
+        realized_trades = self._calculate_realized_trades(self._list_simulated_orders(db))
+        return list(reversed(realized_trades))[:limit]
+
+    @staticmethod
+    def _list_simulated_orders(db: Session) -> list[TradeOrder]:
+        return (
             db.query(TradeOrder)
             .filter(TradeOrder.status == OrderStatus.SIMULATED)
             .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
             .all()
         )
+
+    @staticmethod
+    def _calculate_realized_trades(orders: list[TradeOrder]) -> list[dict]:
         quantity_by_symbol: dict[str, float] = {}
         cost_by_symbol: dict[str, float] = {}
         realized_trades: list[dict] = []
@@ -273,7 +258,7 @@ class PortfolioService:
             quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)
             cost_by_symbol[symbol] = max(held_cost - cost_basis, 0)
 
-        return list(reversed(realized_trades))[:limit]
+        return realized_trades
 
     @staticmethod
     def _latest_market_snapshot_for_symbol(
