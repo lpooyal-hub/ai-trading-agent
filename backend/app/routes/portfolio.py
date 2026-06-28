@@ -11,6 +11,7 @@ from app.schemas import (
     LegacyPositionInitializeResponse,
     LegacyPositionRead,
     PortfolioPerformanceRead,
+    PortfolioRealizedTradeRead,
     PortfolioSummaryRead,
 )
 from app.services.portfolio_service import PortfolioService
@@ -101,3 +102,9 @@ def get_portfolio_summary(db: Session = Depends(get_db)) -> PortfolioSummaryRead
 def get_portfolio_performance(db: Session = Depends(get_db)) -> PortfolioPerformanceRead:
     service = PortfolioService()
     return PortfolioPerformanceRead(**service.get_performance(db))
+
+
+@router.get("/realized-trades", response_model=list[PortfolioRealizedTradeRead])
+def list_realized_trades(db: Session = Depends(get_db)) -> list[PortfolioRealizedTradeRead]:
+    service = PortfolioService()
+    return [PortfolioRealizedTradeRead(**trade) for trade in service.list_realized_trades(db)]

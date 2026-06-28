@@ -154,6 +154,17 @@ class PortfolioPerformanceRead(BaseModel):
     closed_bot_position_count: int
 
 
+class PortfolioRealizedTradeRead(BaseModel):
+    order_id: int
+    created_at: datetime
+    symbol: str
+    quantity: float
+    sell_amount_usd: float
+    cost_basis_usd: float
+    realized_pnl_usd: float
+    realized_pnl_percent: float
+
+
 class AgentDecisionBase(BaseModel):
     symbol: str
     sector: str

@@ -234,6 +234,47 @@ class PortfolioService:
             "closed_bot_position_count": len([position for position in bot_positions if position.status == "CLOSED"]),
         }
 
+    def list_realized_trades(self, db: Session, limit: int = 25) -> list[dict]:
+        orders = (
+            db.query(TradeOrder)
+            .filter(TradeOrder.status == OrderStatus.SIMULATED)
+            .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
+            .all()
+        )
+        quantity_by_symbol: dict[str, float] = {}
+        cost_by_symbol: dict[str, float] = {}
+        realized_trades: list[dict] = []
+
+        for order in orders:
+            symbol = order.symbol.upper()
+            if order.side == OrderSide.BUY:
+                quantity_by_symbol[symbol] = quantity_by_symbol.get(symbol, 0) + order.quantity
+                cost_by_symbol[symbol] = cost_by_symbol.get(symbol, 0) + order.order_amount
+                continue
+
+            held_quantity = quantity_by_symbol.get(symbol, 0)
+            held_cost = cost_by_symbol.get(symbol, 0)
+            avg_cost = held_cost / held_quantity if held_quantity else 0
+            matched_quantity = min(order.quantity, held_quantity)
+            cost_basis = avg_cost * matched_quantity
+            realized_pnl = order.order_amount - cost_basis
+            realized_pnl_percent = realized_pnl / cost_basis * 100 if cost_basis else 0
+            if matched_quantity > 0:
+                realized_trades.append({
+                    "order_id": order.id,
+                    "created_at": order.created_at,
+                    "symbol": symbol,
+                    "quantity": matched_quantity,
+                    "sell_amount_usd": order.order_amount,
+                    "cost_basis_usd": cost_basis,
+                    "realized_pnl_usd": realized_pnl,
+                    "realized_pnl_percent": realized_pnl_percent,
+                })
+            quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)
+            cost_by_symbol[symbol] = max(held_cost - cost_basis, 0)
+
+        return list(reversed(realized_trades))[:limit]
+
     @staticmethod
     def _latest_market_snapshot_for_symbol(
         db: Session,
