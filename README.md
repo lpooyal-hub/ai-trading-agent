@@ -215,6 +215,16 @@ Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용
 
 Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다.
 
+## Live Trading Readiness
+
+현재 공개 빌드는 실주문을 보내지 않습니다. `LIVE_TRADING_ENABLED=true`와 `DRY_RUN=false`를 설정해도 broker live order adapter가 아직 연결되어 있지 않아 주문은 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단됩니다.
+
+실전 전환 전 점검은 아래 endpoint와 Dashboard/Settings 화면에서 확인할 수 있습니다.
+
+```bash
+curl http://localhost:81/settings/live-readiness
+```
+
 ## Public Repo 운영 방침
 
 - 기본 설정: DRY_RUN / demo / paper trading
