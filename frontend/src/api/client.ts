@@ -156,6 +156,17 @@ export type PortfolioPerformance = {
   closed_bot_position_count: number;
 };
 
+export type PortfolioRealizedTrade = {
+  order_id: number;
+  created_at: string;
+  symbol: string;
+  quantity: number;
+  sell_amount_usd: number;
+  cost_basis_usd: number;
+  realized_pnl_usd: number;
+  realized_pnl_percent: number;
+};
+
 export type LegacyPosition = {
   id: number;
   symbol: string;
@@ -407,6 +418,7 @@ export const api = {
   getHealth: () => request<HealthResponse>("/health"),
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getPortfolioPerformance: () => request<PortfolioPerformance>("/portfolio/performance"),
+  getPortfolioRealizedTrades: () => request<PortfolioRealizedTrade[]>("/portfolio/realized-trades"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
   syncBotFromMarket: () => request<BotPositionMarketSyncResponse>("/portfolio/sync-bot-from-market", { method: "POST" }),

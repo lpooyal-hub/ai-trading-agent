@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioSummary } from "../api/client";
+import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioRealizedTrade, PortfolioSummary } from "../api/client";
 import { PositionTable } from "../components/PositionTable";
 import { StatCard } from "../components/StatCard";
 
 export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
+  const [realizedTrades, setRealizedTrades] = useState<PortfolioRealizedTrade[]>([]);
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -15,10 +16,11 @@ export function PortfolioPage() {
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
 
   const loadPortfolioData = () => (
-    Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getBotPositions(), api.getLegacyPositions()])
-      .then(([portfolio, portfolioPerformance, bot, legacy]) => {
+    Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getPortfolioRealizedTrades(), api.getBotPositions(), api.getLegacyPositions()])
+      .then(([portfolio, portfolioPerformance, trades, bot, legacy]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
+        setRealizedTrades(trades);
         setBotPositions(bot);
         setLegacyPositions(legacy);
       })
@@ -28,6 +30,7 @@ export function PortfolioPage() {
     loadPortfolioData()
       .catch(() => {
         setPerformance(null);
+        setRealizedTrades([]);
         setBotPositions([]);
         setLegacyPositions([]);
       });
@@ -100,6 +103,40 @@ export function PortfolioPage() {
         <StatCard label="Bot Positions" value={`${summary?.bot_position_count ?? 0}`} />
         <StatCard label="Legacy Positions" value={`${summary?.legacy_position_count ?? 0}`} />
       </div>
+      <section>
+        <h3>Realized Trades</h3>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Quantity</th>
+                <th>Sell Amount</th>
+                <th>Cost Basis</th>
+                <th>Realized PnL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {realizedTrades.map((trade) => (
+                <tr key={trade.order_id}>
+                  <td>{new Date(trade.created_at).toLocaleString()}</td>
+                  <td>{trade.symbol}</td>
+                  <td>{trade.quantity.toFixed(4)}</td>
+                  <td>${trade.sell_amount_usd.toFixed(2)}</td>
+                  <td>${trade.cost_basis_usd.toFixed(2)}</td>
+                  <td>${trade.realized_pnl_usd.toFixed(2)} ({trade.realized_pnl_percent.toFixed(2)}%)</td>
+                </tr>
+              ))}
+              {!realizedTrades.length ? (
+                <tr>
+                  <td colSpan={6}>No realized trades yet.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <section>
         <h3>Bot Positions</h3>
         <PositionTable botPositions={botPositions} />
