@@ -67,6 +67,20 @@ export type AgentDecision = {
   estimated_llm_cost_usd: number;
 };
 
+export type AgentReadiness = {
+  ready: boolean;
+  reason: string;
+  dry_run: boolean;
+  use_mock_data: boolean;
+  real_llm_ready: boolean;
+  market_ready: boolean;
+  budget_ready: boolean;
+  candidate_symbols: string[];
+  fresh_symbol_count: number;
+  missing_symbols: string[];
+  llm_budget_reason: string;
+};
+
 export type TradeOrder = {
   id: number;
   decision_id: number;
@@ -369,6 +383,7 @@ export const api = {
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
   getBotPositions: () => request<BotPosition[]>("/portfolio/bot"),
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
+  getAgentReadiness: () => request<AgentReadiness>("/agent/readiness"),
   getDecisions: () => request<AgentDecision[]>("/decisions"),
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),

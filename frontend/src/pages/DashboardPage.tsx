@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioSummary, TradeOrder } from "../api/client";
+import { api, AgentDecision, AgentReadiness, DemoStatus, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioSummary, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -10,6 +10,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [llmBudget, setLlmBudget] = useState<LLMBudget | null>(null);
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null);
   const [marketStatus, setMarketStatus] = useState<MarketSnapshotStatus | null>(null);
+  const [agentReadiness, setAgentReadiness] = useState<AgentReadiness | null>(null);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -21,15 +22,17 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getLLMBudget(),
       api.getDemoStatus(),
       api.getMarketSnapshotStatus(),
+      api.getAgentReadiness(),
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, usage, budget, demo, market, decisionRows, orderRows]) => {
+      .then(([portfolio, usage, budget, demo, market, readiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setLlmSummary(usage);
         setLlmBudget(budget);
         setDemoStatus(demo);
         setMarketStatus(market);
+        setAgentReadiness(readiness);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
       })
@@ -41,16 +44,23 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .then((status) => {
         setDemoStatus(status);
         setError(status.message);
-        return Promise.all([api.getPortfolioSummary(), api.getDecisions(), api.getOrders(), api.getLLMSummary(), api.getMarketSnapshotStatus()]);
+        return Promise.all([api.getPortfolioSummary(), api.getDecisions(), api.getOrders(), api.getLLMSummary(), api.getMarketSnapshotStatus(), api.getAgentReadiness()]);
       })
-      .then(([portfolio, decisionRows, orderRows, usage, market]) => {
+      .then(([portfolio, decisionRows, orderRows, usage, market, readiness]) => {
         setSummary(portfolio);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
         setLlmSummary(usage);
         setMarketStatus(market);
+        setAgentReadiness(readiness);
       })
       .catch(() => setError("Demo seed failed."));
+  };
+
+  const runAgentOnce = () => {
+    api.runAgentOnce()
+      .then((decision) => onSelectDecision(decision.id))
+      .catch(() => setError("Agent run failed."));
   };
 
   return (
@@ -60,17 +70,19 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           <p className="eyebrow">Research Dashboard</p>
           <h2>Decision Review</h2>
         </div>
-        <button className="primary-button" onClick={() => api.runAgentOnce().then((decision) => onSelectDecision(decision.id))} type="button">
-          Run Agent Once
-        </button>
-        <button
-          className="secondary-button"
-          disabled={demoStatus ? !demoStatus.demo_enabled : false}
-          onClick={seedDemoData}
-          type="button"
-        >
-          Seed Demo Data
-        </button>
+        <div className="button-row">
+          <button className="primary-button" onClick={runAgentOnce} type="button">
+            Run Agent Once
+          </button>
+          <button
+            className="secondary-button"
+            disabled={demoStatus ? !demoStatus.demo_enabled : false}
+            onClick={seedDemoData}
+            type="button"
+          >
+            Seed Demo Data
+          </button>
+        </div>
       </header>
       {error ? <div className="notice">{error}</div> : null}
       <div className="stat-grid">
@@ -86,6 +98,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Average Latency" value={`${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`} />
         <StatCard label="Market Ready" value={marketStatus?.ready_for_agent ? "Ready" : "Not Ready"} detail={marketStatus?.message} />
         <StatCard label="Fresh Symbols" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0} missing`} />
+        <StatCard label="Agent Preflight" value={agentReadiness?.ready ? "Ready" : "Check"} detail={agentReadiness?.reason} />
+        <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />
         <StatCard
           label="Demo Mode"
           value={demoStatus?.demo_enabled ? "Enabled" : "Disabled"}

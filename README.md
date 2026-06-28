@@ -133,6 +133,7 @@ curl http://localhost:8000/agent/readiness
 ```
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
+Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
 
 Preview and approve a decision:
 
