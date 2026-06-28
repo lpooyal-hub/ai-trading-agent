@@ -114,7 +114,7 @@ export function MarketPage() {
       <div className="stat-grid">
         <StatCard label="Agent Ready" value={status?.ready_for_agent ? "Ready" : "Not Ready"} detail={status?.message} />
         <StatCard label="Fresh Symbols" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}m freshness window`} />
-        <StatCard label="Missing Symbols" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.slice(0, 4).join(", ") || "None"} />
+        <StatCard label="Missing Symbols" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.join(", ") || "None"} />
       </div>
       <div className="filter-row">
         <label>
