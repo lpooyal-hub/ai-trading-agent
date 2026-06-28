@@ -147,6 +147,9 @@ class PortfolioPerformanceRead(BaseModel):
     unrealized_pnl_usd: float
     total_pnl_usd: float
     total_pnl_percent: float
+    winning_sell_count: int
+    losing_sell_count: int
+    win_rate_percent: float
     open_bot_position_count: int
     closed_bot_position_count: int
 

@@ -178,6 +178,8 @@ class PortfolioService:
         gross_bought = 0.0
         gross_sold = 0.0
         realized_pnl = 0.0
+        winning_sell_count = 0
+        losing_sell_count = 0
 
         for order in orders:
             symbol = order.symbol.upper()
@@ -195,7 +197,12 @@ class PortfolioService:
             avg_cost = held_cost / held_quantity if held_quantity else 0
             matched_quantity = min(order.quantity, held_quantity)
             cost_basis = avg_cost * matched_quantity
-            realized_pnl += order.order_amount - cost_basis
+            order_realized_pnl = order.order_amount - cost_basis
+            realized_pnl += order_realized_pnl
+            if matched_quantity > 0 and order_realized_pnl > 0:
+                winning_sell_count += 1
+            elif matched_quantity > 0 and order_realized_pnl < 0:
+                losing_sell_count += 1
             quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)
             cost_by_symbol[symbol] = max(held_cost - cost_basis, 0)
 
@@ -206,6 +213,8 @@ class PortfolioService:
         total_invested = gross_bought
         total_pnl = realized_pnl + unrealized_pnl
         total_pnl_percent = total_pnl / total_invested * 100 if total_invested else 0
+        realized_sell_count = winning_sell_count + losing_sell_count
+        win_rate_percent = winning_sell_count / realized_sell_count * 100 if realized_sell_count else 0
         bot_positions = self.list_bot_positions(db)
 
         return {
@@ -218,6 +227,9 @@ class PortfolioService:
             "unrealized_pnl_usd": unrealized_pnl,
             "total_pnl_usd": total_pnl,
             "total_pnl_percent": total_pnl_percent,
+            "winning_sell_count": winning_sell_count,
+            "losing_sell_count": losing_sell_count,
+            "win_rate_percent": win_rate_percent,
             "open_bot_position_count": len([position for position in bot_positions if position.status == "OPEN"]),
             "closed_bot_position_count": len([position for position in bot_positions if position.status == "CLOSED"]),
         }
