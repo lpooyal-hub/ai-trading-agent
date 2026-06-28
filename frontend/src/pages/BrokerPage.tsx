@@ -29,6 +29,9 @@ export function BrokerPage() {
   const [accountsCacheHit, setAccountsCacheHit] = useState<boolean | null>(null);
   const [positionsCacheHit, setPositionsCacheHit] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [isSyncingLegacy, setIsSyncingLegacy] = useState(false);
 
   const appendMessage = (nextMessage: string) => {
     setMessage((current) => {
@@ -38,6 +41,8 @@ export function BrokerPage() {
   };
 
   const refreshAccounts = () => {
+    if (isLoadingAccounts) return;
+    setIsLoadingAccounts(true);
     api.getBrokerAccounts()
       .then((accountResponse) => {
         setAccounts(accountResponse.accounts ?? []);
@@ -50,39 +55,42 @@ export function BrokerPage() {
         setAccounts([]);
         setAccountsCacheHit(null);
         appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
-      });
+      })
+      .finally(() => setIsLoadingAccounts(false));
   };
 
   const refresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
     setMessage(null);
 
-    api.getHealth()
-      .then((health) => setBackendHealth(health))
-      .catch((error) => {
-        setBackendHealth(null);
-        appendMessage(`Backend health is not available: ${errorMessage(error, "Request failed")}`);
-      });
-
-    api.getBrokerStatus()
-      .then((brokerStatus) => setStatus(brokerStatus))
-      .catch((error) => {
-        setStatus(null);
-        appendMessage(`Broker status is not available: ${errorMessage(error, "Request failed")}`);
-      });
-
-    api.getBrokerPositions()
-      .then((positionResponse) => {
-        setPositions(positionResponse.positions ?? []);
-        setPositionsCacheHit(positionResponse.cache_hit);
-        if (!positionResponse.success) {
-          appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
-        }
-      })
-      .catch((error) => {
-        setPositions([]);
-        setPositionsCacheHit(null);
-        appendMessage(`Broker holdings are not available: ${errorMessage(error, "Request failed")}`);
-      });
+    Promise.allSettled([
+      api.getHealth()
+        .then((health) => setBackendHealth(health))
+        .catch((error) => {
+          setBackendHealth(null);
+          appendMessage(`Backend health is not available: ${errorMessage(error, "Request failed")}`);
+        }),
+      api.getBrokerStatus()
+        .then((brokerStatus) => setStatus(brokerStatus))
+        .catch((error) => {
+          setStatus(null);
+          appendMessage(`Broker status is not available: ${errorMessage(error, "Request failed")}`);
+        }),
+      api.getBrokerPositions()
+        .then((positionResponse) => {
+          setPositions(positionResponse.positions ?? []);
+          setPositionsCacheHit(positionResponse.cache_hit);
+          if (!positionResponse.success) {
+            appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
+          }
+        })
+        .catch((error) => {
+          setPositions([]);
+          setPositionsCacheHit(null);
+          appendMessage(`Broker holdings are not available: ${errorMessage(error, "Request failed")}`);
+        }),
+    ]).finally(() => setIsRefreshing(false));
   };
 
   useEffect(() => {
@@ -92,9 +100,12 @@ export function BrokerPage() {
   }, []);
 
   const syncLegacy = () => {
+    if (isSyncingLegacy) return;
+    setIsSyncingLegacy(true);
     api.syncLegacyFromBroker()
       .then((result) => setMessage(result.message ?? `${result.imported_count} imported, ${result.skipped_count} skipped.`))
-      .catch(() => setMessage("Broker legacy sync failed."));
+      .catch(() => setMessage("Broker legacy sync failed."))
+      .finally(() => setIsSyncingLegacy(false));
   };
 
   return (
@@ -105,9 +116,15 @@ export function BrokerPage() {
           <h2>Broker Account</h2>
           <p className="helper-text">API base: {API_BASE_URL}</p>
         </div>
-        <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
-        <button className="secondary-button" onClick={refreshAccounts} type="button">Load Accounts</button>
-        <button className="primary-button" onClick={syncLegacy} type="button">Sync Legacy</button>
+        <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </button>
+        <button className="secondary-button" disabled={isLoadingAccounts} onClick={refreshAccounts} type="button">
+          {isLoadingAccounts ? "Loading..." : "Load Accounts"}
+        </button>
+        <button className="primary-button" disabled={isSyncingLegacy} onClick={syncLegacy} type="button">
+          {isSyncingLegacy ? "Syncing..." : "Sync Legacy"}
+        </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
