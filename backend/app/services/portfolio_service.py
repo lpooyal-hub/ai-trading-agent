@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import BotPosition, LegacyPosition, MarketSnapshot
+from app.models import BotPosition, LegacyPosition, MarketSnapshot, OrderSide, OrderStatus, TradeOrder
 from app.schemas import LegacyPositionCreate
 from app.services.broker_position_normalizer import BrokerPositionNormalizer
 
@@ -162,6 +162,64 @@ class PortfolioService:
             "live_trading_enabled": self.settings.live_trading_enabled,
             "use_mock_data": self.settings.use_mock_data,
             "active_universe": self.settings.active_universe,
+        }
+
+    def get_performance(self, db: Session) -> dict:
+        orders = (
+            db.query(TradeOrder)
+            .filter(TradeOrder.status == OrderStatus.SIMULATED)
+            .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
+            .all()
+        )
+        quantity_by_symbol: dict[str, float] = {}
+        cost_by_symbol: dict[str, float] = {}
+        buy_order_count = 0
+        sell_order_count = 0
+        gross_bought = 0.0
+        gross_sold = 0.0
+        realized_pnl = 0.0
+
+        for order in orders:
+            symbol = order.symbol.upper()
+            if order.side == OrderSide.BUY:
+                buy_order_count += 1
+                gross_bought += order.order_amount
+                quantity_by_symbol[symbol] = quantity_by_symbol.get(symbol, 0) + order.quantity
+                cost_by_symbol[symbol] = cost_by_symbol.get(symbol, 0) + order.order_amount
+                continue
+
+            sell_order_count += 1
+            gross_sold += order.order_amount
+            held_quantity = quantity_by_symbol.get(symbol, 0)
+            held_cost = cost_by_symbol.get(symbol, 0)
+            avg_cost = held_cost / held_quantity if held_quantity else 0
+            matched_quantity = min(order.quantity, held_quantity)
+            cost_basis = avg_cost * matched_quantity
+            realized_pnl += order.order_amount - cost_basis
+            quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)
+            cost_by_symbol[symbol] = max(held_cost - cost_basis, 0)
+
+        unrealized_pnl = float(
+            db.query(func.coalesce(func.sum(BotPosition.unrealized_pnl), 0)).scalar()
+            or 0
+        )
+        total_invested = gross_bought
+        total_pnl = realized_pnl + unrealized_pnl
+        total_pnl_percent = total_pnl / total_invested * 100 if total_invested else 0
+        bot_positions = self.list_bot_positions(db)
+
+        return {
+            "simulated_order_count": len(orders),
+            "buy_order_count": buy_order_count,
+            "sell_order_count": sell_order_count,
+            "gross_bought_usd": gross_bought,
+            "gross_sold_usd": gross_sold,
+            "realized_pnl_usd": realized_pnl,
+            "unrealized_pnl_usd": unrealized_pnl,
+            "total_pnl_usd": total_pnl,
+            "total_pnl_percent": total_pnl_percent,
+            "open_bot_position_count": len([position for position in bot_positions if position.status == "OPEN"]),
+            "closed_bot_position_count": len([position for position in bot_positions if position.status == "CLOSED"]),
         }
 
     @staticmethod
