@@ -146,6 +146,36 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         </div>
       </section>
       <section>
+        <h3>Top Symbols</h3>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Realized PnL</th>
+                <th>Trades</th>
+                <th>Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {symbolPerformance.slice(0, 5).map((row) => (
+                <tr key={row.symbol}>
+                  <td>{row.symbol}</td>
+                  <td>${row.realized_pnl_usd.toFixed(2)}</td>
+                  <td>{row.realized_trade_count}</td>
+                  <td>{row.win_rate_percent.toFixed(2)}%</td>
+                </tr>
+              ))}
+              {!symbolPerformance.length ? (
+                <tr>
+                  <td colSpan={4}>No symbol performance yet.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
         <h3>Recent Decisions</h3>
         <DecisionTable decisions={decisions} onSelect={onSelectDecision} />
       </section>
