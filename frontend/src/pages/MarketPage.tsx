@@ -70,6 +70,11 @@ export function MarketPage() {
     ])
       .then((result) => {
         setMessage(`${result.created_count} saved, ${result.skipped_count} skipped.`);
+        if (result.created_count > 0) {
+          setPrice("0");
+          setChangePercent("0");
+          setVolume("0");
+        }
         return Promise.all([api.getLatestMarketSnapshots(), api.getMarketSnapshotStatus()]);
       })
       .then(([snapshotRows, snapshotStatus]) => {
