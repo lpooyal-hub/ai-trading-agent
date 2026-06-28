@@ -137,6 +137,20 @@ class PortfolioSummaryRead(BaseModel):
     active_universe: list[str]
 
 
+class PortfolioPerformanceRead(BaseModel):
+    simulated_order_count: int
+    buy_order_count: int
+    sell_order_count: int
+    gross_bought_usd: float
+    gross_sold_usd: float
+    realized_pnl_usd: float
+    unrealized_pnl_usd: float
+    total_pnl_usd: float
+    total_pnl_percent: float
+    open_bot_position_count: int
+    closed_bot_position_count: int
+
+
 class AgentDecisionBase(BaseModel):
     symbol: str
     sector: str
