@@ -121,7 +121,16 @@ class TradingService:
             status=OrderStatus.SIMULATED,
             dry_run=True,
             reason="DRY_RUN simulated buy order.",
-            raw_response_json={"source": "trading_service", "dry_run": True},
+            raw_response_json={
+                "source": "trading_service",
+                "dry_run": True,
+                "simulated_fill": {
+                    "side": OrderSide.BUY.value,
+                    "quantity": quantity,
+                    "price": decision.current_price,
+                    "order_amount": decision.recommended_order_amount,
+                },
+            },
         )
         self._apply_buy_position(db, decision, quantity)
         if commit:
@@ -149,7 +158,16 @@ class TradingService:
             status=OrderStatus.SIMULATED,
             dry_run=True,
             reason="DRY_RUN simulated sell order.",
-            raw_response_json={"source": "trading_service", "dry_run": True},
+            raw_response_json={
+                "source": "trading_service",
+                "dry_run": True,
+                "simulated_fill": {
+                    "side": OrderSide.SELL.value,
+                    "quantity": quantity,
+                    "price": decision.current_price,
+                    "order_amount": order_amount,
+                },
+            },
         )
         self._apply_sell_position(position, quantity, order_amount)
         if commit:
