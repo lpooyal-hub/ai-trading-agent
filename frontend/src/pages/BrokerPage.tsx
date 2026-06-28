@@ -36,6 +36,7 @@ export function BrokerPage() {
   const [positionsCacheHit, setPositionsCacheHit] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshCooldown, setIsRefreshCooldown] = useState(false);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [isAccountCooldown, setIsAccountCooldown] = useState(false);
   const [isSyncingLegacy, setIsSyncingLegacy] = useState(false);
@@ -72,7 +73,7 @@ export function BrokerPage() {
   };
 
   const refresh = () => {
-    if (isRefreshing) return;
+    if (isRefreshing || isRefreshCooldown) return;
     setIsRefreshing(true);
     setMessage(null);
 
@@ -95,6 +96,10 @@ export function BrokerPage() {
           setPositionsCacheHit(positionResponse.cache_hit);
           if (!positionResponse.success) {
             appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
+            if (positionResponse.http_status_code === 429) {
+              setIsRefreshCooldown(true);
+              window.setTimeout(() => setIsRefreshCooldown(false), 15000);
+            }
           }
         })
         .catch((error) => {
@@ -129,8 +134,8 @@ export function BrokerPage() {
           <h2>Broker Account</h2>
           <p className="helper-text">API base: {API_BASE_URL}</p>
         </div>
-        <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+        <button className="secondary-button" disabled={isRefreshing || isRefreshCooldown} onClick={refresh} type="button">
+          {isRefreshing ? "Refreshing..." : isRefreshCooldown ? "Wait..." : "Refresh"}
         </button>
         <button className="secondary-button" disabled={isLoadingAccounts || isAccountCooldown} onClick={refreshAccounts} type="button">
           {isLoadingAccounts ? "Loading..." : isAccountCooldown ? "Wait..." : "Load Accounts"}
