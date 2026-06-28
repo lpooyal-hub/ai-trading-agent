@@ -20,6 +20,9 @@ class MockTossClient:
 
     def place_live_order(self, *args, **kwargs) -> dict:
         return {
+            "success": False,
             "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
             "message": "Mock mode does not place live orders.",
+            "live_order_blocked": True,
+            "raw_response_saved": False,
         }
