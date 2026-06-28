@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.clients.market_data_client import MarketDataClient
 from app.clients.mock_market_data_client import MockMarketDataClient
 from app.config import Settings, get_settings
 from app.models import MarketSnapshot
@@ -12,6 +13,7 @@ class MarketService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.mock_client = MockMarketDataClient()
+        self.market_data_client = MarketDataClient()
 
     def refresh_top_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
         latest_snapshots = self.get_latest_universe_snapshots(db)
@@ -46,11 +48,12 @@ class MarketService:
 
     def refresh_top_universe_snapshot_result(self, db: Session) -> dict:
         if not self.settings.use_mock_data:
+            result = self.market_data_client.get_semiconductor_snapshots(self.settings.active_universe)
             return {
                 "created_count": 0,
                 "skipped_count": 0,
-                "source": "stored_market_snapshots",
-                "message": "External market data refresh is not connected yet. Use manual snapshots or an external feeder.",
+                "source": self.market_data_client.provider_name,
+                "message": result.message,
                 "snapshots": self.get_latest_universe_snapshots(db),
             }
 
