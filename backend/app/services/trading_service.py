@@ -191,15 +191,7 @@ class TradingService:
     def sync_bot_positions(self, db: Session) -> list[BotPosition]:
         positions = db.query(BotPosition).all()
         for position in positions:
-            position.unrealized_pnl = (
-                position.current_price - position.avg_buy_price
-            ) * position.quantity
-            invested = position.total_invested_amount
-            position.unrealized_pnl_percent = (
-                position.unrealized_pnl / invested * 100
-                if invested
-                else 0
-            )
+            self._refresh_position_pnl(position)
         db.commit()
         return positions
 
