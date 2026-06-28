@@ -10,8 +10,12 @@ export function MarketPage() {
   const [changePercent, setChangePercent] = useState("0");
   const [volume, setVolume] = useState("0");
   const [message, setMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshingSource, setIsRefreshingSource] = useState(false);
 
   const refresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
     Promise.all([api.getLatestMarketSnapshots(), api.getMarketSnapshotStatus()])
       .then(([snapshotRows, snapshotStatus]) => {
         setSnapshots(snapshotRows);
@@ -20,7 +24,8 @@ export function MarketPage() {
       .catch(() => {
         setSnapshots([]);
         setStatus(null);
-      });
+      })
+      .finally(() => setIsRefreshing(false));
   };
 
   useEffect(() => {
@@ -72,6 +77,8 @@ export function MarketPage() {
   };
 
   const refreshFromSource = () => {
+    if (isRefreshingSource) return;
+    setIsRefreshingSource(true);
     api.refreshMarketSnapshots()
       .then((result) => {
         setSnapshots(result.snapshots);
@@ -79,7 +86,8 @@ export function MarketPage() {
         return api.getMarketSnapshotStatus();
       })
       .then(setStatus)
-      .catch(() => setMessage("Market snapshot refresh failed."));
+      .catch(() => setMessage("Market snapshot refresh failed."))
+      .finally(() => setIsRefreshingSource(false));
   };
 
   return (
@@ -90,8 +98,12 @@ export function MarketPage() {
           <h2>Manual Snapshots</h2>
         </div>
         <div className="button-row">
-          <button className="secondary-button" onClick={refresh} type="button">Refresh</button>
-          <button className="primary-button" onClick={refreshFromSource} type="button">Refresh Source</button>
+          <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </button>
+          <button className="primary-button" disabled={isRefreshingSource} onClick={refreshFromSource} type="button">
+            {isRefreshingSource ? "Refreshing..." : "Refresh Source"}
+          </button>
         </div>
       </header>
       {message ? <div className="notice">{message}</div> : null}
