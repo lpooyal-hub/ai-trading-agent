@@ -346,6 +346,10 @@ class TradingService:
         warnings: list[str] = []
         if execution_mode != "DRY_RUN_SIMULATION":
             warnings.append("This decision will not create a DRY_RUN simulated order.")
+        if execution_mode == "LIVE_TODO_NOT_IMPLEMENTED":
+            warnings.append("Live order execution is blocked because the broker order adapter is not implemented.")
+        if execution_mode == "BLOCKED_LIVE_DISABLED":
+            warnings.append("Live order execution is blocked because LIVE_TRADING_ENABLED is false.")
         if legacy_protected:
             warnings.append("The symbol exists as a protected legacy position.")
         if decision.action == AgentAction.HOLD:
