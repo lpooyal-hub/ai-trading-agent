@@ -161,7 +161,7 @@ curl -X POST http://localhost:8000/market/snapshots \
 
 `/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 호출하지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
 외부 시세 client는 현재 명시적인 `NOT_CONFIGURED` stub이며, 실제 provider 호출은 아직 연결하지 않았습니다.
-`/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다.
+`/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 
 허용 universe 밖의 심볼이나 semiconductor가 아닌 sector는 저장하지 않습니다.

@@ -98,7 +98,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 1. `Dashboard`: demo 상태, market readiness, agent readiness 확인
-2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장
+2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장. Active universe 전체가 fresh일 때 agent ready로 표시됩니다.
 3. `Decisions`: `Run Agent Once`로 paper decision 생성
 4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
 5. `Portfolio`: bot-only position, protected legacy position, PnL 확인
