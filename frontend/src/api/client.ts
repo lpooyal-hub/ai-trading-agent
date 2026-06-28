@@ -93,6 +93,7 @@ export type TradeOrder = {
   status: string;
   dry_run: boolean;
   reason: string;
+  raw_response_json: Record<string, unknown>;
 };
 
 export type DecisionPreview = {
