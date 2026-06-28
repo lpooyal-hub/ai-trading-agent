@@ -34,6 +34,7 @@
 - `/portfolio/bot`
 - `/portfolio/summary`
 - `/portfolio/performance`
+- `/portfolio/realized-trades`
 - `/agent/run-once`
 - `/agent/status`
 - `/agent/readiness`
