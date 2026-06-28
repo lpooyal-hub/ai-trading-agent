@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioRealizedTrade, PortfolioSummary } from "../api/client";
+import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioRealizedTrade, PortfolioSummary, PortfolioSymbolPerformance } from "../api/client";
 import { PositionTable } from "../components/PositionTable";
 import { StatCard } from "../components/StatCard";
 
@@ -7,6 +7,7 @@ export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
   const [realizedTrades, setRealizedTrades] = useState<PortfolioRealizedTrade[]>([]);
+  const [symbolPerformance, setSymbolPerformance] = useState<PortfolioSymbolPerformance[]>([]);
   const [botPositions, setBotPositions] = useState<BotPosition[]>([]);
   const [legacyPositions, setLegacyPositions] = useState<LegacyPosition[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -16,11 +17,12 @@ export function PortfolioPage() {
   const legacySyncBlocked = Boolean(summary && summary.bot_position_count > 0);
 
   const loadPortfolioData = () => (
-    Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getPortfolioRealizedTrades(), api.getBotPositions(), api.getLegacyPositions()])
-      .then(([portfolio, portfolioPerformance, trades, bot, legacy]) => {
+    Promise.all([api.getPortfolioSummary(), api.getPortfolioPerformance(), api.getPortfolioRealizedTrades(), api.getPortfolioSymbolPerformance(), api.getBotPositions(), api.getLegacyPositions()])
+      .then(([portfolio, portfolioPerformance, trades, symbolRows, bot, legacy]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
         setRealizedTrades(trades);
+        setSymbolPerformance(symbolRows);
         setBotPositions(bot);
         setLegacyPositions(legacy);
       })
@@ -31,6 +33,7 @@ export function PortfolioPage() {
       .catch(() => {
         setPerformance(null);
         setRealizedTrades([]);
+        setSymbolPerformance([]);
         setBotPositions([]);
         setLegacyPositions([]);
       });
