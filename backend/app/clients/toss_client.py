@@ -52,12 +52,7 @@ class TossClient:
 
     def place_live_order(self, *args, **kwargs):
         # Live trading must stay behind explicit configuration and safety review.
-        return {
-            "success": False,
-            "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-            "message": "Real Toss Securities order execution is not connected yet.",
-            "raw_response_saved": False,
-        }
+        return self._todo_live_order_response("Real Toss Securities order execution is not connected yet.")
 
     def get_accounts(self) -> dict:
         if not self._read_only_endpoint_ready(self.settings.toss_accounts_path, require_account=False):
@@ -70,21 +65,22 @@ class TossClient:
         return self._authenticated_get(self.settings.toss_positions_path)
 
     def preview_live_order(self, *args, **kwargs) -> dict:
-        return {
-            "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-            "message": "Live Toss Securities order preview is not connected yet.",
-        }
+        return self._todo_live_order_response("Live Toss Securities order preview is not connected yet.")
 
     def cancel_live_order(self, *args, **kwargs) -> dict:
-        return {
-            "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-            "message": "Live Toss Securities order cancellation is not connected yet.",
-        }
+        return self._todo_live_order_response("Live Toss Securities order cancellation is not connected yet.")
 
     def get_live_order_status(self, *args, **kwargs) -> dict:
+        return self._todo_live_order_response("Live Toss Securities order status lookup is not connected yet.")
+
+    @staticmethod
+    def _todo_live_order_response(message: str) -> dict:
         return {
+            "success": False,
             "status": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-            "message": "Live Toss Securities order status lookup is not connected yet.",
+            "message": message,
+            "live_order_blocked": True,
+            "raw_response_saved": False,
         }
 
     def _authenticated_get(self, path: str | None, include_account_header: bool = True) -> dict:
