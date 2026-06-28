@@ -43,6 +43,7 @@ export function BrokerPage() {
   const refreshAccounts = () => {
     if (isLoadingAccounts) return;
     setIsLoadingAccounts(true);
+    setMessage(null);
     api.getBrokerAccounts()
       .then((accountResponse) => {
         setAccounts(accountResponse.accounts ?? []);
@@ -102,6 +103,7 @@ export function BrokerPage() {
   const syncLegacy = () => {
     if (isSyncingLegacy) return;
     setIsSyncingLegacy(true);
+    setMessage(null);
     api.syncLegacyFromBroker()
       .then((result) => setMessage(result.message ?? `${result.imported_count} imported, ${result.skipped_count} skipped.`))
       .catch(() => setMessage("Broker legacy sync failed."))
