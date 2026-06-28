@@ -15,6 +15,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isRunningAgent, setIsRunningAgent] = useState(false);
+  const [isSeedingDemo, setIsSeedingDemo] = useState(false);
 
   const loadDashboardData = () => (
     Promise.all([
@@ -44,13 +45,16 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   }, []);
 
   const seedDemoData = () => {
+    if (isSeedingDemo || (demoStatus ? !demoStatus.demo_enabled : false)) return;
+    setIsSeedingDemo(true);
     api.seedDemoData()
       .then((status) => {
         setDemoStatus(status);
         setError(status.message);
         return loadDashboardData();
       })
-      .catch(() => setError("Demo seed failed."));
+      .catch(() => setError("Demo seed failed."))
+      .finally(() => setIsSeedingDemo(false));
   };
 
   const refreshDashboard = () => {
@@ -84,11 +88,11 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           </button>
           <button
             className="secondary-button"
-            disabled={demoStatus ? !demoStatus.demo_enabled : false}
+            disabled={isSeedingDemo || (demoStatus ? !demoStatus.demo_enabled : false)}
             onClick={seedDemoData}
             type="button"
           >
-            Seed Demo Data
+            {isSeedingDemo ? "Seeding..." : "Seed Demo Data"}
           </button>
         </div>
       </header>
