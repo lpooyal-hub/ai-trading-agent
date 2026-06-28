@@ -16,6 +16,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [error, setError] = useState<string | null>(null);
   const [isRunningAgent, setIsRunningAgent] = useState(false);
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
+  const [isRefreshingDashboard, setIsRefreshingDashboard] = useState(false);
 
   const loadDashboardData = () => (
     Promise.all([
@@ -58,8 +59,12 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   };
 
   const refreshDashboard = () => {
+    if (isRefreshingDashboard) return;
     setError(null);
-    loadDashboardData().catch(() => setError("Dashboard refresh failed."));
+    setIsRefreshingDashboard(true);
+    loadDashboardData()
+      .catch(() => setError("Dashboard refresh failed."))
+      .finally(() => setIsRefreshingDashboard(false));
   };
 
   const runAgentOnce = () => {
@@ -80,8 +85,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           <h2>Decision Review</h2>
         </div>
         <div className="button-row">
-          <button className="secondary-button" onClick={refreshDashboard} type="button">
-            Refresh
+          <button className="secondary-button" disabled={isRefreshingDashboard} onClick={refreshDashboard} type="button">
+            {isRefreshingDashboard ? "Refreshing..." : "Refresh"}
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
             {isRunningAgent ? "Running..." : "Run Agent Once"}
