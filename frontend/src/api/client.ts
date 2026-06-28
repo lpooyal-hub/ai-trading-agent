@@ -336,6 +336,7 @@ export type LiveTradingReadiness = {
   toss_credentials_ready: boolean;
   toss_read_only_ready: boolean;
   live_order_implementation: string;
+  adapter_checklist: string[];
   blockers: string[];
   next_actions: string[];
 };

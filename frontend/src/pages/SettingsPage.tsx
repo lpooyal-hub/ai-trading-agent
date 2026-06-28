@@ -74,6 +74,7 @@ export function SettingsPage() {
         <div><dt>Live Execution Mode</dt><dd>{liveReadiness?.execution_mode ?? "-"}</dd></div>
         <div><dt>Live Order Implementation</dt><dd>{liveReadiness?.live_order_implementation ?? "-"}</dd></div>
         <div><dt>Live Blockers</dt><dd>{liveReadiness?.blockers.length ? liveReadiness.blockers.join(" / ") : "None"}</dd></div>
+        <div><dt>Live Adapter Checklist</dt><dd>{liveReadiness?.adapter_checklist.length ? liveReadiness.adapter_checklist.join(" / ") : "None"}</dd></div>
         <div><dt>Security Warnings</dt><dd>{security?.warnings.length ? security.warnings.join(" / ") : "None"}</dd></div>
         <div><dt>Next Actions</dt><dd>{security?.next_actions.length ? security.next_actions.join(" / ") : "None"}</dd></div>
       </dl>
