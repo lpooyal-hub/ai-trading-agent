@@ -37,6 +37,7 @@ export function BrokerPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [isAccountCooldown, setIsAccountCooldown] = useState(false);
   const [isSyncingLegacy, setIsSyncingLegacy] = useState(false);
 
   const appendMessage = (nextMessage: string) => {
@@ -47,7 +48,7 @@ export function BrokerPage() {
   };
 
   const refreshAccounts = () => {
-    if (isLoadingAccounts) return;
+    if (isLoadingAccounts || isAccountCooldown) return;
     setIsLoadingAccounts(true);
     setMessage(null);
     api.getBrokerAccounts()
@@ -56,6 +57,10 @@ export function BrokerPage() {
         setAccountsCacheHit(accountResponse.cache_hit);
         if (!accountResponse.success) {
           appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
+          if (accountResponse.http_status_code === 429) {
+            setIsAccountCooldown(true);
+            window.setTimeout(() => setIsAccountCooldown(false), 15000);
+          }
         }
       })
       .catch((error) => {
@@ -127,8 +132,8 @@ export function BrokerPage() {
         <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
-        <button className="secondary-button" disabled={isLoadingAccounts} onClick={refreshAccounts} type="button">
-          {isLoadingAccounts ? "Loading..." : "Load Accounts"}
+        <button className="secondary-button" disabled={isLoadingAccounts || isAccountCooldown} onClick={refreshAccounts} type="button">
+          {isLoadingAccounts ? "Loading..." : isAccountCooldown ? "Wait..." : "Load Accounts"}
         </button>
         <button className="primary-button" disabled={isSyncingLegacy} onClick={syncLegacy} type="button">
           {isSyncingLegacy ? "Syncing..." : "Sync Legacy"}
