@@ -167,6 +167,14 @@ export type PortfolioRealizedTrade = {
   realized_pnl_percent: number;
 };
 
+export type PortfolioSymbolPerformance = {
+  symbol: string;
+  realized_trade_count: number;
+  realized_pnl_usd: number;
+  sell_amount_usd: number;
+  win_rate_percent: number;
+};
+
 export type LegacyPosition = {
   id: number;
   symbol: string;
@@ -419,6 +427,7 @@ export const api = {
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getPortfolioPerformance: () => request<PortfolioPerformance>("/portfolio/performance"),
   getPortfolioRealizedTrades: () => request<PortfolioRealizedTrade[]>("/portfolio/realized-trades"),
+  getPortfolioSymbolPerformance: () => request<PortfolioSymbolPerformance[]>("/portfolio/symbol-performance"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),
   syncLegacyFromBroker: () => request<LegacyPositionBrokerSyncResponse>("/portfolio/sync-legacy-from-broker", { method: "POST" }),
   syncBotFromMarket: () => request<BotPositionMarketSyncResponse>("/portfolio/sync-bot-from-market", { method: "POST" }),
