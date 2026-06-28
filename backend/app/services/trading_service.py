@@ -314,7 +314,15 @@ class TradingService:
             status=OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED,
             dry_run=False,
             reason="Live order execution is not connected yet.",
-            raw_response_json={"source": "trading_service"},
+            raw_response_json={
+                "source": "trading_service",
+                "live_order_blocked": True,
+                "live_order_implementation": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
+                "blockers": [
+                    "Broker order adapter is not implemented.",
+                    "No real order was sent.",
+                ],
+            },
         )
         if commit:
             db.add(order)
