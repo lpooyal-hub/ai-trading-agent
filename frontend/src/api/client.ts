@@ -327,6 +327,19 @@ export type SecurityReadiness = {
   next_actions: string[];
 };
 
+export type LiveTradingReadiness = {
+  live_order_ready: boolean;
+  execution_mode: string;
+  dry_run_enabled: boolean;
+  live_trading_enabled: boolean;
+  mock_data_enabled: boolean;
+  toss_credentials_ready: boolean;
+  toss_read_only_ready: boolean;
+  live_order_implementation: string;
+  blockers: string[];
+  next_actions: string[];
+};
+
 export type DemoStatus = {
   demo_enabled: boolean;
   demo_reason: string;
@@ -454,6 +467,7 @@ export const api = {
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
   getSecurityReadiness: () => request<SecurityReadiness>("/settings/security-readiness"),
+  getLiveTradingReadiness: () => request<LiveTradingReadiness>("/settings/live-readiness"),
   getDemoStatus: () => request<DemoStatus>("/demo/status"),
   seedDemoData: () => request<DemoSeedResponse>("/demo/seed", { method: "POST" }),
   getBrokerStatus: () => request<BrokerStatus>("/broker/status"),
