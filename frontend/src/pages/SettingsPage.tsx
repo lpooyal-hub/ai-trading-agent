@@ -6,8 +6,11 @@ export function SettingsPage() {
   const [budget, setBudget] = useState<LLMBudget | null>(null);
   const [broker, setBroker] = useState<BrokerStatus | null>(null);
   const [security, setSecurity] = useState<SecurityReadiness | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
+  const refreshSettings = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
     Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus(), api.getSecurityReadiness()])
       .then(([safety, llmBudget, brokerStatus, securityReadiness]) => {
         setSettings(safety);
@@ -15,7 +18,12 @@ export function SettingsPage() {
         setBroker(brokerStatus);
         setSecurity(securityReadiness);
       })
-      .catch(() => setSettings(null));
+      .catch(() => setSettings(null))
+      .finally(() => setIsRefreshing(false));
+  };
+
+  useEffect(() => {
+    refreshSettings();
   }, []);
 
   return (
@@ -25,6 +33,9 @@ export function SettingsPage() {
           <p className="eyebrow">Read Only</p>
           <h2>Safety Settings</h2>
         </div>
+        <button className="secondary-button" disabled={isRefreshing} onClick={refreshSettings} type="button">
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </header>
       <dl className="settings-list">
         <div><dt>BROKER_PROVIDER</dt><dd>{settings?.broker_provider ?? "toss_securities"}</dd></div>
