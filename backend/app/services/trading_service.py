@@ -146,8 +146,10 @@ class TradingService:
         commit: bool = True,
     ) -> TradeOrder:
         position = self._get_bot_position(db, decision.symbol)
+        quantity_before = position.quantity if position else 0
         quantity = min(self._quantity_from_decision(decision), position.quantity if position else 0)
         order_amount = quantity * decision.current_price
+        remaining_quantity = max(quantity_before - quantity, 0)
         order = TradeOrder(
             decision_id=decision.id,
             symbol=decision.symbol,
@@ -166,6 +168,8 @@ class TradingService:
                     "quantity": quantity,
                     "price": decision.current_price,
                     "order_amount": order_amount,
+                    "position_quantity_before": quantity_before,
+                    "position_quantity_after": remaining_quantity,
                 },
             },
         )
