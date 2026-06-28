@@ -6,6 +6,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
   const [preview, setPreview] = useState<DecisionPreview | null>(null);
   const [order, setOrder] = useState<TradeOrder | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
     if (!decisionId) return;
@@ -29,12 +30,16 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
   }
 
   const approve = () => {
+    if (isApproving) return;
+    setIsApproving(true);
+    setMessage(null);
     api.approveDecision(decision.id)
       .then((result) => {
         setOrder(result);
         setMessage(`Decision approved as ${result.status}.`);
       })
-      .catch(() => setMessage("Decision approval failed."));
+      .catch(() => setMessage("Decision approval failed."))
+      .finally(() => setIsApproving(false));
   };
 
   return (
@@ -44,8 +49,8 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
           <p className="eyebrow">Decision #{decision.id}</p>
           <h2>{decision.symbol} {decision.action}</h2>
         </div>
-        <button className="primary-button" disabled={preview ? !preview.approved : false} onClick={approve} type="button">
-          Approve {preview?.execution_mode ?? "Decision"}
+        <button className="primary-button" disabled={isApproving || (preview ? !preview.approved : false)} onClick={approve} type="button">
+          {isApproving ? "Approving..." : `Approve ${preview?.execution_mode ?? "Decision"}`}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
