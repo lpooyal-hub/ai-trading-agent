@@ -107,6 +107,38 @@ export function PortfolioPage() {
         <StatCard label="Legacy Positions" value={`${summary?.legacy_position_count ?? 0}`} />
       </div>
       <section>
+        <h3>Symbol Performance</h3>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Trades</th>
+                <th>Sell Amount</th>
+                <th>Realized PnL</th>
+                <th>Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {symbolPerformance.map((row) => (
+                <tr key={row.symbol}>
+                  <td>{row.symbol}</td>
+                  <td>{row.realized_trade_count}</td>
+                  <td>${row.sell_amount_usd.toFixed(2)}</td>
+                  <td>${row.realized_pnl_usd.toFixed(2)}</td>
+                  <td>{row.win_rate_percent.toFixed(2)}%</td>
+                </tr>
+              ))}
+              {!symbolPerformance.length ? (
+                <tr>
+                  <td colSpan={5}>No symbol performance yet.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
         <h3>Realized Trades</h3>
         <div className="table-wrap">
           <table>
