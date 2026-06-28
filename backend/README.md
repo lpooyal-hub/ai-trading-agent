@@ -137,8 +137,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 7. mock LLM client는 parsed response, raw response, usage, latency, success status를 반환합니다.
 8. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
 9. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
-10. BUY 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
-11. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
+10. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
+11. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
+12. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
