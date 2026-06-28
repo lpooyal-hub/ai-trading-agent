@@ -4,10 +4,20 @@ import { DecisionTable } from "../components/DecisionTable";
 
 export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: number) => void }) {
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
+  const [isRunningAgent, setIsRunningAgent] = useState(false);
 
   useEffect(() => {
     api.getDecisions().then(setDecisions).catch(() => setDecisions([]));
   }, []);
+
+  const runAgentOnce = () => {
+    if (isRunningAgent) return;
+    setIsRunningAgent(true);
+    api.runAgentOnce()
+      .then((decision) => onSelectDecision(decision.id))
+      .catch(() => undefined)
+      .finally(() => setIsRunningAgent(false));
+  };
 
   return (
     <section className="page-stack">
@@ -16,8 +26,8 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
           <p className="eyebrow">Agent Decisions</p>
           <h2>Decision Log</h2>
         </div>
-        <button className="primary-button" onClick={() => api.runAgentOnce().then((decision) => onSelectDecision(decision.id))} type="button">
-          Run Agent Once
+        <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
+          {isRunningAgent ? "Running..." : "Run Agent Once"}
         </button>
       </header>
       <DecisionTable decisions={decisions} onSelect={onSelectDecision} />
