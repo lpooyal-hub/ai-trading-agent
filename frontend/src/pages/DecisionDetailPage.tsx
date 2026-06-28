@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { api, AgentDecision, DecisionPreview, TradeOrder } from "../api/client";
 
 function orderFillSummary(order: TradeOrder) {
+  const intent = order.raw_response_json.order_intent;
+  if (intent && typeof intent === "object") {
+    const payload = intent as Record<string, unknown>;
+    const side = typeof payload.side === "string" ? payload.side : "LIVE";
+    const quantity = typeof payload.quantity === "number" ? payload.quantity.toFixed(6) : "-";
+    const idempotencyKey = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "no-key";
+    return `${side} ${quantity} · ${idempotencyKey}`;
+  }
+
   const fill = order.raw_response_json.simulated_fill;
   if (!fill || typeof fill !== "object") return null;
 
