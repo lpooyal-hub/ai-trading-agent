@@ -342,6 +342,20 @@ class EvaluationRunResponse(BaseModel):
     evaluations: list[DecisionEvaluationRead]
 
 
+class EvaluationWindowStatusRead(BaseModel):
+    window: str
+    evaluated_count: int
+    pending_count: int
+    coverage_percent: float
+
+
+class EvaluationStatusRead(BaseModel):
+    total_decisions: int
+    total_evaluations: int
+    latest_evaluated_at: datetime | None
+    windows: list[EvaluationWindowStatusRead]
+
+
 class MarketSnapshotRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

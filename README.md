@@ -105,6 +105,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 5. `Orders`: simulated fill과 bot position 수량 변화를 확인
 6. `Portfolio`: bot-only position, protected legacy position, PnL 확인
 7. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
+8. `Evaluations`: window별 evaluation coverage와 pending decision 수 확인
 
 ## 서버 반영
 

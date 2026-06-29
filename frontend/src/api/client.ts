@@ -251,6 +251,20 @@ export type DecisionEvaluation = {
   improvement_note: string | null;
 };
 
+export type EvaluationWindowStatus = {
+  window: string;
+  evaluated_count: number;
+  pending_count: number;
+  coverage_percent: number;
+};
+
+export type EvaluationStatus = {
+  total_decisions: number;
+  total_evaluations: number;
+  latest_evaluated_at: string | null;
+  windows: EvaluationWindowStatus[];
+};
+
 export type MarketSnapshot = {
   id: number;
   created_at: string;
@@ -521,6 +535,7 @@ export const api = {
   approveDecision: (id: number) => request<TradeOrder>(`/decisions/${id}/approve`, { method: "POST" }),
   getOrders: () => request<TradeOrder[]>("/orders"),
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
+  getEvaluationStatus: () => request<EvaluationStatus>("/evaluations/status"),
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
   getMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots"),
   getLatestMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots/latest"),

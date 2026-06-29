@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -72,6 +73,39 @@ class EvaluationService:
             evaluations.append(self.evaluate_decision(db, decision.id, window))
 
         return evaluations
+
+    def get_status(self, db: Session) -> dict:
+        total_decisions = db.query(AgentDecision).count()
+        total_evaluations = db.query(DecisionEvaluation).count()
+        latest_evaluated_at = db.query(func.max(DecisionEvaluation.evaluated_at)).scalar()
+        windows = []
+        for window in EvaluationWindow:
+            evaluated_count = (
+                db.query(DecisionEvaluation.decision_id)
+                .filter(DecisionEvaluation.evaluation_window == window)
+                .distinct()
+                .count()
+            )
+            pending_count = max(total_decisions - evaluated_count, 0)
+            coverage_percent = (
+                evaluated_count / total_decisions * 100
+                if total_decisions
+                else 0
+            )
+            windows.append(
+                {
+                    "window": window.value,
+                    "evaluated_count": evaluated_count,
+                    "pending_count": pending_count,
+                    "coverage_percent": coverage_percent,
+                }
+            )
+        return {
+            "total_decisions": total_decisions,
+            "total_evaluations": total_evaluations,
+            "latest_evaluated_at": latest_evaluated_at,
+            "windows": windows,
+        }
 
     def generate_agent_self_review(
         self,

@@ -53,6 +53,7 @@
 - `/market/snapshots`
 - `/market/snapshots/latest`
 - `/evaluations/run`
+- `/evaluations/status`
 - `/evaluations/{decision_id}`
 - `/evaluations`
 - `/llm-usage`

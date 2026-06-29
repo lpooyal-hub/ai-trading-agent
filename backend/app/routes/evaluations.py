@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models import DecisionEvaluation, EvaluationWindow
 from app.schemas import (
     DecisionEvaluationRead,
+    EvaluationStatusRead,
     EvaluationRunRequest,
     EvaluationRunResponse,
 )
@@ -26,6 +27,12 @@ def run_due_evaluations(
         created_count=len(evaluations),
         evaluations=evaluations,
     )
+
+
+@router.get("/status", response_model=EvaluationStatusRead)
+def get_evaluation_status(db: Session = Depends(get_db)) -> EvaluationStatusRead:
+    service = EvaluationService()
+    return EvaluationStatusRead(**service.get_status(db))
 
 
 @router.post("/{decision_id}", response_model=DecisionEvaluationRead)
