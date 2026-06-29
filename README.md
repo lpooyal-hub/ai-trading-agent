@@ -176,7 +176,9 @@ Toss read-only 조회를 사용하려면 `backend/.env`에 아래 값을 설정�
 - `OPENAI_API_KEY`
 - `LLM_MODEL_DECISION`
 
-이 조건이 맞지 않으면 실제 OpenAI API를 호출하지 않고 안전한 HOLD / SKIPPED 결과를 남깁니다.
+이 조건이 맞지 않으면 실제 OpenAI API를 호출하지 않습니다. `USE_MOCK_DATA=true`에서는 공개 데모용 mock decision을 만들 수 있고, `USE_MOCK_DATA=false`에서 LLM 설정이 부족하면 안전한 HOLD / SKIPPED 결과를 남깁니다.
+`/settings/llm-readiness`와 Dashboard의 `AI Automation` 카드는 mock 응답, real OpenAI LLM, unavailable 상태를 분리해서 보여줍니다.
+`USE_MOCK_DATA=true`에서 실행되는 agent는 공개 데모용 mock decision이며, 실제 AI 판단 기반 자동매매로 취급하지 않습니다.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 

@@ -86,6 +86,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .finally(() => setIsRunningAgent(false));
   };
 
+  const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Run Mock Agent Once" : "Run Agent Once";
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -98,7 +100,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
             {isRefreshingDashboard ? "Refreshing..." : "Refresh"}
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
-            {isRunningAgent ? "Running..." : "Run Agent Once"}
+            {isRunningAgent ? "Running..." : agentRunLabel}
           </button>
           <button
             className="secondary-button"
@@ -134,6 +136,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Market Ready" value={marketStatus?.ready_for_agent ? "Ready" : "Not Ready"} detail={marketStatus?.message} />
         <StatCard label="Fresh Symbols" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0} missing`} />
         <StatCard label="Agent Preflight" value={agentReadiness?.ready ? "Ready" : "Check"} detail={agentReadiness?.reason} />
+        <StatCard label="AI Automation" value={agentReadiness?.automation_ready ? "Ready" : "Blocked"} detail={agentReadiness?.automation_reason} />
+        <StatCard label="LLM Mode" value={agentReadiness?.llm_mode ?? "unknown"} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "Real LLM ready"} />
         <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />
         <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />
         <StatCard

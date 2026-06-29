@@ -242,6 +242,10 @@ class AgentStatusRead(BaseModel):
 class AgentReadinessRead(BaseModel):
     ready: bool
     reason: str
+    automation_ready: bool
+    automation_reason: str
+    llm_mode: str
+    llm_blockers: list[str]
     dry_run: bool
     use_mock_data: bool
     real_llm_ready: bool
@@ -387,6 +391,16 @@ class LLMBudgetRead(LLMUsageSummaryRead):
     daily_cost_limit_usd: float
     monthly_cost_limit_usd: float
     daily_token_limit: int
+
+
+class LLMReadinessRead(BaseModel):
+    real_llm_ready: bool
+    llm_mode: str
+    use_mock_data: bool
+    openai_configured: bool
+    llm_model_decision: str | None
+    blockers: list[str]
+    next_actions: list[str]
 
 
 class DemoStatusRead(BaseModel):

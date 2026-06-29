@@ -70,6 +70,10 @@ export type AgentDecision = {
 export type AgentReadiness = {
   ready: boolean;
   reason: string;
+  automation_ready: boolean;
+  automation_reason: string;
+  llm_mode: string;
+  llm_blockers: string[];
   dry_run: boolean;
   use_mock_data: boolean;
   real_llm_ready: boolean;
@@ -285,6 +289,16 @@ export type LLMBudget = LLMUsageSummary & {
   daily_token_limit: number;
 };
 
+export type LLMReadiness = {
+  real_llm_ready: boolean;
+  llm_mode: string;
+  use_mock_data: boolean;
+  openai_configured: boolean;
+  llm_model_decision: string | null;
+  blockers: string[];
+  next_actions: string[];
+};
+
 export type SafetySettings = {
   broker_provider: string;
   dry_run: boolean;
@@ -466,6 +480,7 @@ export const api = {
   getLLMUsage: () => request<LLMUsage[]>("/llm-usage"),
   getLLMSummary: () => request<LLMUsageSummary>("/llm-usage/summary"),
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),
+  getLLMReadiness: () => request<LLMReadiness>("/settings/llm-readiness"),
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
   getSecurityReadiness: () => request<SecurityReadiness>("/settings/security-readiness"),
   getLiveTradingReadiness: () => request<LiveTradingReadiness>("/settings/live-readiness"),

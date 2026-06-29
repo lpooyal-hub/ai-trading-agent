@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, SafetySettings, SecurityReadiness } from "../api/client";
+import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, SafetySettings, SecurityReadiness } from "../api/client";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<SafetySettings | null>(null);
@@ -7,18 +7,27 @@ export function SettingsPage() {
   const [broker, setBroker] = useState<BrokerStatus | null>(null);
   const [security, setSecurity] = useState<SecurityReadiness | null>(null);
   const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
+  const [llmReadiness, setLlmReadiness] = useState<LLMReadiness | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshSettings = () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    Promise.all([api.getSafetySettings(), api.getLLMBudget(), api.getBrokerStatus(), api.getSecurityReadiness(), api.getLiveTradingReadiness()])
-      .then(([safety, llmBudget, brokerStatus, securityReadiness, liveTradingReadiness]) => {
+    Promise.all([
+      api.getSafetySettings(),
+      api.getLLMBudget(),
+      api.getBrokerStatus(),
+      api.getSecurityReadiness(),
+      api.getLiveTradingReadiness(),
+      api.getLLMReadiness(),
+    ])
+      .then(([safety, llmBudget, brokerStatus, securityReadiness, liveTradingReadiness, llmReadinessStatus]) => {
         setSettings(safety);
         setBudget(llmBudget);
         setBroker(brokerStatus);
         setSecurity(securityReadiness);
         setLiveReadiness(liveTradingReadiness);
+        setLlmReadiness(llmReadinessStatus);
       })
       .catch(() => setSettings(null))
       .finally(() => setIsRefreshing(false));
@@ -48,6 +57,9 @@ export function SettingsPage() {
         <div><dt>Toss Holdings Lookup Ready</dt><dd>{String(broker?.read_only_ready ?? false)}</dd></div>
         <div><dt>OpenAI Configured</dt><dd>{String(broker?.openai_configured ?? false)}</dd></div>
         <div><dt>Real LLM Ready</dt><dd>{String(broker?.real_llm_ready ?? false)}</dd></div>
+        <div><dt>LLM Mode</dt><dd>{llmReadiness?.llm_mode ?? "unknown"}</dd></div>
+        <div><dt>LLM Blockers</dt><dd>{llmReadiness?.blockers.length ? llmReadiness.blockers.join(" / ") : "None"}</dd></div>
+        <div><dt>LLM Next Actions</dt><dd>{llmReadiness?.next_actions.length ? llmReadiness.next_actions.join(" / ") : "None"}</dd></div>
         <div><dt>Live Ready</dt><dd>{String(broker?.live_ready ?? false)}</dd></div>
         <div><dt>DRY_RUN</dt><dd>{String(settings?.dry_run ?? true)}</dd></div>
         <div><dt>LIVE_TRADING_ENABLED</dt><dd>{String(settings?.live_trading_enabled ?? false)}</dd></div>

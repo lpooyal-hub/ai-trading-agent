@@ -139,15 +139,18 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 LLM budget guard를 확인합니다.
 5. budget이 초과되면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
-6. budget이 남아 있으면 mock LLM 응답으로 `AgentDecision`을 저장합니다.
-7. mock LLM client는 parsed response, raw response, usage, latency, success status를 반환합니다.
-8. mock LLM 사용량은 `LLMUsage`에 함께 기록합니다.
-9. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
-10. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
-11. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
-12. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
+6. budget이 남아 있고 `USE_MOCK_DATA=true`이면 공개 데모용 mock LLM 응답으로 `AgentDecision`을 저장합니다.
+7. `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 준비되면 real OpenAI LLM 응답으로 `AgentDecision`을 저장합니다.
+8. LLM client는 parsed response, raw response, usage, latency, success status를 반환합니다.
+9. LLM 사용량은 `LLMUsage`에 함께 기록합니다.
+10. 사용자가 decision을 승인하면 RiskManager 검증 후 `TradeOrder`를 `SIMULATED` 상태로 저장합니다.
+11. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
+12. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
+13. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
+`automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
+`/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
 Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision/order 요약을 다시 불러올 수 있습니다.
 

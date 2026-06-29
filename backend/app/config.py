@@ -142,6 +142,38 @@ class Settings(BaseSettings):
         )
 
     @property
+    def llm_mode(self) -> str:
+        if self.real_llm_enabled:
+            return "real_openai"
+        if self.use_mock_data:
+            return "mock"
+        return "unavailable"
+
+    @property
+    def llm_readiness_blockers(self) -> list[str]:
+        blockers: list[str] = []
+        if self.use_mock_data:
+            blockers.append("USE_MOCK_DATA is true, so the agent uses mock LLM responses.")
+        if not self.openai_api_key:
+            blockers.append("OPENAI_API_KEY is not configured.")
+        if not self.llm_model_decision:
+            blockers.append("LLM_MODEL_DECISION is not configured.")
+        return blockers
+
+    @property
+    def llm_readiness_next_actions(self) -> list[str]:
+        if self.real_llm_enabled:
+            return [
+                "Run small DRY_RUN decisions first.",
+                "Review LLM usage, reasoning, and generated order intent before live trading.",
+            ]
+        return [
+            "Set USE_MOCK_DATA=false.",
+            "Set OPENAI_API_KEY without committing it.",
+            "Set LLM_MODEL_DECISION to the intended OpenAI model.",
+        ]
+
+    @property
     def toss_api_credentials_ready(self) -> bool:
         return bool(self.toss_app_key and self.toss_app_secret)
 

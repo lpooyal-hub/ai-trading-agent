@@ -65,9 +65,14 @@ class AgentService:
             input_snapshot_json={
                 "candidate_symbols": [item.symbol for item in candidates],
                 "active_universe": self.settings.active_universe,
-                "source": "mock_market_data",
+                "market_source": "mock_market_data" if self.settings.use_mock_data else "stored_market_snapshots",
+                "llm_mode": self.settings.llm_mode,
             },
-            agent_response_json=llm_result.raw_response,
+            agent_response_json={
+                **llm_result.raw_response,
+                "llm_mode": self.settings.llm_mode,
+                "real_llm_ready": self.settings.real_llm_enabled,
+            },
             llm_model=self.llm_client.model,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
@@ -128,9 +133,19 @@ class AgentService:
         market_ready = bool(candidates)
         ready = market_ready and budget_ready
         reason = "Agent can run once." if ready else self._readiness_reason(market_ready, budget_ready, budget)
+        automation_ready = ready and self.settings.real_llm_enabled
+        automation_reason = (
+            "Real LLM agent automation can run in DRY_RUN."
+            if automation_ready
+            else self._automation_readiness_reason(ready, reason)
+        )
         return {
             "ready": ready,
             "reason": reason,
+            "automation_ready": automation_ready,
+            "automation_reason": automation_reason,
+            "llm_mode": self.settings.llm_mode,
+            "llm_blockers": self.settings.llm_readiness_blockers,
             "dry_run": self.settings.dry_run,
             "use_mock_data": self.settings.use_mock_data,
             "real_llm_ready": self.settings.real_llm_enabled,
@@ -177,6 +192,13 @@ class AgentService:
             reasons.append(f"LLM budget blocked: {budget['reason']}")
         return " ".join(reasons)
 
+    def _automation_readiness_reason(self, run_ready: bool, run_reason: str) -> str:
+        reasons: list[str] = []
+        if not run_ready:
+            reasons.append(run_reason)
+        reasons.extend(self.settings.llm_readiness_blockers)
+        return " ".join(reasons)
+
     @staticmethod
     def _find_snapshot(snapshots: list[MarketSnapshot], symbol: str) -> MarketSnapshot | None:
         for snapshot in snapshots:
@@ -198,12 +220,17 @@ class AgentService:
             current_price=0,
             recommended_order_amount=0,
             thesis=reason,
-            risk_notes="The LLM was not called because the pre-filter found no candidate.",
+            risk_notes=self._skipped_risk_notes(reason),
             input_snapshot_json={
                 "snapshot_symbols": [item.symbol for item in snapshots],
                 "active_universe": self.settings.active_universe,
+                "llm_mode": self.settings.llm_mode,
             },
-            agent_response_json={},
+            agent_response_json={
+                "llm_mode": self.settings.llm_mode,
+                "real_llm_ready": self.settings.real_llm_enabled,
+                "llm_blockers": self.settings.llm_readiness_blockers,
+            },
             status=DecisionStatus.SKIPPED,
             rejection_reason=reason,
             dry_run=True,
@@ -222,6 +249,13 @@ class AgentService:
             "volume": snapshot.volume,
             "sector": snapshot.sector,
         }
+
+    def _skipped_risk_notes(self, reason: str) -> str:
+        if self.settings.llm_mode != "real_openai":
+            return "No real OpenAI LLM call was made. This is not an autonomous AI trading decision."
+        if reason == self.no_candidate_reason:
+            return "The LLM was not called because the pre-filter found no candidate."
+        return "The LLM was not called because a readiness or budget guard blocked the run."
 
     @staticmethod
     def _rejection_reason(response: dict, llm_result) -> str | None:

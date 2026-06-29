@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.risk.llm_budget_manager import LLMBudgetManager
-from app.schemas import LLMBudgetRead, LiveTradingReadinessRead, SafetySettingsRead, SecurityReadinessRead
+from app.schemas import (
+    LLMBudgetRead,
+    LLMReadinessRead,
+    LiveTradingReadinessRead,
+    SafetySettingsRead,
+    SecurityReadinessRead,
+)
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -133,4 +139,18 @@ def get_llm_budget_settings(db: Session = Depends(get_db)) -> LLMBudgetRead:
         daily_cost_limit_usd=settings.llm_daily_cost_limit_usd,
         monthly_cost_limit_usd=settings.llm_monthly_cost_limit_usd,
         daily_token_limit=settings.llm_daily_token_limit,
+    )
+
+
+@router.get("/llm-readiness", response_model=LLMReadinessRead)
+def get_llm_readiness() -> LLMReadinessRead:
+    settings = get_settings()
+    return LLMReadinessRead(
+        real_llm_ready=settings.real_llm_enabled,
+        llm_mode=settings.llm_mode,
+        use_mock_data=settings.use_mock_data,
+        openai_configured=bool(settings.openai_api_key),
+        llm_model_decision=settings.llm_model_decision,
+        blockers=settings.llm_readiness_blockers,
+        next_actions=settings.llm_readiness_next_actions,
     )
