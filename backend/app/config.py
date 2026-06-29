@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         validation_alias="FORBIDDEN_KEYWORDS",
     )
     protected_symbols_csv: str = Field(
-        default="SPACE_X",
+        default="",
         validation_alias="PROTECTED_SYMBOLS",
     )
     default_stop_mode: str = "agent_with_hard_guardrails"
