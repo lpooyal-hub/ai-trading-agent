@@ -234,9 +234,24 @@ class AgentStatusRead(BaseModel):
     dry_run: bool
     use_mock_data: bool
     live_trading_enabled: bool
+    automation_enabled: bool
+    automation_mode: str
+    paper_auto_enabled: bool
     active_universe: list[str]
     last_decision_id: int | None
     last_decision_status: str | None
+
+
+class AgentAutomationPolicyRead(BaseModel):
+    automation_enabled: bool
+    automation_mode: str
+    paper_auto_enabled: bool
+    min_confidence: float
+    max_order_amount_usd: float
+    dry_run: bool
+    live_trading_enabled: bool
+    blockers: list[str]
+    next_actions: list[str]
 
 
 class AgentReadinessRead(BaseModel):
@@ -244,6 +259,8 @@ class AgentReadinessRead(BaseModel):
     reason: str
     automation_ready: bool
     automation_reason: str
+    paper_auto_ready: bool
+    paper_auto_reason: str
     llm_mode: str
     llm_blockers: list[str]
     dry_run: bool
@@ -459,6 +476,11 @@ class SafetySettingsRead(BaseModel):
     llm_output_cost_per_1m_tokens_usd: float
     openai_timeout_seconds: int
     real_llm_enabled: bool
+    agent_automation_enabled: bool
+    agent_automation_mode: str
+    agent_auto_execute_min_confidence: float
+    agent_auto_execute_max_order_amount_usd: float
+    paper_auto_enabled: bool
     toss_base_url: str
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool

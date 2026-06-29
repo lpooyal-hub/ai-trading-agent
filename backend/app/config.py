@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     openai_responses_url: str = "https://api.openai.com/v1/responses"
     openai_timeout_seconds: int = 30
     market_snapshot_max_age_minutes: int = 30
+    agent_automation_enabled: bool = False
+    agent_automation_mode: str = "manual_approval"
+    agent_auto_execute_min_confidence: float = 0.75
+    agent_auto_execute_max_order_amount_usd: float = 50
 
     toss_app_key: str | None = Field(
         default=None,
@@ -172,6 +176,21 @@ class Settings(BaseSettings):
             "Set OPENAI_API_KEY without committing it.",
             "Set LLM_MODEL_DECISION to the intended OpenAI model.",
         ]
+
+    @property
+    def agent_automation_mode_normalized(self) -> str:
+        allowed_modes = {"manual_approval", "paper_auto", "live_requires_approval", "live_auto"}
+        mode = self.agent_automation_mode.strip().lower()
+        return mode if mode in allowed_modes else "manual_approval"
+
+    @property
+    def paper_auto_enabled(self) -> bool:
+        return bool(
+            self.agent_automation_enabled
+            and self.agent_automation_mode_normalized == "paper_auto"
+            and self.dry_run
+            and not self.live_trading_enabled
+        )
 
     @property
     def toss_api_credentials_ready(self) -> bool:

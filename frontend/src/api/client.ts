@@ -72,6 +72,8 @@ export type AgentReadiness = {
   reason: string;
   automation_ready: boolean;
   automation_reason: string;
+  paper_auto_ready: boolean;
+  paper_auto_reason: string;
   llm_mode: string;
   llm_blockers: string[];
   dry_run: boolean;
@@ -83,6 +85,18 @@ export type AgentReadiness = {
   fresh_symbol_count: number;
   missing_symbols: string[];
   llm_budget_reason: string;
+};
+
+export type AgentAutomationPolicy = {
+  automation_enabled: boolean;
+  automation_mode: string;
+  paper_auto_enabled: boolean;
+  min_confidence: number;
+  max_order_amount_usd: number;
+  dry_run: boolean;
+  live_trading_enabled: boolean;
+  blockers: string[];
+  next_actions: string[];
 };
 
 export type TradeOrder = {
@@ -321,6 +335,11 @@ export type SafetySettings = {
   llm_output_cost_per_1m_tokens_usd: number;
   openai_timeout_seconds: number;
   real_llm_enabled: boolean;
+  agent_automation_enabled: boolean;
+  agent_automation_mode: string;
+  agent_auto_execute_min_confidence: number;
+  agent_auto_execute_max_order_amount_usd: number;
+  paper_auto_enabled: boolean;
   toss_base_url: string;
   toss_token_path_configured: boolean;
   toss_accounts_path_configured: boolean;
@@ -462,6 +481,7 @@ export const api = {
   getBotPositions: () => request<BotPosition[]>("/portfolio/bot"),
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
   getAgentReadiness: () => request<AgentReadiness>("/agent/readiness"),
+  getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
   getDecisions: () => request<AgentDecision[]>("/decisions"),
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),

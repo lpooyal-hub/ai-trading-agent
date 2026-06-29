@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import AgentDecisionRead, AgentReadinessRead, AgentStatusRead
+from app.schemas import AgentAutomationPolicyRead, AgentDecisionRead, AgentReadinessRead, AgentStatusRead
 from app.services.agent_service import AgentService
 
 
@@ -19,6 +19,12 @@ def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
 def get_agent_status(db: Session = Depends(get_db)) -> AgentStatusRead:
     service = AgentService()
     return AgentStatusRead(**service.get_status(db))
+
+
+@router.get("/automation-policy", response_model=AgentAutomationPolicyRead)
+def get_agent_automation_policy() -> AgentAutomationPolicyRead:
+    service = AgentService()
+    return AgentAutomationPolicyRead(**service.get_automation_policy())
 
 
 @router.get("/readiness", response_model=AgentReadinessRead)

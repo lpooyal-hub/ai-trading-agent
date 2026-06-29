@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, AgentReadiness, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
+import { api, AgentAutomationPolicy, AgentDecision, AgentReadiness, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -13,6 +13,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [demoStatus, setDemoStatus] = useState<DemoStatus | null>(null);
   const [marketStatus, setMarketStatus] = useState<MarketSnapshotStatus | null>(null);
   const [agentReadiness, setAgentReadiness] = useState<AgentReadiness | null>(null);
+  const [automationPolicy, setAutomationPolicy] = useState<AgentAutomationPolicy | null>(null);
   const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
@@ -31,11 +32,12 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getDemoStatus(),
       api.getMarketSnapshotStatus(),
       api.getAgentReadiness(),
+      api.getAgentAutomationPolicy(),
       api.getLiveTradingReadiness(),
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, liveTradingReadiness, decisionRows, orderRows]) => {
+      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, policy, liveTradingReadiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
         setSymbolPerformance(symbolRows);
@@ -44,6 +46,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         setDemoStatus(demo);
         setMarketStatus(market);
         setAgentReadiness(readiness);
+        setAutomationPolicy(policy);
         setLiveReadiness(liveTradingReadiness);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
@@ -137,6 +140,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Fresh Symbols" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0} missing`} />
         <StatCard label="Agent Preflight" value={agentReadiness?.ready ? "Ready" : "Check"} detail={agentReadiness?.reason} />
         <StatCard label="AI Automation" value={agentReadiness?.automation_ready ? "Ready" : "Blocked"} detail={agentReadiness?.automation_reason} />
+        <StatCard label="Paper Auto" value={agentReadiness?.paper_auto_ready ? "Ready" : "Off"} detail={agentReadiness?.paper_auto_reason} />
+        <StatCard label="Auto Policy" value={automationPolicy?.automation_mode ?? "manual_approval"} detail={`min ${automationPolicy?.min_confidence ?? 0.75} / max $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}`} />
         <StatCard label="LLM Mode" value={agentReadiness?.llm_mode ?? "unknown"} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "Real LLM ready"} />
         <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />
         <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />

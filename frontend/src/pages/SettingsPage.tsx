@@ -76,6 +76,11 @@ export function SettingsPage() {
         <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>OPENAI_TIMEOUT_SECONDS</dt><dd>{settings?.openai_timeout_seconds ?? 30}</dd></div>
+        <div><dt>AGENT_AUTOMATION_ENABLED</dt><dd>{String(settings?.agent_automation_enabled ?? false)}</dd></div>
+        <div><dt>AGENT_AUTOMATION_MODE</dt><dd>{settings?.agent_automation_mode ?? "manual_approval"}</dd></div>
+        <div><dt>PAPER_AUTO_ENABLED</dt><dd>{String(settings?.paper_auto_enabled ?? false)}</dd></div>
+        <div><dt>AGENT_AUTO_EXECUTE_MIN_CONFIDENCE</dt><dd>{settings?.agent_auto_execute_min_confidence ?? 0.75}</dd></div>
+        <div><dt>AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.agent_auto_execute_max_order_amount_usd.toFixed(2) ?? "50.00"}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>

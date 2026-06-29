@@ -180,6 +180,17 @@ Toss read-only 조회를 사용하려면 `backend/.env`에 아래 값을 설정�
 `/settings/llm-readiness`와 Dashboard의 `AI Automation` 카드는 mock 응답, real OpenAI LLM, unavailable 상태를 분리해서 보여줍니다.
 `USE_MOCK_DATA=true`에서 실행되는 agent는 공개 데모용 mock decision이며, 실제 AI 판단 기반 자동매매로 취급하지 않습니다.
 
+Paper 자동 실행은 기본적으로 꺼져 있습니다. 아래 값을 모두 의도적으로 설정해야 `/agent/run-once`가 승인 대기 decision을 paper order까지 자동 실행할 수 있습니다.
+
+```bash
+AGENT_AUTOMATION_ENABLED=true
+AGENT_AUTOMATION_MODE=paper_auto
+AGENT_AUTO_EXECUTE_MIN_CONFIDENCE=0.75
+AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
+```
+
+`paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. 실거래 주문 자동 실행은 여전히 구현하지 않았습니다.
+
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
 ```bash
