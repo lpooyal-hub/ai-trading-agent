@@ -64,6 +64,51 @@ class LLMClient:
                 error_message=self._safe_error(exc),
             )
 
+    def smoke_test(self) -> LLMCallResult:
+        if not self.settings.real_llm_enabled:
+            return self._blocked_result(
+                [{"symbol": "SMOKE_TEST"}],
+                "Real LLM is disabled. Set USE_MOCK_DATA=false, OPENAI_API_KEY, and LLM_MODEL_DECISION.",
+            )
+
+        payload = {
+            "model": self.model,
+            "input": "Reply with exactly: OK",
+            "max_output_tokens": 8,
+        }
+        started = time.perf_counter()
+        try:
+            req = request.Request(
+                self.settings.openai_responses_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {self.settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with request.urlopen(req, timeout=self.settings.openai_timeout_seconds) as response:
+                raw_response = json.loads(response.read().decode("utf-8"))
+            output_text = self._output_text(raw_response)
+            usage = self._extract_usage(raw_response, payload, {"output_text": output_text})
+            return LLMCallResult(
+                parsed_response={"output_text": output_text, "ok": output_text.strip().upper() == "OK"},
+                raw_response=self._sanitize_raw_response(raw_response),
+                usage=usage,
+                latency_ms=self._elapsed_ms(started),
+                success=output_text.strip().upper() == "OK",
+                error_message=None if output_text.strip().upper() == "OK" else "Smoke test response was not OK.",
+            )
+        except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
+            return LLMCallResult(
+                parsed_response={"output_text": "", "ok": False},
+                raw_response={"error": self._safe_error(exc), "provider": "openai"},
+                usage=estimate_usage_from_payload(payload, str(exc)),
+                latency_ms=self._elapsed_ms(started),
+                success=False,
+                error_message=self._safe_error(exc),
+            )
+
     def _build_payload(self, candidates: list[dict]) -> dict:
         return {
             "model": self.model,
@@ -94,6 +139,18 @@ class LLMClient:
                     return json.loads(content["text"])
 
         raise ValueError("OpenAI response did not contain parseable output_text.")
+
+    def _output_text(self, raw_response: dict) -> str:
+        output_text = raw_response.get("output_text")
+        if output_text:
+            return str(output_text)
+
+        for output in raw_response.get("output", []):
+            for content in output.get("content", []):
+                if content.get("type") in {"output_text", "text"} and content.get("text"):
+                    return str(content["text"])
+
+        raise ValueError("OpenAI response did not contain output_text.")
 
     def _extract_usage(self, raw_response: dict, payload: dict, parsed_response: dict) -> dict:
         usage = raw_response.get("usage") or {}

@@ -533,6 +533,19 @@ class LLMReadinessRead(BaseModel):
     next_actions: list[str]
 
 
+class LLMSmokeTestRead(BaseModel):
+    success: bool
+    model: str
+    llm_mode: str
+    latency_ms: int
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    estimated_cost_usd: float
+    usage_id: int | None
+    message: str
+
+
 class DemoStatusRead(BaseModel):
     demo_enabled: bool
     demo_reason: str

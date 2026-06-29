@@ -443,6 +443,19 @@ export type LLMReadiness = {
   next_actions: string[];
 };
 
+export type LLMSmokeTest = {
+  success: boolean;
+  model: string;
+  llm_mode: string;
+  latency_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+  usage_id: number | null;
+  message: string;
+};
+
 export type SafetySettings = {
   broker_provider: string;
   dry_run: boolean;
@@ -668,6 +681,7 @@ export const api = {
   getLLMSummary: () => request<LLMUsageSummary>("/llm-usage/summary"),
   getLLMBudget: () => request<LLMBudget>("/settings/llm-budget"),
   getLLMReadiness: () => request<LLMReadiness>("/settings/llm-readiness"),
+  runLLMSmokeTest: () => request<LLMSmokeTest>("/settings/llm-smoke-test", { method: "POST" }),
   getSafetySettings: () => request<SafetySettings>("/settings/safety"),
   getSecurityReadiness: () => request<SecurityReadiness>("/settings/security-readiness"),
   getLiveTradingReadiness: () => request<LiveTradingReadiness>("/settings/live-readiness"),

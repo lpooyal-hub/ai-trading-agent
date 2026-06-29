@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, SafetySettings, SecurityReadiness } from "../api/client";
+import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, LLMSmokeTest, SafetySettings, SecurityReadiness } from "../api/client";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<SafetySettings | null>(null);
@@ -8,7 +8,9 @@ export function SettingsPage() {
   const [security, setSecurity] = useState<SecurityReadiness | null>(null);
   const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
   const [llmReadiness, setLlmReadiness] = useState<LLMReadiness | null>(null);
+  const [llmSmokeTest, setLlmSmokeTest] = useState<LLMSmokeTest | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isTestingLLM, setIsTestingLLM] = useState(false);
 
   const refreshSettings = () => {
     if (isRefreshing) return;
@@ -33,6 +35,32 @@ export function SettingsPage() {
       .finally(() => setIsRefreshing(false));
   };
 
+  const runLLMSmokeTest = () => {
+    if (isTestingLLM) return;
+    setIsTestingLLM(true);
+    setLlmSmokeTest(null);
+    api.runLLMSmokeTest()
+      .then((result) => {
+        setLlmSmokeTest(result);
+        return refreshSettings();
+      })
+      .catch((error) => {
+        setLlmSmokeTest({
+          success: false,
+          model: "unknown",
+          llm_mode: "unknown",
+          latency_ms: 0,
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0,
+          estimated_cost_usd: 0,
+          usage_id: null,
+          message: error instanceof Error ? error.message : "LLM smoke test failed.",
+        });
+      })
+      .finally(() => setIsTestingLLM(false));
+  };
+
   useEffect(() => {
     refreshSettings();
   }, []);
@@ -44,10 +72,21 @@ export function SettingsPage() {
           <p className="eyebrow">Read Only</p>
           <h2>Safety Settings</h2>
         </div>
-        <button className="secondary-button" disabled={isRefreshing} onClick={refreshSettings} type="button">
-          {isRefreshing ? "Refreshing..." : "Refresh"}
-        </button>
+        <div className="button-row">
+          <button className="secondary-button" disabled={isTestingLLM} onClick={runLLMSmokeTest} type="button">
+            {isTestingLLM ? "Testing..." : "LLM Smoke Test"}
+          </button>
+          <button className="secondary-button" disabled={isRefreshing} onClick={refreshSettings} type="button">
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
       </header>
+      {llmSmokeTest ? (
+        <div className="notice">
+          {llmSmokeTest.success ? "LLM smoke test succeeded" : "LLM smoke test failed"}: {llmSmokeTest.message}
+          {" "}· {llmSmokeTest.model} · {llmSmokeTest.total_tokens} tokens · ${llmSmokeTest.estimated_cost_usd.toFixed(6)}
+        </div>
+      ) : null}
       <dl className="settings-list">
         <div><dt>BROKER_PROVIDER</dt><dd>{settings?.broker_provider ?? "toss_securities"}</dd></div>
         <div><dt>Broker Status</dt><dd>{broker?.status_reason ?? "-"}</dd></div>

@@ -169,6 +169,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 `AGENT_MARKET_CLOSED_DATES`에 `YYYY-MM-DD` CSV로 휴장일을 지정하면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
 내부 백그라운드 루프는 아직 켜지지 않았으며, 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
+`/settings/llm-smoke-test`는 실제 OpenAI 키와 모델 연결만 작게 확인하고 `LLMUsage`에 `test` 목적의 usage row를 저장합니다. 이 endpoint는 trading decision이나 order를 만들지 않습니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
 Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision/order 요약을 다시 불러올 수 있습니다.
 `/decisions`는 `status`, `symbol`, `limit` query parameter로 decision log를 좁혀 볼 수 있습니다.

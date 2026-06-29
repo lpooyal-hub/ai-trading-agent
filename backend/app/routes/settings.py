@@ -2,15 +2,20 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.clients.llm_client import LLMClient
 from app.database import get_db
+from app.models import LLMPurpose
 from app.risk.llm_budget_manager import LLMBudgetManager
 from app.schemas import (
     LLMBudgetRead,
     LLMReadinessRead,
+    LLMSmokeTestRead,
     LiveTradingReadinessRead,
     SafetySettingsRead,
     SecurityReadinessRead,
 )
+from app.services.llm_cost_service import LLMCostService
+from app.services.llm_usage_service import LLMUsageService
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -170,4 +175,55 @@ def get_llm_readiness() -> LLMReadinessRead:
         llm_model_decision=settings.llm_model_decision,
         blockers=settings.llm_readiness_blockers,
         next_actions=settings.llm_readiness_next_actions,
+    )
+
+
+@router.post("/llm-smoke-test", response_model=LLMSmokeTestRead)
+def run_llm_smoke_test(db: Session = Depends(get_db)) -> LLMSmokeTestRead:
+    settings = get_settings()
+    budget = LLMBudgetManager(settings).check_budget(db)
+    if not budget["approved"]:
+        return LLMSmokeTestRead(
+            success=False,
+            model=settings.llm_model_decision or "unconfigured",
+            llm_mode=settings.llm_mode,
+            latency_ms=0,
+            prompt_tokens=0,
+            completion_tokens=0,
+            total_tokens=0,
+            estimated_cost_usd=0,
+            usage_id=None,
+            message=f"LLM budget blocked: {budget['reason']}",
+        )
+
+    result = LLMClient(settings).smoke_test()
+    prompt_tokens = int(result.usage.get("prompt_tokens", 0))
+    completion_tokens = int(result.usage.get("completion_tokens", 0))
+    total_tokens = int(result.usage.get("total_tokens", prompt_tokens + completion_tokens))
+    estimated_cost = LLMCostService(settings).estimate_cost_usd(prompt_tokens, completion_tokens)
+    usage = LLMUsageService().record_usage(
+        db,
+        model=settings.llm_model_decision or "unconfigured",
+        purpose=LLMPurpose.TEST,
+        symbol=None,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        estimated_cost_usd=estimated_cost,
+        latency_ms=result.latency_ms,
+        success=result.success,
+        error_message=result.error_message,
+        raw_usage_json=result.usage,
+    )
+    return LLMSmokeTestRead(
+        success=result.success,
+        model=settings.llm_model_decision or "unconfigured",
+        llm_mode=settings.llm_mode,
+        latency_ms=result.latency_ms,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        estimated_cost_usd=estimated_cost,
+        usage_id=usage.id,
+        message="OpenAI smoke test succeeded." if result.success else result.error_message or "OpenAI smoke test failed.",
     )

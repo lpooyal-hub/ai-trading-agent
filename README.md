@@ -94,6 +94,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
 
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
+OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` 버튼 또는 아래 endpoint로 작은 연결 테스트를 먼저 실행합니다. 이 테스트는 trading decision을 만들지 않고 LLM usage row만 기록합니다.
 
 ## Dashboard 사용 흐름
 
@@ -144,6 +145,14 @@ curl http://localhost:81/agent/schedule
 curl http://localhost:81/agent/operations
 curl -X POST http://localhost:81/agent/run-once
 curl -X POST http://localhost:81/agent/run-scheduled
+```
+
+LLM:
+
+```bash
+curl http://localhost:81/settings/llm-readiness
+curl http://localhost:81/settings/llm-budget
+curl -X POST http://localhost:81/settings/llm-smoke-test
 ```
 
 Market snapshots:
