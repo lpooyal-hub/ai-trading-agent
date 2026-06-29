@@ -641,6 +641,7 @@ export const api = {
     return request<TradeOrder[]>(query ? `/orders?${query}` : "/orders");
   },
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
+  getEvaluationsForDecision: (decisionId: number) => request<DecisionEvaluation[]>(`/evaluations/${decisionId}`),
   getEvaluationStatus: () => request<EvaluationStatus>("/evaluations/status"),
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
   getJournalEntries: () => request<TradeJournalEntry[]>("/journal"),

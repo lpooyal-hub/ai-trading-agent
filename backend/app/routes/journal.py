@@ -24,7 +24,7 @@ def create_journal_entry(
 ) -> TradeJournalEntryRead:
     entry = JournalService().create_entry(db, payload)
     if not entry:
-        raise HTTPException(status_code=404, detail="Decision for journal entry was not found.")
+        raise HTTPException(status_code=404, detail="Decision or linked journal reference was not found.")
     return entry
 
 

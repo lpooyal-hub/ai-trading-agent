@@ -223,7 +223,8 @@ th {
 }
 
 .detail-grid,
-.evaluation-grid {
+.evaluation-grid,
+.journal-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -241,6 +242,78 @@ pre {
 .evaluation-card {
   display: grid;
   gap: 10px;
+}
+
+.journal-card {
+  background: #ffffff;
+  border: 1px solid #dfe6dc;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.journal-card-header,
+.journal-meta,
+.journal-meta div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.journal-card h4,
+.journal-card p,
+.journal-card dl,
+.journal-card dd {
+  margin: 0;
+}
+
+.journal-card h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.journal-meta {
+  border-top: 1px solid #e8eee6;
+  border-bottom: 1px solid #e8eee6;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.status-pill {
+  border-radius: 999px;
+  color: #17201b;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.status-pill.positive {
+  background: #d8f3df;
+}
+
+.status-pill.negative {
+  background: #f8d7d0;
+}
+
+.status-pill.neutral {
+  background: #e7eee8;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-row span {
+  background: #e7eee8;
+  border-radius: 6px;
+  color: #33453a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 8px;
 }
 
 .evaluation-card div,
@@ -301,7 +374,8 @@ dd {
   .stat-grid,
   .filter-row,
   .detail-grid,
-  .evaluation-grid {
+  .evaluation-grid,
+  .journal-grid {
     grid-template-columns: 1fr;
   }
 

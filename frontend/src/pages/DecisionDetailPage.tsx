@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentDecision, DecisionPreview, TradeOrder } from "../api/client";
+import { api, AgentDecision, DecisionEvaluation, DecisionPreview, TradeJournalEntry, TradeOrder } from "../api/client";
 
 function orderFillSummary(order: TradeOrder) {
   const intent = order.raw_response_json.order_intent;
@@ -25,25 +25,39 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
   const [decision, setDecision] = useState<AgentDecision | null>(null);
   const [preview, setPreview] = useState<DecisionPreview | null>(null);
   const [order, setOrder] = useState<TradeOrder | null>(null);
+  const [evaluations, setEvaluations] = useState<DecisionEvaluation[]>([]);
+  const [journalEntries, setJournalEntries] = useState<TradeJournalEntry[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
+  const [isCreatingJournal, setIsCreatingJournal] = useState(false);
 
   useEffect(() => {
     setOrder(null);
+    setEvaluations([]);
+    setJournalEntries([]);
     setMessage(null);
     if (!decisionId) {
       setDecision(null);
       setPreview(null);
       return;
     }
-    Promise.all([api.getDecision(decisionId), api.previewDecision(decisionId)])
-      .then(([decisionResult, previewResult]) => {
+    Promise.all([
+      api.getDecision(decisionId),
+      api.previewDecision(decisionId),
+      api.getEvaluationsForDecision(decisionId),
+      api.getJournalEntriesForDecision(decisionId),
+    ])
+      .then(([decisionResult, previewResult, evaluationRows, journalRows]) => {
         setDecision(decisionResult);
         setPreview(previewResult);
+        setEvaluations(evaluationRows);
+        setJournalEntries(journalRows);
       })
       .catch(() => {
         setDecision(null);
         setPreview(null);
+        setEvaluations([]);
+        setJournalEntries([]);
       });
   }, [decisionId]);
 
@@ -67,6 +81,35 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
       .catch(() => setMessage("Decision approval failed."))
       .finally(() => setIsApproving(false));
   };
+
+  const createJournalEntry = () => {
+    if (isCreatingJournal) return;
+    const latestEvaluation = evaluations[0] ?? null;
+    const linkedOrderId = order?.id ?? decision.executed_order_id;
+    setIsCreatingJournal(true);
+    setMessage(null);
+    api.createJournalEntry({
+      decision_id: decision.id,
+      order_id: linkedOrderId,
+      evaluation_id: latestEvaluation?.id ?? null,
+      strategy_tags: [
+        "agent_feedback",
+        decision.action.toLowerCase(),
+        latestEvaluation ? "evaluated" : "pending_review",
+      ],
+    })
+      .then((entry) => {
+        setJournalEntries((current) => [entry, ...current]);
+        setMessage(`Journal entry #${entry.id} created.`);
+      })
+      .catch((error) => {
+        setMessage(error instanceof Error ? error.message : "Journal entry creation failed.");
+      })
+      .finally(() => setIsCreatingJournal(false));
+  };
+
+  const latestJournal = journalEntries[0] ?? null;
+  const latestEvaluation = evaluations[0] ?? null;
 
   return (
     <section className="page-stack">
@@ -114,6 +157,14 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
           <h3>Linked Order</h3>
           <p>{order ? `Order #${order.id} ${order.status}` : decision.executed_order_id ?? "None"}</p>
           <p>{order ? orderFillSummary(order) : null}</p>
+        </section>
+        <section>
+          <h3>Journal</h3>
+          <p>{latestJournal ? `Latest #${latestJournal.id} · ${latestJournal.outcome_label} · reward ${latestJournal.reward_score.toFixed(4)}` : "No journal entry yet"}</p>
+          <p>{latestEvaluation ? `Evaluation #${latestEvaluation.id} · ${latestEvaluation.evaluation_window} · ${latestEvaluation.return_percent.toFixed(2)}%` : "No evaluation linked yet"}</p>
+          <button className="secondary-button" disabled={isCreatingJournal} onClick={createJournalEntry} type="button">
+            {isCreatingJournal ? "Creating..." : "Create Journal"}
+          </button>
         </section>
       </div>
       {preview?.warnings.length ? (

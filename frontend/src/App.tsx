@@ -5,6 +5,7 @@ import { BrokerPage } from "./pages/BrokerPage";
 import { DecisionDetailPage } from "./pages/DecisionDetailPage";
 import { DecisionsPage } from "./pages/DecisionsPage";
 import { EvaluationsPage } from "./pages/EvaluationsPage";
+import { JournalPage } from "./pages/JournalPage";
 import { LLMUsagePage } from "./pages/LLMUsagePage";
 import { MarketPage } from "./pages/MarketPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -20,6 +21,7 @@ const navItems = [
   { id: "portfolio", label: "Portfolio" },
   { id: "market", label: "Market" },
   { id: "evaluations", label: "Evaluations" },
+  { id: "journal", label: "Journal" },
   { id: "llm-usage", label: "LLM Usage" },
   { id: "settings", label: "Settings" },
 ];
@@ -43,6 +45,7 @@ export default function App() {
       {activePage === "portfolio" ? <PortfolioPage /> : null}
       {activePage === "market" ? <MarketPage /> : null}
       {activePage === "evaluations" ? <EvaluationsPage /> : null}
+      {activePage === "journal" ? <JournalPage /> : null}
       {activePage === "llm-usage" ? <LLMUsagePage /> : null}
       {activePage === "settings" ? <SettingsPage /> : null}
     </Layout>

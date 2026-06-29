@@ -106,7 +106,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 6. `Portfolio`: bot-only position, protected legacy position, PnL 확인
 7. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
 8. `Evaluations`: window별 evaluation coverage, pending, not-due decision 수 확인
-9. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적
+9. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적하고 UI에서 확인
 
 ## 서버 반영
 
@@ -160,6 +160,9 @@ Journal:
 ```bash
 curl http://localhost:81/journal
 curl http://localhost:81/journal/decision/1
+curl -X POST http://localhost:81/journal \
+  -H "Content-Type: application/json" \
+  -d '{"decision_id":1,"strategy_tags":["agent_feedback","pending_review"]}'
 ```
 
 Broker read-only:
