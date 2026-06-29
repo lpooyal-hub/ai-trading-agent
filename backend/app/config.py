@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     agent_scheduler_enabled: bool = False
     agent_scheduler_interval_minutes: int = 60
     agent_scheduler_market_hours_only: bool = True
+    agent_market_timezone: str = "America/New_York"
+    agent_market_open_time: str = "09:30"
+    agent_market_close_time: str = "16:00"
 
     toss_app_key: str | None = Field(
         default=None,

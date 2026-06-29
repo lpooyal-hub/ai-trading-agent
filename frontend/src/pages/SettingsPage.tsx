@@ -84,6 +84,8 @@ export function SettingsPage() {
         <div><dt>AGENT_SCHEDULER_ENABLED</dt><dd>{String(settings?.agent_scheduler_enabled ?? false)}</dd></div>
         <div><dt>AGENT_SCHEDULER_INTERVAL_MINUTES</dt><dd>{settings?.agent_scheduler_interval_minutes ?? 60}</dd></div>
         <div><dt>AGENT_SCHEDULER_MARKET_HOURS_ONLY</dt><dd>{String(settings?.agent_scheduler_market_hours_only ?? true)}</dd></div>
+        <div><dt>AGENT_MARKET_TIMEZONE</dt><dd>{settings?.agent_market_timezone ?? "America/New_York"}</dd></div>
+        <div><dt>AGENT_MARKET_WINDOW</dt><dd>{settings?.agent_market_open_time ?? "09:30"}-{settings?.agent_market_close_time ?? "16:00"}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>

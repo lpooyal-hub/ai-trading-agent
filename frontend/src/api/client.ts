@@ -103,6 +103,11 @@ export type AgentSchedule = {
   scheduler_enabled: boolean;
   interval_minutes: number;
   market_hours_only: boolean;
+  market_timezone: string;
+  market_open_time: string;
+  market_close_time: string;
+  market_open_now: boolean;
+  market_session: string;
   due: boolean;
   last_decision_id: number | null;
   last_run_at: string | null;
@@ -363,6 +368,9 @@ export type SafetySettings = {
   agent_scheduler_enabled: boolean;
   agent_scheduler_interval_minutes: number;
   agent_scheduler_market_hours_only: boolean;
+  agent_market_timezone: string;
+  agent_market_open_time: string;
+  agent_market_close_time: string;
   toss_base_url: string;
   toss_token_path_configured: boolean;
   toss_accounts_path_configured: boolean;

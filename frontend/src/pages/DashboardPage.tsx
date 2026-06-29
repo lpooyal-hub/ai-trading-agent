@@ -167,6 +167,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Paper Auto" value={agentReadiness?.paper_auto_ready ? "Ready" : "Off"} detail={agentReadiness?.paper_auto_reason} />
         <StatCard label="Auto Policy" value={automationPolicy?.automation_mode ?? "manual_approval"} detail={`min ${automationPolicy?.min_confidence ?? 0.75} / max $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}`} />
         <StatCard label="Schedule" value={agentSchedule?.scheduler_enabled ? "Enabled" : "Off"} detail={agentSchedule?.due ? "Due now" : `${agentSchedule?.minutes_until_next_run ?? 0} min`} />
+        <StatCard label="Market Window" value={agentSchedule?.market_open_now ? "Open" : "Closed"} detail={`${agentSchedule?.market_session ?? "unknown"} · ${agentSchedule?.market_open_time ?? "09:30"}-${agentSchedule?.market_close_time ?? "16:00"}`} />
         <StatCard label="Schedule Guard" value={(agentSchedule?.blockers ?? []).length ? "Blocked" : "Ready"} detail={(agentSchedule?.blockers ?? []).join(" / ") || `${agentSchedule?.interval_minutes ?? 60} min interval`} />
         <StatCard label="LLM Mode" value={agentReadiness?.llm_mode ?? "unknown"} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "Real LLM ready"} />
         <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />

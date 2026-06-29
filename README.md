@@ -199,9 +199,12 @@ AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
 AGENT_SCHEDULER_ENABLED=false
 AGENT_SCHEDULER_INTERVAL_MINUTES=60
 AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
+AGENT_MARKET_TIMEZONE=America/New_York
+AGENT_MARKET_OPEN_TIME=09:30
+AGENT_MARKET_CLOSE_TIME=16:00
 ```
 
-`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 현재 market calendar 미구현 상태라 blocker로 표시됩니다. 통제된 paper 테스트에서만 false로 낮춰 `/agent/run-scheduled`를 외부 스케줄러와 연결하세요.
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 설정된 timezone/open/close 기준의 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. 휴장일/조기폐장 캘린더는 아직 반영하지 않았으므로, 무인 운영 전에는 holiday-aware market calendar가 필요합니다.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 

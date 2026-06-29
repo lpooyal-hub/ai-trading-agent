@@ -157,6 +157,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 `/agent/automation-policy`는 현재 자동화 모드, confidence/order amount 기준, blocker를 반환합니다.
 `/agent/schedule`은 마지막 decision 기준 다음 실행 시각과 due 여부를 반환합니다.
 `/agent/run-scheduled`는 schedule이 due일 때만 `/agent/run-once`를 실행하고, due가 아니면 decision 없이 reason만 반환합니다.
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`에서는 설정된 timezone/open/close 기준 평일 정규장 안에서만 scheduled run을 통과시킵니다.
+현재 market-hours guard는 휴장일/조기폐장을 반영하지 않는 기본 window guard입니다.
 내부 백그라운드 루프는 아직 켜지지 않았으며, 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.

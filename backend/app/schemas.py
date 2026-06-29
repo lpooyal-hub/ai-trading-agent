@@ -258,6 +258,11 @@ class AgentScheduleRead(BaseModel):
     scheduler_enabled: bool
     interval_minutes: int
     market_hours_only: bool
+    market_timezone: str
+    market_open_time: str
+    market_close_time: str
+    market_open_now: bool
+    market_session: str
     due: bool
     last_decision_id: int | None
     last_run_at: datetime | None
@@ -504,6 +509,9 @@ class SafetySettingsRead(BaseModel):
     agent_scheduler_enabled: bool
     agent_scheduler_interval_minutes: int
     agent_scheduler_market_hours_only: bool
+    agent_market_timezone: str
+    agent_market_open_time: str
+    agent_market_close_time: str
     toss_base_url: str
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool
