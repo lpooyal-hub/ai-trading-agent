@@ -76,6 +76,7 @@ class LLMUsageService:
 
         today_rows = self._aggregate_since(db, today_start)
         month_rows = self._aggregate_since(db, month_start)
+        latest_usage = self.latest_usage(db)
 
         average_latency = db.query(func.avg(LLMUsage.latency_ms)).scalar() or 0
         return {
@@ -88,7 +89,11 @@ class LLMUsageService:
             "average_latency_ms": float(average_latency),
             "successful_calls": self._count_by_success(db, True),
             "failed_calls": self._count_by_success(db, False),
+            "last_call_at": latest_usage.created_at if latest_usage else None,
         }
+
+    def latest_usage(self, db: Session) -> LLMUsage | None:
+        return db.query(LLMUsage).order_by(LLMUsage.created_at.desc()).first()
 
     def _aggregate_since(self, db: Session, start: datetime) -> dict:
         row = (

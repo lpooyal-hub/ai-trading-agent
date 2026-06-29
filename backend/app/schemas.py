@@ -456,6 +456,7 @@ class LLMUsageSummaryRead(BaseModel):
     average_latency_ms: float
     successful_calls: int
     failed_calls: int
+    last_call_at: datetime | None
 
 
 class LLMBudgetRead(LLMUsageSummaryRead):
@@ -464,9 +465,13 @@ class LLMBudgetRead(LLMUsageSummaryRead):
     daily_cost_remaining_usd: float
     monthly_cost_remaining_usd: float
     daily_tokens_remaining: int
+    daily_calls_remaining: int
     daily_cost_limit_usd: float
     monthly_cost_limit_usd: float
     daily_token_limit: int
+    daily_call_limit: int
+    min_minutes_between_calls: int
+    cooldown_remaining_minutes: int
 
 
 class LLMReadinessRead(BaseModel):
@@ -530,6 +535,8 @@ class SafetySettingsRead(BaseModel):
     default_stop_mode: str
     hard_max_position_loss_percent: float
     hard_daily_loss_limit_percent: float
+    llm_daily_call_limit: int
+    llm_min_minutes_between_calls: int
     llm_model_decision: str | None
     llm_input_cost_per_1m_tokens_usd: float
     llm_output_cost_per_1m_tokens_usd: float

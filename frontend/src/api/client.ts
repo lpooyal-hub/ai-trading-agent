@@ -355,12 +355,15 @@ export type LLMUsage = {
 
 export type LLMUsageSummary = {
   today_calls: number;
+  today_prompt_tokens: number;
+  today_completion_tokens: number;
   today_total_tokens: number;
   today_estimated_cost_usd: number;
   monthly_estimated_cost_usd: number;
   average_latency_ms: number;
   successful_calls: number;
   failed_calls: number;
+  last_call_at: string | null;
 };
 
 export type LLMBudget = LLMUsageSummary & {
@@ -369,9 +372,13 @@ export type LLMBudget = LLMUsageSummary & {
   daily_cost_remaining_usd: number;
   monthly_cost_remaining_usd: number;
   daily_tokens_remaining: number;
+  daily_calls_remaining: number;
   daily_cost_limit_usd: number;
   monthly_cost_limit_usd: number;
   daily_token_limit: number;
+  daily_call_limit: number;
+  min_minutes_between_calls: number;
+  cooldown_remaining_minutes: number;
 };
 
 export type LLMReadiness = {
@@ -401,6 +408,8 @@ export type SafetySettings = {
   default_stop_mode: string;
   hard_max_position_loss_percent: number;
   hard_daily_loss_limit_percent: number;
+  llm_daily_call_limit: number;
+  llm_min_minutes_between_calls: number;
   llm_model_decision: string | null;
   llm_input_cost_per_1m_tokens_usd: number;
   llm_output_cost_per_1m_tokens_usd: number;

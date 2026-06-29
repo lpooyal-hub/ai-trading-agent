@@ -158,6 +158,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Sim Orders" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} buy / ${performance?.sell_order_count ?? 0} sell`} />
         <StatCard label="Bot Positions" value={`${summary?.bot_position_count ?? 0}`} />
         <StatCard label="Today's LLM Calls" value={`${llmSummary?.today_calls ?? 0}`} />
+        <StatCard label="LLM Calls Left" value={`${llmBudget?.daily_calls_remaining ?? 0}`} detail={`limit ${llmBudget?.daily_call_limit ?? 0} / cooldown ${llmBudget?.cooldown_remaining_minutes ?? 0} min`} />
         <StatCard label="Today's Tokens" value={`${llmSummary?.today_total_tokens ?? 0}`} />
         <StatCard label="Today's LLM Cost" value={`$${llmSummary?.today_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />
         <StatCard label="Monthly LLM Cost" value={`$${llmSummary?.monthly_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />

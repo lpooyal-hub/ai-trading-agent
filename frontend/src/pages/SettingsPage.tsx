@@ -71,7 +71,9 @@ export function SettingsPage() {
         <div><dt>Forbidden Keywords</dt><dd>{settings?.forbidden_keywords.join(", ") ?? "-"}</dd></div>
         <div><dt>Protected Symbols</dt><dd>{settings?.protected_symbols.join(", ") ?? "-"}</dd></div>
         <div><dt>Daily LLM Budget Left</dt><dd>${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>Daily LLM Calls Left</dt><dd>{budget?.daily_calls_remaining ?? 0} / {budget?.daily_call_limit ?? 0}</dd></div>
         <div><dt>Daily Token Budget Left</dt><dd>{budget?.daily_tokens_remaining ?? 0}</dd></div>
+        <div><dt>LLM Cooldown</dt><dd>{budget?.cooldown_remaining_minutes ?? 0} min left / {settings?.llm_min_minutes_between_calls ?? 60} min gap</dd></div>
         <div><dt>LLM_MODEL_DECISION</dt><dd>{settings?.llm_model_decision ?? "-"}</dd></div>
         <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>

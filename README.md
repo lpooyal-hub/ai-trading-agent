@@ -216,6 +216,15 @@ LLM_INPUT_COST_PER_1M_TOKENS_USD=0
 LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
 ```
 
+장기 paper trading에서는 비용 단가가 잘못 설정돼도 호출량이 폭주하지 않도록 호출 횟수와 최소 간격도 함께 제한합니다.
+
+```bash
+LLM_DAILY_CALL_LIMIT=5
+LLM_MIN_MINUTES_BETWEEN_CALLS=60
+```
+
+`/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
+
 ## Local Development
 
 Docker가 기본 실행 방법입니다. backend/frontend를 따로 띄우고 싶을 때만 아래를 사용합니다.

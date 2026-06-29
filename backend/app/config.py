@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     llm_daily_cost_limit_usd: float = 2
     llm_monthly_cost_limit_usd: float = 30
     llm_daily_token_limit: int = 100000
+    llm_daily_call_limit: int = 5
+    llm_min_minutes_between_calls: int = 60
     llm_model_decision: str | None = None
     llm_model_evaluation: str | None = None
     llm_model_reflection: str | None = None
