@@ -27,6 +27,7 @@
 - RiskManager 기반 최종 승인/거절
 - 기존 보유 포지션 보호
 - DRY_RUN 기반 모의 주문
+- paper/live execution adapter 분리
 - decision 승인 후 DRY_RUN 주문 시뮬레이션
 - simulated order 기반 realized/unrealized PnL, win rate, symbol performance, realized trade 요약
 - LLM 토큰/예상 비용 기록
@@ -107,6 +108,15 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 7. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
 8. `Evaluations`: window별 evaluation coverage, pending, not-due decision 수 확인
 9. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적하고 UI에서 확인
+
+## Execution 구조
+
+`TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 실제 주문 처리 방식은 execution adapter로 분리되어 있습니다.
+
+- `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
+- `LiveTossExecutionAdapter`: Toss live order 경로의 자리입니다. 현재는 의도적으로 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order만 저장하고 실제 주문은 보내지 않습니다.
+
+이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 실행 adapter만 paper에서 live로 단계적으로 교체할 수 있습니다.
 
 ## 서버 반영
 

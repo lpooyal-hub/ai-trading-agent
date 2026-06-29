@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.clients.toss_client import TossClient
 from app.config import Settings, get_settings
+from app.execution.adapters import ExecutionAdapter, LiveTossExecutionAdapter, PaperExecutionAdapter
 from app.models import (
     AgentAction,
     AgentDecision,
@@ -89,12 +89,7 @@ class TradingService:
             return order
 
         decision.status = DecisionStatus.APPROVED
-        if not self.settings.dry_run and self.settings.live_trading_enabled:
-            order = self._todo_live_order(db, decision, commit=False)
-        elif decision.action == AgentAction.BUY:
-            order = self.simulate_buy_order(db, decision, commit=False)
-        else:
-            order = self.simulate_sell_order(db, decision, commit=False)
+        order = self._execution_adapter().execute(db, decision, commit=False)
 
         db.add(order)
         db.flush()
@@ -299,59 +294,15 @@ class TradingService:
             db.refresh(order)
         return order
 
-    def _todo_live_order(
-        self,
-        db: Session,
-        decision: AgentDecision,
-        commit: bool = True,
-    ) -> TradeOrder:
-        order_intent = self._live_order_intent(decision)
-        broker_response = TossClient(self.settings).place_live_order(**order_intent)
-        order = TradeOrder(
-            decision_id=decision.id,
-            symbol=decision.symbol,
-            side=OrderSide.BUY if decision.action == AgentAction.BUY else OrderSide.SELL,
-            quantity=0,
-            price=decision.current_price,
-            order_amount=decision.recommended_order_amount,
-            status=OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED,
-            dry_run=False,
-            reason="Live order execution is not connected yet.",
-            raw_response_json={
-                "source": "trading_service",
-                "order_intent": order_intent,
-                "broker_response": broker_response,
-                "live_order_blocked": True,
-                "live_order_implementation": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
-                "blockers": [
-                    "Broker order adapter is not implemented.",
-                    "No real order was sent.",
-                ],
-            },
-        )
-        if commit:
-            db.add(order)
-            db.commit()
-            db.refresh(order)
-        return order
-
-    def _live_order_intent(self, decision: AgentDecision) -> dict:
-        return {
-            "symbol": decision.symbol,
-            "side": OrderSide.BUY.value if decision.action == AgentAction.BUY else OrderSide.SELL.value,
-            "quantity": self._quantity_from_decision(decision),
-            "price": decision.current_price,
-            "order_amount": decision.recommended_order_amount,
-            "decision_id": decision.id,
-            "idempotency_key": f"decision-{decision.id}-{decision.symbol}-{decision.action.value}",
-        }
-
     def _execution_mode(self) -> str:
-        if self.settings.dry_run:
-            return "DRY_RUN_SIMULATION"
-        if self.settings.live_trading_enabled:
-            return "LIVE_TODO_NOT_IMPLEMENTED"
+        if self.settings.dry_run or self.settings.live_trading_enabled:
+            return self._execution_adapter().mode
         return "BLOCKED_LIVE_DISABLED"
+
+    def _execution_adapter(self) -> ExecutionAdapter:
+        if not self.settings.dry_run and self.settings.live_trading_enabled:
+            return LiveTossExecutionAdapter(self.settings)
+        return PaperExecutionAdapter(self)
 
     @staticmethod
     def _side_for_decision(decision: AgentDecision) -> OrderSide | None:
@@ -368,10 +319,8 @@ class TradingService:
         legacy_protected: bool,
     ) -> list[str]:
         warnings: list[str] = []
-        if execution_mode != "DRY_RUN_SIMULATION":
-            warnings.append("This decision will not create a DRY_RUN simulated order.")
         if execution_mode == "LIVE_TODO_NOT_IMPLEMENTED":
-            warnings.append("Live order execution is blocked because the broker order adapter is not implemented.")
+            warnings.extend(LiveTossExecutionAdapter(self.settings).preview_warnings())
         if execution_mode == "BLOCKED_LIVE_DISABLED":
             warnings.append("Live order execution is blocked because LIVE_TRADING_ENABLED is false.")
         if legacy_protected:
