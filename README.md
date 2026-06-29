@@ -127,6 +127,8 @@ cd /home/ubuntu/ai-trading-agent
 docker compose up --build -d --force-recreate
 ```
 
+서버에서 frontend와 backend를 같은 Docker Compose로 띄우는 경우 `VITE_API_BASE_URL`을 외부 IP의 `:81`로 지정하지 않는 것을 권장합니다. Frontend는 기본 `/api` proxy를 통해 backend container로 접근하므로, browser가 backend public port를 직접 열 필요가 없습니다.
+
 브라우저에서 `Ctrl+Shift+R`로 강력 새로고침합니다.
 
 ## API 참고

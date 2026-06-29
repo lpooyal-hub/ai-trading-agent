@@ -1,15 +1,20 @@
 function resolveApiBaseUrl() {
   const configuredUrl = import.meta.env.VITE_API_BASE_URL;
-  if (configuredUrl) {
-    return configuredUrl;
-  }
-
   if (typeof window === "undefined") {
-    return "/api";
+    return configuredUrl || "/api";
   }
 
   const { hostname, port } = window.location;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+
+  if (configuredUrl) {
+    const configured = new URL(configuredUrl, window.location.origin);
+    const sameBrowserHost = configured.hostname === hostname;
+    if (!isLocalhost && sameBrowserHost) {
+      return "/api";
+    }
+    return configuredUrl;
+  }
 
   if (isLocalhost && port === "5173") {
     return "http://localhost:8000";
