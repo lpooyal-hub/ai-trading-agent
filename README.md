@@ -221,9 +221,10 @@ LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
 ```bash
 LLM_DAILY_CALL_LIMIT=5
 LLM_MIN_MINUTES_BETWEEN_CALLS=60
+LLM_MAX_CANDIDATES_PER_RUN=3
 ```
 
-`/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
+`LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
 
 ## Local Development
 

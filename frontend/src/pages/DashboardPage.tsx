@@ -178,7 +178,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Schedule Guard" value={(agentSchedule?.blockers ?? []).length ? "Blocked" : "Ready"} detail={(agentSchedule?.blockers ?? []).join(" / ") || `${agentSchedule?.interval_minutes ?? 60} min interval`} />
         <StatCard label="LLM Mode" value={agentReadiness?.llm_mode ?? "unknown"} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "Real LLM ready"} />
         <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />
-        <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />
+        <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={`${agentReadiness?.candidate_symbols.join(", ") || "None"} / max ${agentReadiness?.max_candidates_per_run ?? 3}`} />
         <StatCard
           label="Demo Mode"
           value={demoStatus?.demo_enabled ? "Enabled" : "Disabled"}

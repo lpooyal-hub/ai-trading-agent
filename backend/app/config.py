@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     llm_daily_token_limit: int = 100000
     llm_daily_call_limit: int = 5
     llm_min_minutes_between_calls: int = 60
+    llm_max_candidates_per_run: int = 3
     llm_model_decision: str | None = None
     llm_model_evaluation: str | None = None
     llm_model_reflection: str | None = None
@@ -125,6 +126,10 @@ class Settings(BaseSettings):
     @property
     def active_universe(self) -> list[str]:
         return self.allowed_symbols
+
+    @property
+    def llm_max_candidates_per_run_safe(self) -> int:
+        return min(max(self.llm_max_candidates_per_run, 1), 3)
 
     @property
     def has_external_api_credentials(self) -> bool:

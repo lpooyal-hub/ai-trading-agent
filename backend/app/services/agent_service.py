@@ -25,6 +25,7 @@ class AgentService:
         self.strategy = SemiconductorAgent(
             active_universe=self.settings.active_universe,
             allowed_sector=self.settings.allowed_sector,
+            max_candidates=self.settings.llm_max_candidates_per_run_safe,
         )
 
     def run_once(self, db: Session) -> AgentDecision:
@@ -65,6 +66,8 @@ class AgentService:
             risk_notes=response["risk_notes"],
             input_snapshot_json={
                 "candidate_symbols": [item.symbol for item in candidates],
+                "candidate_count": len(candidates),
+                "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
                 "market_source": "mock_market_data" if self.settings.use_mock_data else "stored_market_snapshots",
                 "llm_mode": self.settings.llm_mode,
@@ -176,6 +179,7 @@ class AgentService:
             "market_ready": market_ready,
             "budget_ready": budget_ready,
             "candidate_symbols": [snapshot.symbol for snapshot in candidates],
+            "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
             "fresh_symbol_count": market_status["fresh_symbol_count"],
             "missing_symbols": market_status["missing_symbols"],
             "llm_budget_reason": str(budget["reason"]),
@@ -268,10 +272,14 @@ class AgentService:
             risk_notes=self._skipped_risk_notes(reason),
             input_snapshot_json={
                 "snapshot_symbols": [item.symbol for item in snapshots],
+                "snapshot_count": len(snapshots),
+                "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
                 "llm_mode": self.settings.llm_mode,
             },
             agent_response_json={
+                "skip_reason": reason,
+                "skip_reason_category": self._skip_reason_category(reason),
                 "llm_mode": self.settings.llm_mode,
                 "real_llm_ready": self.settings.real_llm_enabled,
                 "llm_blockers": self.settings.llm_readiness_blockers,
@@ -302,6 +310,15 @@ class AgentService:
         if reason == self.no_candidate_reason:
             return "The LLM was not called because the pre-filter found no candidate."
         return "The LLM was not called because a readiness or budget guard blocked the run."
+
+    def _skip_reason_category(self, reason: str) -> str:
+        if reason == self.no_candidate_reason:
+            return "NO_CANDIDATE"
+        if "budget" in reason.lower() or "cooldown" in reason.lower() or "limit" in reason.lower():
+            return "LLM_COST_GUARD"
+        if self.settings.llm_mode != "real_openai":
+            return "LLM_NOT_READY"
+        return "AGENT_GUARD"
 
     def _execute_paper_auto_if_allowed(self, db: Session, decision: AgentDecision) -> None:
         if not self._paper_auto_decision_allowed(decision):

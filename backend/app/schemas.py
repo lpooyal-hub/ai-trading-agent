@@ -312,6 +312,7 @@ class AgentReadinessRead(BaseModel):
     market_ready: bool
     budget_ready: bool
     candidate_symbols: list[str]
+    max_candidates_per_run: int
     fresh_symbol_count: int
     missing_symbols: list[str]
     llm_budget_reason: str
@@ -537,6 +538,7 @@ class SafetySettingsRead(BaseModel):
     hard_daily_loss_limit_percent: float
     llm_daily_call_limit: int
     llm_min_minutes_between_calls: int
+    llm_max_candidates_per_run: int
     llm_model_decision: str | None
     llm_input_cost_per_1m_tokens_usd: float
     llm_output_cost_per_1m_tokens_usd: float

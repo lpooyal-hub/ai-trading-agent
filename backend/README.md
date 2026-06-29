@@ -104,7 +104,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - `USE_MOCK_DATA=false`에서는 저장된 최신 market snapshot만 사용하며, `/market/snapshots`로 수동/외부 가격 데이터를 입력할 수 있습니다.
 - `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 - `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
-- LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 1~3개 후보만 agent에 전달합니다.
+- LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
 - 후보 선택 규칙은 `SemiconductorAgent` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다.
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.

@@ -88,6 +88,7 @@ export type AgentReadiness = {
   market_ready: boolean;
   budget_ready: boolean;
   candidate_symbols: string[];
+  max_candidates_per_run: number;
   fresh_symbol_count: number;
   missing_symbols: string[];
   llm_budget_reason: string;
@@ -410,6 +411,7 @@ export type SafetySettings = {
   hard_daily_loss_limit_percent: number;
   llm_daily_call_limit: number;
   llm_min_minutes_between_calls: number;
+  llm_max_candidates_per_run: number;
   llm_model_decision: string | null;
   llm_input_cost_per_1m_tokens_usd: number;
   llm_output_cost_per_1m_tokens_usd: number;

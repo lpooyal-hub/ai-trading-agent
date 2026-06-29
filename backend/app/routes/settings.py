@@ -38,6 +38,7 @@ def get_safety_settings() -> SafetySettingsRead:
         hard_daily_loss_limit_percent=settings.hard_daily_loss_limit_percent,
         llm_daily_call_limit=settings.llm_daily_call_limit,
         llm_min_minutes_between_calls=settings.llm_min_minutes_between_calls,
+        llm_max_candidates_per_run=settings.llm_max_candidates_per_run_safe,
         llm_model_decision=settings.llm_model_decision,
         llm_input_cost_per_1m_tokens_usd=settings.llm_input_cost_per_1m_tokens_usd,
         llm_output_cost_per_1m_tokens_usd=settings.llm_output_cost_per_1m_tokens_usd,

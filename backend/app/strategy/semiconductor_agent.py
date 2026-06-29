@@ -1,9 +1,10 @@
 class SemiconductorAgent:
     """Rule-based semiconductor candidate selector before LLM review."""
 
-    def __init__(self, active_universe: list[str], allowed_sector: str):
+    def __init__(self, active_universe: list[str], allowed_sector: str, max_candidates: int = 3):
         self.active_universe = {symbol.upper() for symbol in active_universe}
         self.allowed_sector = allowed_sector.lower()
+        self.max_candidates = max(max_candidates, 1)
 
     def select_candidates(self, snapshots: list) -> list:
         eligible = [
@@ -19,4 +20,4 @@ class SemiconductorAgent:
             key=lambda item: (abs(item.change_percent), item.volume),
             reverse=True,
         )
-        return ranked[:3]
+        return ranked[: self.max_candidates]
