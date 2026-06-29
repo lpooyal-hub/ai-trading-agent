@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -16,12 +16,18 @@ router = APIRouter(prefix="/decisions", tags=["decisions"])
 
 
 @router.get("", response_model=list[AgentDecisionRead])
-def list_decisions(db: Session = Depends(get_db)) -> list[AgentDecisionRead]:
-    return (
-        db.query(AgentDecision)
-        .order_by(AgentDecision.created_at.desc())
-        .all()
-    )
+def list_decisions(
+    status: DecisionStatus | None = None,
+    symbol: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> list[AgentDecisionRead]:
+    query = db.query(AgentDecision)
+    if status:
+        query = query.filter(AgentDecision.status == status)
+    if symbol:
+        query = query.filter(AgentDecision.symbol == symbol.upper())
+    return query.order_by(AgentDecision.created_at.desc()).limit(limit).all()
 
 
 @router.get("/{decision_id}", response_model=AgentDecisionRead)

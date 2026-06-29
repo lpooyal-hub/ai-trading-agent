@@ -67,6 +67,12 @@ export type AgentDecision = {
   estimated_llm_cost_usd: number;
 };
 
+export type DecisionFilters = {
+  status?: string;
+  symbol?: string;
+  limit?: number;
+};
+
 export type AgentReadiness = {
   ready: boolean;
   reason: string;
@@ -551,7 +557,14 @@ export const api = {
   getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
   getAgentSchedule: () => request<AgentSchedule>("/agent/schedule"),
   getAgentOperations: () => request<AgentOperations>("/agent/operations"),
-  getDecisions: () => request<AgentDecision[]>("/decisions"),
+  getDecisions: (filters?: DecisionFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.symbol) params.set("symbol", filters.symbol);
+    if (filters?.limit) params.set("limit", String(filters.limit));
+    const query = params.toString();
+    return request<AgentDecision[]>(query ? `/decisions?${query}` : "/decisions");
+  },
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),
   approveDecision: (id: number) => request<TradeOrder>(`/decisions/${id}/approve`, { method: "POST" }),
