@@ -230,6 +230,23 @@ export type PortfolioPerformance = {
   closed_bot_position_count: number;
 };
 
+export type PortfolioCostRecovery = {
+  pnl_scope: string;
+  llm_cost_scope: string;
+  paper_total_pnl_usd: number;
+  paper_realized_pnl_usd: number;
+  monthly_llm_cost_usd: number;
+  today_llm_cost_usd: number;
+  net_after_llm_cost_usd: number;
+  realized_net_after_llm_cost_usd: number;
+  llm_cost_recovery_ratio: number | null;
+  realized_llm_cost_recovery_ratio: number | null;
+  llm_cost_covered: boolean | null;
+  realized_llm_cost_covered: boolean | null;
+  simulated_order_count: number;
+  today_llm_calls: number;
+};
+
 export type PortfolioRealizedTrade = {
   order_id: number;
   created_at: string;
@@ -562,6 +579,7 @@ export const api = {
   getHealth: () => request<HealthResponse>("/health"),
   getPortfolioSummary: () => request<PortfolioSummary>("/portfolio/summary"),
   getPortfolioPerformance: () => request<PortfolioPerformance>("/portfolio/performance"),
+  getPortfolioCostRecovery: () => request<PortfolioCostRecovery>("/portfolio/cost-recovery"),
   getPortfolioRealizedTrades: () => request<PortfolioRealizedTrade[]>("/portfolio/realized-trades"),
   getPortfolioSymbolPerformance: () => request<PortfolioSymbolPerformance[]>("/portfolio/symbol-performance"),
   getLegacyPositions: () => request<LegacyPosition[]>("/portfolio/legacy"),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentAutomationPolicy, AgentDecision, AgentOperations, AgentReadiness, AgentSchedule, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
+import { api, AgentAutomationPolicy, AgentDecision, AgentOperations, AgentReadiness, AgentSchedule, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioCostRecovery, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -7,6 +7,7 @@ import { StatCard } from "../components/StatCard";
 export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: number) => void }) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
+  const [costRecovery, setCostRecovery] = useState<PortfolioCostRecovery | null>(null);
   const [symbolPerformance, setSymbolPerformance] = useState<PortfolioSymbolPerformance[]>([]);
   const [llmSummary, setLlmSummary] = useState<LLMUsageSummary | null>(null);
   const [llmBudget, setLlmBudget] = useState<LLMBudget | null>(null);
@@ -29,6 +30,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
     Promise.all([
       api.getPortfolioSummary(),
       api.getPortfolioPerformance(),
+      api.getPortfolioCostRecovery(),
       api.getPortfolioSymbolPerformance(),
       api.getLLMSummary(),
       api.getLLMBudget(),
@@ -42,9 +44,10 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, policy, schedule, operations, liveTradingReadiness, decisionRows, orderRows]) => {
+      .then(([portfolio, portfolioPerformance, portfolioCostRecovery, symbolRows, usage, budget, demo, market, readiness, policy, schedule, operations, liveTradingReadiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
+        setCostRecovery(portfolioCostRecovery);
         setSymbolPerformance(symbolRows);
         setLlmSummary(usage);
         setLlmBudget(budget);
@@ -149,6 +152,9 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="Invested" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="Total PnL" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="Realized PnL" value={`$${performance?.realized_pnl_usd.toFixed(2) ?? "0.00"}`} />
+        <StatCard label="Net After LLM" value={`$${costRecovery?.net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail={`monthly LLM $${costRecovery?.monthly_llm_cost_usd.toFixed(4) ?? "0.0000"}`} />
+        <StatCard label="LLM Recovery" value={costRecovery?.llm_cost_recovery_ratio === null || costRecovery?.llm_cost_recovery_ratio === undefined ? "-" : `${costRecovery.llm_cost_recovery_ratio.toFixed(2)}x`} detail={costRecovery?.llm_cost_covered === null || costRecovery?.llm_cost_covered === undefined ? "No LLM cost yet" : costRecovery.llm_cost_covered ? "paper PnL covers cost" : "paper PnL below cost"} />
+        <StatCard label="Realized Net" value={`$${costRecovery?.realized_net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail={costRecovery?.realized_llm_cost_covered === null || costRecovery?.realized_llm_cost_covered === undefined ? "No LLM cost yet" : costRecovery.realized_llm_cost_covered ? "realized covers cost" : "realized below cost"} />
         <StatCard label="Win Rate" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0} wins / ${performance?.losing_sell_count ?? 0} losses`} />
         <StatCard
           label="Top Symbol"

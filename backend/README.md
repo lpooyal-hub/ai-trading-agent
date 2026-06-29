@@ -35,6 +35,7 @@
 - `/portfolio/bot`
 - `/portfolio/summary`
 - `/portfolio/performance`
+- `/portfolio/cost-recovery`
 - `/portfolio/realized-trades`
 - `/portfolio/symbol-performance`
 - `/agent/run-once`

@@ -9,6 +9,7 @@ from app.schemas import (
     LegacyPositionBrokerSyncResponse,
     LegacyPositionInitializeRequest,
     LegacyPositionInitializeResponse,
+    PortfolioCostRecoveryRead,
     LegacyPositionRead,
     PortfolioPerformanceRead,
     PortfolioRealizedTradeRead,
@@ -103,6 +104,12 @@ def get_portfolio_summary(db: Session = Depends(get_db)) -> PortfolioSummaryRead
 def get_portfolio_performance(db: Session = Depends(get_db)) -> PortfolioPerformanceRead:
     service = PortfolioService()
     return PortfolioPerformanceRead(**service.get_performance(db))
+
+
+@router.get("/cost-recovery", response_model=PortfolioCostRecoveryRead)
+def get_portfolio_cost_recovery(db: Session = Depends(get_db)) -> PortfolioCostRecoveryRead:
+    service = PortfolioService()
+    return PortfolioCostRecoveryRead(**service.get_cost_recovery(db))
 
 
 @router.get("/realized-trades", response_model=list[PortfolioRealizedTradeRead])

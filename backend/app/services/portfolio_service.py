@@ -7,6 +7,7 @@ from app.config import Settings, get_settings
 from app.models import BotPosition, LegacyPosition, MarketSnapshot, OrderSide, OrderStatus, TradeOrder
 from app.schemas import LegacyPositionCreate
 from app.services.broker_position_normalizer import BrokerPositionNormalizer
+from app.services.llm_usage_service import LLMUsageService
 
 
 class PortfolioService:
@@ -209,6 +210,40 @@ class PortfolioService:
             "win_rate_percent": win_rate_percent,
             "open_bot_position_count": len([position for position in bot_positions if position.status == "OPEN"]),
             "closed_bot_position_count": len([position for position in bot_positions if position.status == "CLOSED"]),
+        }
+
+    def get_cost_recovery(self, db: Session) -> dict:
+        performance = self.get_performance(db)
+        llm_summary = LLMUsageService().summarize(db)
+        monthly_llm_cost = llm_summary["monthly_estimated_cost_usd"]
+        total_pnl = performance["total_pnl_usd"]
+        realized_pnl = performance["realized_pnl_usd"]
+        net_after_llm_cost = total_pnl - monthly_llm_cost
+        realized_net_after_llm_cost = realized_pnl - monthly_llm_cost
+
+        return {
+            "pnl_scope": "all_time_paper",
+            "llm_cost_scope": "month_to_date",
+            "paper_total_pnl_usd": total_pnl,
+            "paper_realized_pnl_usd": realized_pnl,
+            "monthly_llm_cost_usd": monthly_llm_cost,
+            "today_llm_cost_usd": llm_summary["today_estimated_cost_usd"],
+            "net_after_llm_cost_usd": net_after_llm_cost,
+            "realized_net_after_llm_cost_usd": realized_net_after_llm_cost,
+            "llm_cost_recovery_ratio": (
+                total_pnl / monthly_llm_cost
+                if monthly_llm_cost > 0
+                else None
+            ),
+            "realized_llm_cost_recovery_ratio": (
+                realized_pnl / monthly_llm_cost
+                if monthly_llm_cost > 0
+                else None
+            ),
+            "llm_cost_covered": net_after_llm_cost >= 0 if monthly_llm_cost > 0 else None,
+            "realized_llm_cost_covered": realized_net_after_llm_cost >= 0 if monthly_llm_cost > 0 else None,
+            "simulated_order_count": performance["simulated_order_count"],
+            "today_llm_calls": llm_summary["today_calls"],
         }
 
     def list_realized_trades(self, db: Session, limit: int = 25) -> list[dict]:

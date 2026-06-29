@@ -98,7 +98,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 
 Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
-1. `Dashboard`: demo 상태, market readiness, agent readiness 확인
+1. `Dashboard`: demo 상태, market readiness, agent readiness, LLM cost recovery 확인
 2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장. Active universe 전체가 fresh일 때 agent ready로 표시됩니다.
 3. `Decisions`: `Run Agent Once`로 paper decision 생성
 4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
@@ -146,6 +146,7 @@ Portfolio:
 ```bash
 curl http://localhost:81/portfolio/summary
 curl http://localhost:81/portfolio/performance
+curl http://localhost:81/portfolio/cost-recovery
 curl http://localhost:81/portfolio/realized-trades
 curl http://localhost:81/portfolio/symbol-performance
 curl http://localhost:81/portfolio/bot
@@ -225,6 +226,8 @@ LLM_MAX_CANDIDATES_PER_RUN=3
 ```
 
 `LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
+
+`/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 paper PnL에서 월간 LLM 예상 비용을 뺀 값을 보여줍니다. 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
 
 ## Local Development
 

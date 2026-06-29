@@ -154,6 +154,23 @@ class PortfolioPerformanceRead(BaseModel):
     closed_bot_position_count: int
 
 
+class PortfolioCostRecoveryRead(BaseModel):
+    pnl_scope: str
+    llm_cost_scope: str
+    paper_total_pnl_usd: float
+    paper_realized_pnl_usd: float
+    monthly_llm_cost_usd: float
+    today_llm_cost_usd: float
+    net_after_llm_cost_usd: float
+    realized_net_after_llm_cost_usd: float
+    llm_cost_recovery_ratio: float | None
+    realized_llm_cost_recovery_ratio: float | None
+    llm_cost_covered: bool | None
+    realized_llm_cost_covered: bool | None
+    simulated_order_count: int
+    today_llm_calls: int
+
+
 class PortfolioRealizedTradeRead(BaseModel):
     order_id: int
     created_at: datetime
