@@ -98,7 +98,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 
 Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
-1. `Dashboard`: demo 상태, market readiness, agent readiness, LLM cost recovery 확인
+1. `Dashboard`: demo 상태, market readiness, agent readiness 확인
 2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장. Active universe 전체가 fresh일 때 agent ready로 표시됩니다.
 3. `Decisions`: `Run Agent Once`로 paper decision 생성
 4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
@@ -106,6 +106,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 6. `Portfolio`: bot-only position, protected legacy position, PnL 확인
 7. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
 8. `Evaluations`: window별 evaluation coverage, pending, not-due decision 수 확인
+9. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적
 
 ## 서버 반영
 
@@ -152,6 +153,13 @@ curl http://localhost:81/portfolio/symbol-performance
 curl http://localhost:81/portfolio/bot
 curl http://localhost:81/portfolio/legacy
 curl -X POST http://localhost:81/portfolio/sync-bot-from-market
+```
+
+Journal:
+
+```bash
+curl http://localhost:81/journal
+curl http://localhost:81/journal/decision/1
 ```
 
 Broker read-only:

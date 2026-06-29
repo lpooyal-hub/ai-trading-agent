@@ -169,6 +169,29 @@ class DecisionEvaluation(Base):
     decision: Mapped[AgentDecision] = relationship(back_populates="evaluations")
 
 
+class TradeJournalEntry(Base):
+    __tablename__ = "trade_journal_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    decision_id: Mapped[int] = mapped_column(ForeignKey("agent_decisions.id"), index=True)
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("trade_orders.id"), nullable=True)
+    evaluation_id: Mapped[int | None] = mapped_column(ForeignKey("decision_evaluations.id"), nullable=True)
+    symbol: Mapped[str] = mapped_column(String(32), index=True)
+    action: Mapped[AgentAction] = mapped_column(Enum(AgentAction))
+    outcome_label: Mapped[str] = mapped_column(String(100), default="PENDING_REVIEW")
+    reward_score: Mapped[float] = mapped_column(Float, default=0)
+    thesis_snapshot: Mapped[str] = mapped_column(String(2000))
+    agent_self_feedback: Mapped[str] = mapped_column(String(2000))
+    lesson: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    strategy_tags_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    journal_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    decision: Mapped[AgentDecision] = relationship(foreign_keys=[decision_id])
+    order: Mapped["TradeOrder | None"] = relationship(foreign_keys=[order_id])
+    evaluation: Mapped["DecisionEvaluation | None"] = relationship(foreign_keys=[evaluation_id])
+
+
 class MarketSnapshot(Base):
     __tablename__ = "market_snapshots"
 

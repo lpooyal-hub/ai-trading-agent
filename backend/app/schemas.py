@@ -227,6 +227,37 @@ class DecisionRejectRequest(BaseModel):
     reason: str
 
 
+class TradeJournalEntryCreate(BaseModel):
+    decision_id: int
+    order_id: int | None = None
+    evaluation_id: int | None = None
+    outcome_label: str = "PENDING_REVIEW"
+    reward_score: float = 0
+    agent_self_feedback: str | None = None
+    lesson: str | None = None
+    strategy_tags: list[str] = Field(default_factory=list)
+    journal_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class TradeJournalEntryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    decision_id: int
+    order_id: int | None
+    evaluation_id: int | None
+    symbol: str
+    action: AgentAction
+    outcome_label: str
+    reward_score: float
+    thesis_snapshot: str
+    agent_self_feedback: str
+    lesson: str | None
+    strategy_tags_json: list[str]
+    journal_json: dict[str, Any]
+
+
 class DecisionPreviewRead(BaseModel):
     decision_id: int
     approved: bool

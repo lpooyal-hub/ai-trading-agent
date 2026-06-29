@@ -67,6 +67,35 @@ export type AgentDecision = {
   estimated_llm_cost_usd: number;
 };
 
+export type TradeJournalEntry = {
+  id: number;
+  created_at: string;
+  decision_id: number;
+  order_id: number | null;
+  evaluation_id: number | null;
+  symbol: string;
+  action: "BUY" | "SELL" | "HOLD";
+  outcome_label: string;
+  reward_score: number;
+  thesis_snapshot: string;
+  agent_self_feedback: string;
+  lesson: string | null;
+  strategy_tags_json: string[];
+  journal_json: Record<string, unknown>;
+};
+
+export type TradeJournalEntryCreate = {
+  decision_id: number;
+  order_id?: number | null;
+  evaluation_id?: number | null;
+  outcome_label?: string;
+  reward_score?: number;
+  agent_self_feedback?: string | null;
+  lesson?: string | null;
+  strategy_tags?: string[];
+  journal_json?: Record<string, unknown>;
+};
+
 export type DecisionFilters = {
   status?: string;
   symbol?: string;
@@ -614,6 +643,13 @@ export const api = {
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
   getEvaluationStatus: () => request<EvaluationStatus>("/evaluations/status"),
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
+  getJournalEntries: () => request<TradeJournalEntry[]>("/journal"),
+  getJournalEntriesForDecision: (decisionId: number) => request<TradeJournalEntry[]>(`/journal/decision/${decisionId}`),
+  createJournalEntry: (payload: TradeJournalEntryCreate) => request<TradeJournalEntry>("/journal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }),
   getMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots"),
   getLatestMarketSnapshots: () => request<MarketSnapshot[]>("/market/snapshots/latest"),
   getMarketSnapshotStatus: () => request<MarketSnapshotStatus>("/market/snapshots/status"),

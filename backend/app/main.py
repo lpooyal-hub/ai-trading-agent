@@ -10,6 +10,7 @@ from app.routes import (
     decisions,
     evaluations,
     health,
+    journal,
     llm_usage,
     market,
     orders,
@@ -54,4 +55,5 @@ app.include_router(decisions.router)
 app.include_router(orders.router)
 app.include_router(evaluations.router)
 app.include_router(llm_usage.router)
+app.include_router(journal.router)
 app.include_router(market.router)
