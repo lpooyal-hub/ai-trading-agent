@@ -163,6 +163,12 @@ export type TradeOrder = {
   raw_response_json: Record<string, unknown>;
 };
 
+export type OrderFilters = {
+  status?: string;
+  symbol?: string;
+  limit?: number;
+};
+
 export type DecisionPreview = {
   decision_id: number;
   approved: boolean;
@@ -568,7 +574,14 @@ export const api = {
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),
   approveDecision: (id: number) => request<TradeOrder>(`/decisions/${id}/approve`, { method: "POST" }),
-  getOrders: () => request<TradeOrder[]>("/orders"),
+  getOrders: (filters?: OrderFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.symbol) params.set("symbol", filters.symbol);
+    if (filters?.limit) params.set("limit", String(filters.limit));
+    const query = params.toString();
+    return request<TradeOrder[]>(query ? `/orders?${query}` : "/orders");
+  },
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
   getEvaluationStatus: () => request<EvaluationStatus>("/evaluations/status"),
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),

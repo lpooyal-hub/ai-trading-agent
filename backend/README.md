@@ -166,6 +166,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
 Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision/order 요약을 다시 불러올 수 있습니다.
 `/decisions`는 `status`, `symbol`, `limit` query parameter로 decision log를 좁혀 볼 수 있습니다.
+`/orders`도 `status`, `symbol`, `limit` query parameter로 simulated/live-blocked order log를 좁혀 볼 수 있습니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다. 실제 OpenAI 호출은 Responses API의 `model`, `input`, `text.format` 구조를 사용하며, API 키는 로그나 DB에 저장하지 않습니다.
 
