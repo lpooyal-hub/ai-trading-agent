@@ -81,6 +81,9 @@ export function SettingsPage() {
         <div><dt>PAPER_AUTO_ENABLED</dt><dd>{String(settings?.paper_auto_enabled ?? false)}</dd></div>
         <div><dt>AGENT_AUTO_EXECUTE_MIN_CONFIDENCE</dt><dd>{settings?.agent_auto_execute_min_confidence ?? 0.75}</dd></div>
         <div><dt>AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.agent_auto_execute_max_order_amount_usd.toFixed(2) ?? "50.00"}</dd></div>
+        <div><dt>AGENT_SCHEDULER_ENABLED</dt><dd>{String(settings?.agent_scheduler_enabled ?? false)}</dd></div>
+        <div><dt>AGENT_SCHEDULER_INTERVAL_MINUTES</dt><dd>{settings?.agent_scheduler_interval_minutes ?? 60}</dd></div>
+        <div><dt>AGENT_SCHEDULER_MARKET_HOURS_ONLY</dt><dd>{String(settings?.agent_scheduler_market_hours_only ?? true)}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{String(settings?.toss_token_path_configured ?? false)}</dd></div>
         <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{String(settings?.toss_accounts_path_configured ?? false)}</dd></div>

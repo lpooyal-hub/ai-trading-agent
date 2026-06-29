@@ -254,6 +254,26 @@ class AgentAutomationPolicyRead(BaseModel):
     next_actions: list[str]
 
 
+class AgentScheduleRead(BaseModel):
+    scheduler_enabled: bool
+    interval_minutes: int
+    market_hours_only: bool
+    due: bool
+    last_decision_id: int | None
+    last_run_at: datetime | None
+    next_run_at: datetime | None
+    minutes_until_next_run: int | None
+    blockers: list[str]
+    next_actions: list[str]
+
+
+class AgentScheduledRunRead(BaseModel):
+    triggered: bool
+    reason: str
+    schedule: AgentScheduleRead
+    decision: AgentDecisionRead | None
+
+
 class AgentReadinessRead(BaseModel):
     ready: bool
     reason: str
@@ -481,6 +501,9 @@ class SafetySettingsRead(BaseModel):
     agent_auto_execute_min_confidence: float
     agent_auto_execute_max_order_amount_usd: float
     paper_auto_enabled: bool
+    agent_scheduler_enabled: bool
+    agent_scheduler_interval_minutes: int
+    agent_scheduler_market_hours_only: bool
     toss_base_url: str
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool

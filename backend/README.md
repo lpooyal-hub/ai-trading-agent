@@ -38,8 +38,11 @@
 - `/portfolio/realized-trades`
 - `/portfolio/symbol-performance`
 - `/agent/run-once`
+- `/agent/run-scheduled`
 - `/agent/status`
 - `/agent/readiness`
+- `/agent/schedule`
+- `/agent/automation-policy`
 - `/decisions`
 - `/decisions/{decision_id}`
 - `/decisions/{decision_id}/preview`
@@ -152,6 +155,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
 `paper_auto_ready`는 `AGENT_AUTOMATION_ENABLED=true`, `AGENT_AUTOMATION_MODE=paper_auto`, `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`가 모두 만족될 때만 true입니다.
 `/agent/automation-policy`는 현재 자동화 모드, confidence/order amount 기준, blocker를 반환합니다.
+`/agent/schedule`은 마지막 decision 기준 다음 실행 시각과 due 여부를 반환합니다.
+`/agent/run-scheduled`는 schedule이 due일 때만 `/agent/run-once`를 실행하고, due가 아니면 decision 없이 reason만 반환합니다.
+내부 백그라운드 루프는 아직 켜지지 않았으며, 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
 Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision/order 요약을 다시 불러올 수 있습니다.

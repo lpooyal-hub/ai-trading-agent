@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     agent_automation_mode: str = "manual_approval"
     agent_auto_execute_min_confidence: float = 0.75
     agent_auto_execute_max_order_amount_usd: float = 50
+    agent_scheduler_enabled: bool = False
+    agent_scheduler_interval_minutes: int = 60
+    agent_scheduler_market_hours_only: bool = True
 
     toss_app_key: str | None = Field(
         default=None,
@@ -191,6 +194,10 @@ class Settings(BaseSettings):
             and self.dry_run
             and not self.live_trading_enabled
         )
+
+    @property
+    def agent_scheduler_interval_minutes_safe(self) -> int:
+        return max(self.agent_scheduler_interval_minutes, 1)
 
     @property
     def toss_api_credentials_ready(self) -> bool:

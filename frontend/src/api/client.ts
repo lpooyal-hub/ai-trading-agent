@@ -99,6 +99,26 @@ export type AgentAutomationPolicy = {
   next_actions: string[];
 };
 
+export type AgentSchedule = {
+  scheduler_enabled: boolean;
+  interval_minutes: number;
+  market_hours_only: boolean;
+  due: boolean;
+  last_decision_id: number | null;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  minutes_until_next_run: number | null;
+  blockers: string[];
+  next_actions: string[];
+};
+
+export type AgentScheduledRun = {
+  triggered: boolean;
+  reason: string;
+  schedule: AgentSchedule;
+  decision: AgentDecision | null;
+};
+
 export type TradeOrder = {
   id: number;
   decision_id: number;
@@ -340,6 +360,9 @@ export type SafetySettings = {
   agent_auto_execute_min_confidence: number;
   agent_auto_execute_max_order_amount_usd: number;
   paper_auto_enabled: boolean;
+  agent_scheduler_enabled: boolean;
+  agent_scheduler_interval_minutes: number;
+  agent_scheduler_market_hours_only: boolean;
   toss_base_url: string;
   toss_token_path_configured: boolean;
   toss_accounts_path_configured: boolean;
@@ -480,8 +503,10 @@ export const api = {
   syncBotFromMarket: () => request<BotPositionMarketSyncResponse>("/portfolio/sync-bot-from-market", { method: "POST" }),
   getBotPositions: () => request<BotPosition[]>("/portfolio/bot"),
   runAgentOnce: () => request<AgentDecision>("/agent/run-once", { method: "POST" }),
+  runScheduledAgent: () => request<AgentScheduledRun>("/agent/run-scheduled", { method: "POST" }),
   getAgentReadiness: () => request<AgentReadiness>("/agent/readiness"),
   getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
+  getAgentSchedule: () => request<AgentSchedule>("/agent/schedule"),
   getDecisions: () => request<AgentDecision[]>("/decisions"),
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),

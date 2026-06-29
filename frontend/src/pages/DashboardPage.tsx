@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, AgentAutomationPolicy, AgentDecision, AgentReadiness, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
+import { api, AgentAutomationPolicy, AgentDecision, AgentReadiness, AgentSchedule, DemoStatus, LiveTradingReadiness, LLMBudget, LLMUsageSummary, MarketSnapshotStatus, PortfolioPerformance, PortfolioSummary, PortfolioSymbolPerformance, TradeOrder } from "../api/client";
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
@@ -14,11 +14,13 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   const [marketStatus, setMarketStatus] = useState<MarketSnapshotStatus | null>(null);
   const [agentReadiness, setAgentReadiness] = useState<AgentReadiness | null>(null);
   const [automationPolicy, setAutomationPolicy] = useState<AgentAutomationPolicy | null>(null);
+  const [agentSchedule, setAgentSchedule] = useState<AgentSchedule | null>(null);
   const [liveReadiness, setLiveReadiness] = useState<LiveTradingReadiness | null>(null);
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isRunningAgent, setIsRunningAgent] = useState(false);
+  const [isRunningScheduledAgent, setIsRunningScheduledAgent] = useState(false);
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
   const [isRefreshingDashboard, setIsRefreshingDashboard] = useState(false);
 
@@ -33,11 +35,12 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       api.getMarketSnapshotStatus(),
       api.getAgentReadiness(),
       api.getAgentAutomationPolicy(),
+      api.getAgentSchedule(),
       api.getLiveTradingReadiness(),
       api.getDecisions(),
       api.getOrders(),
     ])
-      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, policy, liveTradingReadiness, decisionRows, orderRows]) => {
+      .then(([portfolio, portfolioPerformance, symbolRows, usage, budget, demo, market, readiness, policy, schedule, liveTradingReadiness, decisionRows, orderRows]) => {
         setSummary(portfolio);
         setPerformance(portfolioPerformance);
         setSymbolPerformance(symbolRows);
@@ -47,6 +50,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         setMarketStatus(market);
         setAgentReadiness(readiness);
         setAutomationPolicy(policy);
+        setAgentSchedule(schedule);
         setLiveReadiness(liveTradingReadiness);
         setDecisions(decisionRows.slice(0, 5));
         setOrders(orderRows.slice(0, 5));
@@ -89,6 +93,23 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .finally(() => setIsRunningAgent(false));
   };
 
+  const runScheduledAgent = () => {
+    if (isRunningScheduledAgent) return;
+    setError(null);
+    setIsRunningScheduledAgent(true);
+    api.runScheduledAgent()
+      .then((result) => {
+        setError(result.reason);
+        if (result.decision) {
+          onSelectDecision(result.decision.id);
+          return;
+        }
+        return loadDashboardData();
+      })
+      .catch(() => setError("Scheduled agent run failed."))
+      .finally(() => setIsRunningScheduledAgent(false));
+  };
+
   const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Run Mock Agent Once" : "Run Agent Once";
 
   return (
@@ -104,6 +125,9 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
             {isRunningAgent ? "Running..." : agentRunLabel}
+          </button>
+          <button className="secondary-button" disabled={isRunningScheduledAgent} onClick={runScheduledAgent} type="button">
+            {isRunningScheduledAgent ? "Checking..." : "Run If Due"}
           </button>
           <button
             className="secondary-button"
@@ -142,6 +166,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="AI Automation" value={agentReadiness?.automation_ready ? "Ready" : "Blocked"} detail={agentReadiness?.automation_reason} />
         <StatCard label="Paper Auto" value={agentReadiness?.paper_auto_ready ? "Ready" : "Off"} detail={agentReadiness?.paper_auto_reason} />
         <StatCard label="Auto Policy" value={automationPolicy?.automation_mode ?? "manual_approval"} detail={`min ${automationPolicy?.min_confidence ?? 0.75} / max $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}`} />
+        <StatCard label="Schedule" value={agentSchedule?.scheduler_enabled ? "Enabled" : "Off"} detail={agentSchedule?.due ? "Due now" : `${agentSchedule?.minutes_until_next_run ?? 0} min`} />
+        <StatCard label="Schedule Guard" value={(agentSchedule?.blockers ?? []).length ? "Blocked" : "Ready"} detail={(agentSchedule?.blockers ?? []).join(" / ") || `${agentSchedule?.interval_minutes ?? 60} min interval`} />
         <StatCard label="LLM Mode" value={agentReadiness?.llm_mode ?? "unknown"} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "Real LLM ready"} />
         <StatCard label="Live Orders" value={liveReadiness?.live_order_ready ? "Ready" : "Blocked"} detail={liveReadiness?.execution_mode ?? "Unknown"} />
         <StatCard label="Candidates" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={agentReadiness?.candidate_symbols.join(", ") || "None"} />

@@ -126,7 +126,9 @@ Agent:
 ```bash
 curl http://localhost:81/agent/status
 curl http://localhost:81/agent/readiness
+curl http://localhost:81/agent/schedule
 curl -X POST http://localhost:81/agent/run-once
+curl -X POST http://localhost:81/agent/run-scheduled
 ```
 
 Market snapshots:
@@ -190,6 +192,16 @@ AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
 ```
 
 `paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. 실거래 주문 자동 실행은 여전히 구현하지 않았습니다.
+
+반복 실행은 내부 백그라운드 루프를 바로 켜지 않고, 외부 cron/스케줄러가 호출할 수 있는 `/agent/run-scheduled`로 준비합니다.
+
+```bash
+AGENT_SCHEDULER_ENABLED=false
+AGENT_SCHEDULER_INTERVAL_MINUTES=60
+AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
+```
+
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 현재 market calendar 미구현 상태라 blocker로 표시됩니다. 통제된 paper 테스트에서만 false로 낮춰 `/agent/run-scheduled`를 외부 스케줄러와 연결하세요.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
