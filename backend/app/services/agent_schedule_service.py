@@ -25,6 +25,7 @@ class AgentScheduleService:
             "market_timezone": self.settings.agent_market_timezone,
             "market_open_time": self.settings.agent_market_open_time,
             "market_close_time": self.settings.agent_market_close_time,
+            "market_closed_dates": self.settings.agent_market_closed_dates,
             "market_open_now": market_window["open_now"],
             "market_session": market_window["session"],
             "due": due,
@@ -80,6 +81,8 @@ class AgentScheduleService:
             return {"open_now": False, "session": "INVALID_TIMEZONE"}
 
         now = datetime.now(tz)
+        if now.date().isoformat() in self.settings.agent_market_closed_dates:
+            return {"open_now": False, "session": "MARKET_CLOSED_DATE"}
         open_time = self._parse_time(self.settings.agent_market_open_time)
         close_time = self._parse_time(self.settings.agent_market_close_time)
         if not open_time or not close_time or close_time <= open_time:

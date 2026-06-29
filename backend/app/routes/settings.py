@@ -52,6 +52,7 @@ def get_safety_settings() -> SafetySettingsRead:
         agent_market_timezone=settings.agent_market_timezone,
         agent_market_open_time=settings.agent_market_open_time,
         agent_market_close_time=settings.agent_market_close_time,
+        agent_market_closed_dates=settings.agent_market_closed_dates,
         toss_base_url=settings.toss_base_url,
         toss_token_path_configured=bool(settings.toss_token_path),
         toss_accounts_path_configured=bool(settings.toss_accounts_path),

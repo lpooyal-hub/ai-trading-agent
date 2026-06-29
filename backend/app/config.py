@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     agent_market_timezone: str = "America/New_York"
     agent_market_open_time: str = "09:30"
     agent_market_close_time: str = "16:00"
+    agent_market_closed_dates_csv: str = Field(
+        default="",
+        validation_alias="AGENT_MARKET_CLOSED_DATES",
+    )
 
     toss_app_key: str | None = Field(
         default=None,
@@ -201,6 +205,10 @@ class Settings(BaseSettings):
     @property
     def agent_scheduler_interval_minutes_safe(self) -> int:
         return max(self.agent_scheduler_interval_minutes, 1)
+
+    @property
+    def agent_market_closed_dates(self) -> list[str]:
+        return self._split_csv_preserve_case(self.agent_market_closed_dates_csv)
 
     @property
     def toss_api_credentials_ready(self) -> bool:

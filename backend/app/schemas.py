@@ -261,6 +261,7 @@ class AgentScheduleRead(BaseModel):
     market_timezone: str
     market_open_time: str
     market_close_time: str
+    market_closed_dates: list[str]
     market_open_now: bool
     market_session: str
     due: bool
@@ -526,6 +527,7 @@ class SafetySettingsRead(BaseModel):
     agent_market_timezone: str
     agent_market_open_time: str
     agent_market_close_time: str
+    agent_market_closed_dates: list[str]
     toss_base_url: str
     toss_token_path_configured: bool
     toss_accounts_path_configured: bool

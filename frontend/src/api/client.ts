@@ -106,6 +106,7 @@ export type AgentSchedule = {
   market_timezone: string;
   market_open_time: string;
   market_close_time: string;
+  market_closed_dates: string[];
   market_open_now: boolean;
   market_session: string;
   due: boolean;
@@ -385,6 +386,7 @@ export type SafetySettings = {
   agent_market_timezone: string;
   agent_market_open_time: string;
   agent_market_close_time: string;
+  agent_market_closed_dates: string[];
   toss_base_url: string;
   toss_token_path_configured: boolean;
   toss_accounts_path_configured: boolean;

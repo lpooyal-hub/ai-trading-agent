@@ -203,9 +203,10 @@ AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
 AGENT_MARKET_TIMEZONE=America/New_York
 AGENT_MARKET_OPEN_TIME=09:30
 AGENT_MARKET_CLOSE_TIME=16:00
+AGENT_MARKET_CLOSED_DATES=2026-01-01,2026-12-25
 ```
 
-`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 설정된 timezone/open/close 기준의 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. 휴장일/조기폐장 캘린더는 아직 반영하지 않았으므로, 무인 운영 전에는 holiday-aware market calendar가 필요합니다.
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 설정된 timezone/open/close 기준의 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
