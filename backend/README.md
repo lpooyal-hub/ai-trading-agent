@@ -43,6 +43,7 @@
 - `/agent/readiness`
 - `/agent/schedule`
 - `/agent/automation-policy`
+- `/agent/operations`
 - `/decisions`
 - `/decisions/{decision_id}`
 - `/decisions/{decision_id}/preview`

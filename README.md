@@ -128,6 +128,7 @@ Agent:
 curl http://localhost:81/agent/status
 curl http://localhost:81/agent/readiness
 curl http://localhost:81/agent/schedule
+curl http://localhost:81/agent/operations
 curl -X POST http://localhost:81/agent/run-once
 curl -X POST http://localhost:81/agent/run-scheduled
 ```

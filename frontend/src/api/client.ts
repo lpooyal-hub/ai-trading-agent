@@ -125,6 +125,23 @@ export type AgentScheduledRun = {
   decision: AgentDecision | null;
 };
 
+export type AgentOperations = {
+  last_decision_id: number | null;
+  last_decision_status: string | null;
+  last_decision_symbol: string | null;
+  last_order_id: number | null;
+  last_order_status: string | null;
+  last_order_symbol: string | null;
+  last_evaluation_id: number | null;
+  last_evaluation_window: string | null;
+  pending_decision_count: number;
+  executable_decision_count: number;
+  simulated_order_count: number;
+  rejected_order_count: number;
+  failed_order_count: number;
+  latest_activity_at: string | null;
+};
+
 export type TradeOrder = {
   id: number;
   decision_id: number;
@@ -533,6 +550,7 @@ export const api = {
   getAgentReadiness: () => request<AgentReadiness>("/agent/readiness"),
   getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
   getAgentSchedule: () => request<AgentSchedule>("/agent/schedule"),
+  getAgentOperations: () => request<AgentOperations>("/agent/operations"),
   getDecisions: () => request<AgentDecision[]>("/decisions"),
   getDecision: (id: number) => request<AgentDecision>(`/decisions/${id}`),
   previewDecision: (id: number) => request<DecisionPreview>(`/decisions/${id}/preview`),

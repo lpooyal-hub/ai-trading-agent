@@ -280,6 +280,23 @@ class AgentScheduledRunRead(BaseModel):
     decision: AgentDecisionRead | None
 
 
+class AgentOperationsRead(BaseModel):
+    last_decision_id: int | None
+    last_decision_status: str | None
+    last_decision_symbol: str | None
+    last_order_id: int | None
+    last_order_status: str | None
+    last_order_symbol: str | None
+    last_evaluation_id: int | None
+    last_evaluation_window: str | None
+    pending_decision_count: int
+    executable_decision_count: int
+    simulated_order_count: int
+    rejected_order_count: int
+    failed_order_count: int
+    latest_activity_at: datetime | None
+
+
 class AgentReadinessRead(BaseModel):
     ready: bool
     reason: str

@@ -5,11 +5,13 @@ from app.database import get_db
 from app.schemas import (
     AgentAutomationPolicyRead,
     AgentDecisionRead,
+    AgentOperationsRead,
     AgentReadinessRead,
     AgentScheduleRead,
     AgentScheduledRunRead,
     AgentStatusRead,
 )
+from app.services.agent_operations_service import AgentOperationsService
 from app.services.agent_schedule_service import AgentScheduleService
 from app.services.agent_service import AgentService
 
@@ -60,6 +62,12 @@ def get_agent_automation_policy() -> AgentAutomationPolicyRead:
 def get_agent_schedule(db: Session = Depends(get_db)) -> AgentScheduleRead:
     service = AgentScheduleService()
     return AgentScheduleRead(**service.get_schedule(db))
+
+
+@router.get("/operations", response_model=AgentOperationsRead)
+def get_agent_operations(db: Session = Depends(get_db)) -> AgentOperationsRead:
+    service = AgentOperationsService()
+    return AgentOperationsRead(**service.get_operations(db))
 
 
 @router.get("/readiness", response_model=AgentReadinessRead)
