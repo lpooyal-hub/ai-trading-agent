@@ -345,8 +345,10 @@ class EvaluationRunResponse(BaseModel):
 
 class EvaluationWindowStatusRead(BaseModel):
     window: str
+    eligible_count: int
     evaluated_count: int
     pending_count: int
+    not_due_count: int
     coverage_percent: float
 
 

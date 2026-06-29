@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -58,7 +60,13 @@ class EvaluationService:
         db: Session,
         window: EvaluationWindow = EvaluationWindow.ONE_DAY,
     ) -> list[DecisionEvaluation]:
-        decisions = db.query(AgentDecision).order_by(AgentDecision.created_at.desc()).all()
+        cutoff = self._cutoff_for_window(window)
+        decisions = (
+            db.query(AgentDecision)
+            .filter(AgentDecision.created_at <= cutoff)
+            .order_by(AgentDecision.created_at.desc())
+            .all()
+        )
         evaluations: list[DecisionEvaluation] = []
 
         for decision in decisions:
@@ -80,23 +88,34 @@ class EvaluationService:
         latest_evaluated_at = db.query(func.max(DecisionEvaluation.evaluated_at)).scalar()
         windows = []
         for window in EvaluationWindow:
+            cutoff = self._cutoff_for_window(window)
+            eligible_count = (
+                db.query(AgentDecision)
+                .filter(AgentDecision.created_at <= cutoff)
+                .count()
+            )
             evaluated_count = (
                 db.query(DecisionEvaluation.decision_id)
+                .join(AgentDecision, DecisionEvaluation.decision_id == AgentDecision.id)
                 .filter(DecisionEvaluation.evaluation_window == window)
+                .filter(AgentDecision.created_at <= cutoff)
                 .distinct()
                 .count()
             )
-            pending_count = max(total_decisions - evaluated_count, 0)
+            pending_count = max(eligible_count - evaluated_count, 0)
+            not_due_count = max(total_decisions - eligible_count, 0)
             coverage_percent = (
-                evaluated_count / total_decisions * 100
-                if total_decisions
+                evaluated_count / eligible_count * 100
+                if eligible_count
                 else 0
             )
             windows.append(
                 {
                     "window": window.value,
+                    "eligible_count": eligible_count,
                     "evaluated_count": evaluated_count,
                     "pending_count": pending_count,
+                    "not_due_count": not_due_count,
                     "coverage_percent": coverage_percent,
                 }
             )
@@ -106,6 +125,16 @@ class EvaluationService:
             "latest_evaluated_at": latest_evaluated_at,
             "windows": windows,
         }
+
+    @staticmethod
+    def _cutoff_for_window(window: EvaluationWindow) -> datetime:
+        days_by_window = {
+            EvaluationWindow.ONE_DAY: 1,
+            EvaluationWindow.THREE_DAYS: 3,
+            EvaluationWindow.SEVEN_DAYS: 7,
+            EvaluationWindow.THIRTY_DAYS: 30,
+        }
+        return datetime.utcnow() - timedelta(days=days_by_window[window])
 
     def generate_agent_self_review(
         self,

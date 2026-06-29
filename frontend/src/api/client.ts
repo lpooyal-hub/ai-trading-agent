@@ -254,8 +254,10 @@ export type DecisionEvaluation = {
 
 export type EvaluationWindowStatus = {
   window: string;
+  eligible_count: number;
   evaluated_count: number;
   pending_count: number;
+  not_due_count: number;
   coverage_percent: number;
 };
 

@@ -55,7 +55,7 @@ export function EvaluationsPage() {
         <StatCard label="Evaluations" value={`${status?.total_evaluations ?? 0}`} detail={status?.latest_evaluated_at ? `latest ${new Date(status.latest_evaluated_at).toLocaleString()}` : "None"} />
         {(status?.windows ?? []).map((window) => (
           <StatCard
-            detail={`${window.pending_count} pending`}
+            detail={`${window.pending_count} pending / ${window.not_due_count} not due`}
             key={window.window}
             label={`${window.window} Coverage`}
             value={`${window.coverage_percent.toFixed(0)}%`}
