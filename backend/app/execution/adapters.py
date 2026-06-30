@@ -2,7 +2,6 @@ from typing import Protocol
 
 from sqlalchemy.orm import Session
 
-from app.clients.toss_client import TossClient
 from app.config import Settings
 from app.models import AgentAction, AgentDecision, OrderSide, OrderStatus, TradeOrder
 
@@ -42,8 +41,8 @@ class PaperExecutionAdapter:
         return []
 
 
-class LiveTossExecutionAdapter:
-    mode = "LIVE_TODO_NOT_IMPLEMENTED"
+class BlockedLiveExecutionAdapter:
+    mode = "LIVE_ORDER_BLOCKED"
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -55,7 +54,6 @@ class LiveTossExecutionAdapter:
         commit: bool = True,
     ) -> TradeOrder:
         order_intent = self._order_intent(decision)
-        broker_response = TossClient(self.settings).place_live_order(**order_intent)
         order = TradeOrder(
             decision_id=decision.id,
             symbol=decision.symbol,
@@ -65,15 +63,15 @@ class LiveTossExecutionAdapter:
             order_amount=decision.recommended_order_amount,
             status=OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED,
             dry_run=False,
-            reason="Live order execution is not connected yet.",
+            reason="Live order execution is blocked by the explicit blocked-live adapter.",
             raw_response_json={
-                "source": "live_toss_execution_adapter",
+                "source": "blocked_live_execution_adapter",
                 "order_intent": order_intent,
-                "broker_response": broker_response,
                 "live_order_blocked": True,
                 "live_order_implementation": OrderStatus.TODO_LIVE_ORDER_NOT_IMPLEMENTED.value,
+                "block_reason": "No broker order endpoint is called from this public build.",
                 "blockers": [
-                    "Broker order adapter is not implemented.",
+                    "BlockedLiveExecutionAdapter is active.",
                     "No real order was sent.",
                 ],
             },
@@ -85,7 +83,10 @@ class LiveTossExecutionAdapter:
         return order
 
     def preview_warnings(self) -> list[str]:
-        return ["Live order execution is blocked because the broker order adapter is not implemented."]
+        return [
+            "Live order execution is blocked by BlockedLiveExecutionAdapter.",
+            "No broker order endpoint will be called from this public build.",
+        ]
 
     def _order_intent(self, decision: AgentDecision) -> dict:
         return {

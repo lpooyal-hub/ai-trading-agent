@@ -52,7 +52,7 @@ class TossClient:
 
     def place_live_order(self, *args, **kwargs):
         # Live trading must stay behind explicit configuration and safety review.
-        return self._todo_live_order_response("Real Toss Securities order execution is not connected yet.")
+        return self._todo_live_order_response("Real Toss Securities order execution is blocked in this public build.")
 
     def get_accounts(self) -> dict:
         if not self._read_only_endpoint_ready(self.settings.toss_accounts_path, require_account=False):
@@ -65,13 +65,13 @@ class TossClient:
         return self._authenticated_get(self.settings.toss_positions_path)
 
     def preview_live_order(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order preview is not connected yet.")
+        return self._todo_live_order_response("Live Toss Securities order preview is blocked in this public build.")
 
     def cancel_live_order(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order cancellation is not connected yet.")
+        return self._todo_live_order_response("Live Toss Securities order cancellation is blocked in this public build.")
 
     def get_live_order_status(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order status lookup is not connected yet.")
+        return self._todo_live_order_response("Live Toss Securities order status lookup is blocked in this public build.")
 
     @staticmethod
     def _todo_live_order_response(message: str) -> dict:
