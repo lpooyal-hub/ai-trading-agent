@@ -220,7 +220,7 @@ dt {
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 760px;
+  min-width: 980px;
 }
 
 th,
@@ -235,6 +235,11 @@ td {
 th {
   background: #f7faf6;
   color: #506057;
+}
+
+.reason-cell {
+  max-width: 260px;
+  white-space: normal;
 }
 
 .detail-grid,

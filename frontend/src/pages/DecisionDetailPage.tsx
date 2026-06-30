@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, AgentDecision, DecisionEvaluation, DecisionPreview, TradeJournalEntry, TradeOrder } from "../api/client";
+import { decisionGuardWarnings } from "../utils/decisionSafety";
 
 function orderFillSummary(order: TradeOrder) {
   const intent = order.raw_response_json.order_intent;
@@ -19,12 +20,6 @@ function orderFillSummary(order: TradeOrder) {
   const after = typeof payload.position_quantity_after === "number" ? payload.position_quantity_after : null;
   if (before === null || after === null) return null;
   return `Position ${before.toFixed(4)} -> ${after.toFixed(4)}`;
-}
-
-function decisionGuardWarnings(decision: AgentDecision): string[] {
-  const warnings = decision.agent_response_json.response_guard_warnings;
-  if (!Array.isArray(warnings)) return [];
-  return warnings.filter((warning): warning is string => typeof warning === "string" && warning.trim().length > 0);
 }
 
 export function DecisionDetailPage({ decisionId }: { decisionId: number | null }) {
