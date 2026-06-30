@@ -11,6 +11,14 @@ function formatDateTime(value: string) {
 }
 
 function fillSummary(order: TradeOrder) {
+  const sync = order.raw_response_json.broker_status_sync;
+  if (sync && typeof sync === "object") {
+    const payload = sync as Record<string, unknown>;
+    const applied = payload.position_applied ? " · 포지션 반영" : "";
+    const quantity = typeof payload.filled_quantity === "number" ? payload.filled_quantity.toFixed(4) : null;
+    if (quantity) return `체결 ${quantity}${applied}`;
+    if (typeof payload.message === "string") return payload.message;
+  }
   if (order.raw_response_json.live_order_blocked) {
     const intent = order.raw_response_json.order_intent;
     if (intent && typeof intent === "object") {
@@ -32,12 +40,25 @@ function fillSummary(order: TradeOrder) {
 
 function statusTone(value: string) {
   const normalized = value.toUpperCase();
-  if (["SIMULATED", "SIMULATED_FILLED", "LIVE_SUBMITTED", "EXECUTED", "SUCCEEDED"].includes(normalized)) return "positive";
+  if (["SIMULATED", "SIMULATED_FILLED", "LIVE_SUBMITTED", "LIVE_PARTIAL", "LIVE_FILLED", "EXECUTED", "SUCCEEDED"].includes(normalized)) return "positive";
+  if (["LIVE_CANCELED"].includes(normalized)) return "neutral";
   if (["FAILED", "REJECTED"].includes(normalized)) return "negative";
   return "neutral";
 }
 
-export function OrderTable({ orders }: { orders: TradeOrder[] }) {
+function canSyncLiveStatus(order: TradeOrder) {
+  return ["LIVE_SUBMITTED", "LIVE_PARTIAL"].includes(order.status);
+}
+
+export function OrderTable({
+  orders,
+  onSyncLiveStatus,
+  syncingOrderId,
+}: {
+  orders: TradeOrder[];
+  onSyncLiveStatus?: (orderId: number) => void;
+  syncingOrderId?: number | null;
+}) {
   return (
     <div className="table-wrap wide-table">
       <table>
@@ -52,6 +73,7 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
             <th>포지션 수량</th>
             <th>상태</th>
             <th>사유</th>
+            <th>동기화</th>
           </tr>
         </thead>
         <tbody>
@@ -68,11 +90,23 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
                 <span className={`status-pill ${statusTone(order.status)}`}>{statusLabel(order.status)}</span>
               </td>
               <td className="reason-cell">{order.reason}</td>
+              <td>
+                {onSyncLiveStatus && canSyncLiveStatus(order) ? (
+                  <button
+                    className="secondary-button compact-button"
+                    disabled={syncingOrderId === order.id}
+                    onClick={() => onSyncLiveStatus(order.id)}
+                    type="button"
+                  >
+                    {syncingOrderId === order.id ? "확인 중" : "체결 확인"}
+                  </button>
+                ) : "-"}
+              </td>
             </tr>
           ))}
           {!orders.length ? (
             <tr>
-              <td colSpan={9}>아직 모의 주문이 없습니다.</td>
+              <td colSpan={10}>아직 주문 기록이 없습니다.</td>
             </tr>
           ) : null}
         </tbody>

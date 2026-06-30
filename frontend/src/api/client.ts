@@ -770,6 +770,7 @@ export const api = {
     const query = params.toString();
     return request<TradeOrder[]>(query ? `/orders?${query}` : "/orders");
   },
+  syncLiveOrderStatus: (id: number) => request<TradeOrder>(`/orders/${id}/sync-live-status`, { method: "POST" }),
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
   getEvaluationsForDecision: (decisionId: number) => request<DecisionEvaluation[]>(`/evaluations/${decisionId}`),
   getEvaluationStatus: () => request<EvaluationStatus>("/evaluations/status"),

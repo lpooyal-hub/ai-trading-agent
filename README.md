@@ -181,6 +181,7 @@ LIVE_TRADING_ENABLED=true
 USE_MOCK_DATA=false
 REQUIRE_ADMIN_API_KEY=true
 TOSS_ORDER_PATH=<official-toss-order-path>
+TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 ```
 
 위 값과 Toss credentials가 모두 준비되면 `TossLiveExecutionAdapter`가 주문 endpoint를 호출합니다. `TOSS_ORDER_PATH`가 비어 있거나 readiness가 부족하면 `BlockedLiveExecutionAdapter`가 order intent와 차단 사유를 저장합니다.
@@ -210,7 +211,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 Paper trading은 기본적으로 금액 기반 수량 계산을 사용합니다. `ORDER_SIZING_MODE=notional`에서 `recommended_order_amount / current_price`로 수량을 계산하고, `QUANTITY_DECIMAL_PLACES` 기준으로 반올림합니다. 실제 broker live adapter를 연결할 때는 해당 브로커의 주문 단위, 소수점/금액 주문 지원 범위, 계좌 권한, idempotency 전략을 별도로 검증해야 합니다.
 
-Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 실주문 제출 건수와 제출 금액으로 별도 표시합니다. 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않고, broker 체결 상태 조회가 확정된 뒤 별도 반영하도록 분리합니다.
+Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 실주문 제출 건수와 제출 금액으로 별도 표시합니다. 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않습니다. `TOSS_ORDER_STATUS_PATH`가 설정된 경우 Orders 화면의 체결 확인 액션이 `/orders/{order_id}/sync-live-status`를 호출하고, broker 응답이 `LIVE_FILLED`로 정규화되면 bot position에 한 번만 반영합니다.
 
 이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 env에 따라 paper, blocked-live, Toss live adapter를 선택할 수 있습니다.
 

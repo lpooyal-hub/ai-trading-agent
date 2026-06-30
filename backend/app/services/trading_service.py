@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.clients.toss_client import TossClient
 from app.execution.adapters import (
     BlockedLiveExecutionAdapter,
     ExecutionAdapter,
@@ -213,6 +214,78 @@ class TradingService:
         db.commit()
         return positions
 
+    def sync_live_order_status(self, db: Session, order: TradeOrder) -> TradeOrder:
+        if order.dry_run or order.status not in {
+            OrderStatus.LIVE_SUBMITTED,
+            OrderStatus.LIVE_PARTIAL,
+        }:
+            return order
+
+        broker_order_id = self._broker_order_id(order)
+        if not broker_order_id:
+            order.raw_response_json = self._merged_raw_response(
+                order,
+                {
+                    "broker_status_sync": {
+                        "success": False,
+                        "message": "Broker order id is missing from live order response.",
+                        "position_applied": self._live_position_applied(order),
+                    }
+                },
+            )
+            db.commit()
+            db.refresh(order)
+            return order
+
+        response = TossClient(self.settings).get_live_order_status(order_id=broker_order_id)
+        if not response.get("success"):
+            order.raw_response_json = self._merged_raw_response(
+                order,
+                {
+                    "broker_status_sync": {
+                        "success": False,
+                        "broker_order_id": broker_order_id,
+                        "broker_response": response,
+                        "position_applied": self._live_position_applied(order),
+                    }
+                },
+            )
+            db.commit()
+            db.refresh(order)
+            return order
+
+        status_payload = response.get("data") if isinstance(response.get("data"), dict) else response
+        status_update = self._live_status_update(status_payload)
+        order.status = status_update["status"]
+        filled_quantity = status_update["filled_quantity"] or order.quantity
+        fill_price = status_update["fill_price"] or order.price
+        fill_amount = status_update["fill_amount"] or filled_quantity * fill_price
+
+        position_applied = self._live_position_applied(order)
+        if order.status == OrderStatus.LIVE_FILLED and not position_applied:
+            self._apply_live_fill(db, order, filled_quantity, fill_price, fill_amount)
+            position_applied = True
+
+        order.raw_response_json = self._merged_raw_response(
+            order,
+            {
+                "broker_status_sync": {
+                    "success": True,
+                    "broker_order_id": broker_order_id,
+                    "normalized_status": order.status.value,
+                    "filled_quantity": filled_quantity,
+                    "fill_price": fill_price,
+                    "fill_amount": fill_amount,
+                    "position_applied": position_applied,
+                    "broker_response": response,
+                }
+            },
+        )
+        order.reason = self._live_status_reason(order.status)
+        db.commit()
+        db.refresh(order)
+        return order
+
     def _apply_buy_position(
         self,
         db: Session,
@@ -243,6 +316,57 @@ class TradingService:
         position.avg_buy_price = new_total / new_quantity if new_quantity else 0
         position.total_invested_amount = new_total
         position.current_price = decision.current_price
+        self._refresh_position_pnl(position)
+
+    def _apply_live_fill(
+        self,
+        db: Session,
+        order: TradeOrder,
+        quantity: float,
+        fill_price: float,
+        fill_amount: float,
+    ) -> None:
+        if quantity <= 0:
+            return
+        if order.side == OrderSide.BUY:
+            self._apply_live_buy_fill(db, order, quantity, fill_price, fill_amount)
+            return
+        self._apply_sell_position(self._get_bot_position(db, order.symbol), quantity, fill_amount)
+
+    def _apply_live_buy_fill(
+        self,
+        db: Session,
+        order: TradeOrder,
+        quantity: float,
+        fill_price: float,
+        fill_amount: float,
+    ) -> None:
+        position = self._get_bot_position(db, order.symbol)
+        sector = order.decision.sector if order.decision else self.settings.allowed_sector
+        if not position:
+            position = BotPosition(
+                symbol=order.symbol,
+                name=order.symbol,
+                sector=sector,
+                quantity=quantity,
+                avg_buy_price=fill_price,
+                total_invested_amount=fill_amount,
+                current_price=fill_price,
+                unrealized_pnl=0,
+                unrealized_pnl_percent=0,
+                status="OPEN",
+            )
+            self._refresh_position_pnl(position)
+            db.add(position)
+            return
+
+        new_total = position.total_invested_amount + fill_amount
+        new_quantity = position.quantity + quantity
+        position.quantity = new_quantity
+        position.avg_buy_price = new_total / new_quantity if new_quantity else 0
+        position.total_invested_amount = new_total
+        position.current_price = fill_price
+        position.status = "OPEN"
         self._refresh_position_pnl(position)
 
     @staticmethod
@@ -355,3 +479,124 @@ class TradingService:
         if not self.settings.fractional_trading_enabled:
             return float(int(quantity))
         return round(quantity, self.settings.quantity_decimal_places_safe)
+
+    @staticmethod
+    def _broker_order_id(order: TradeOrder) -> str | None:
+        raw = order.raw_response_json or {}
+        values = [
+            raw.get("broker_order_id"),
+            raw.get("order_id"),
+        ]
+        broker_response = raw.get("broker_response")
+        if isinstance(broker_response, dict):
+            values.extend(TradingService._find_first_value(broker_response, key) for key in [
+                "order_id",
+                "orderId",
+                "order_no",
+                "orderNo",
+                "ord_no",
+                "ordNo",
+                "id",
+            ])
+        order_intent = raw.get("order_intent")
+        if isinstance(order_intent, dict):
+            values.append(order_intent.get("idempotency_key"))
+        for value in values:
+            if value:
+                return str(value)
+        return None
+
+    @staticmethod
+    def _live_status_update(payload: dict) -> dict:
+        status_value = str(
+            TradingService._find_first_value(payload, "status")
+            or TradingService._find_first_value(payload, "order_status")
+            or TradingService._find_first_value(payload, "orderStatus")
+            or TradingService._find_first_value(payload, "state")
+            or ""
+        ).upper()
+        filled_quantity = TradingService._float_value(
+            TradingService._find_first_value(payload, "filled_quantity")
+            or TradingService._find_first_value(payload, "filledQuantity")
+            or TradingService._find_first_value(payload, "executed_quantity")
+            or TradingService._find_first_value(payload, "executedQuantity")
+            or TradingService._find_first_value(payload, "filled_qty")
+        )
+        fill_price = TradingService._float_value(
+            TradingService._find_first_value(payload, "average_fill_price")
+            or TradingService._find_first_value(payload, "averageFillPrice")
+            or TradingService._find_first_value(payload, "avg_price")
+            or TradingService._find_first_value(payload, "avgPrice")
+            or TradingService._find_first_value(payload, "price")
+        )
+        fill_amount = TradingService._float_value(
+            TradingService._find_first_value(payload, "filled_amount")
+            or TradingService._find_first_value(payload, "filledAmount")
+            or TradingService._find_first_value(payload, "executed_amount")
+            or TradingService._find_first_value(payload, "executedAmount")
+        )
+        if any(token in status_value for token in ["PARTIAL", "PARTIALLY", "PART", "부분"]):
+            normalized = OrderStatus.LIVE_PARTIAL
+        elif any(token in status_value for token in ["FILLED", "EXECUTED", "COMPLETE", "DONE", "체결"]):
+            normalized = OrderStatus.LIVE_FILLED
+        elif any(token in status_value for token in ["CANCEL", "CANCELED", "CANCELLED", "취소"]):
+            normalized = OrderStatus.LIVE_CANCELED
+        elif any(token in status_value for token in ["REJECT", "FAIL", "ERROR", "거절", "실패"]):
+            normalized = OrderStatus.FAILED
+        else:
+            normalized = OrderStatus.LIVE_SUBMITTED
+        return {
+            "status": normalized,
+            "filled_quantity": filled_quantity,
+            "fill_price": fill_price,
+            "fill_amount": fill_amount,
+        }
+
+    @staticmethod
+    def _find_first_value(payload: dict | list | None, key: str):
+        if isinstance(payload, dict):
+            if key in payload:
+                return payload[key]
+            for value in payload.values():
+                found = TradingService._find_first_value(value, key)
+                if found is not None:
+                    return found
+        if isinstance(payload, list):
+            for item in payload:
+                found = TradingService._find_first_value(item, key)
+                if found is not None:
+                    return found
+        return None
+
+    @staticmethod
+    def _float_value(value) -> float:
+        if value is None or value == "":
+            return 0
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _live_position_applied(order: TradeOrder) -> bool:
+        raw = order.raw_response_json or {}
+        sync = raw.get("broker_status_sync")
+        return bool(isinstance(sync, dict) and sync.get("position_applied"))
+
+    @staticmethod
+    def _merged_raw_response(order: TradeOrder, patch: dict) -> dict:
+        raw = dict(order.raw_response_json or {})
+        raw.update(patch)
+        return raw
+
+    @staticmethod
+    def _live_status_reason(status: OrderStatus) -> str:
+        if status == OrderStatus.LIVE_FILLED:
+            return "Live order filled and broker status synchronized."
+        if status == OrderStatus.LIVE_PARTIAL:
+            return "Live order partially filled according to broker status."
+        if status == OrderStatus.LIVE_CANCELED:
+            return "Live order canceled according to broker status."
+        if status == OrderStatus.FAILED:
+            return "Live order failed according to broker status."
+        return "Live order status synchronized."

@@ -7,6 +7,7 @@ export function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [symbolFilter, setSymbolFilter] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [syncingOrderId, setSyncingOrderId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const refresh = (filters = { status: statusFilter, symbol: symbolFilter }) => {
@@ -36,6 +37,19 @@ export function OrdersPage() {
     refresh({ status: "", symbol: "" });
   };
 
+  const syncLiveStatus = (orderId: number) => {
+    if (syncingOrderId) return;
+    setSyncingOrderId(orderId);
+    setMessage(null);
+    api.syncLiveOrderStatus(orderId)
+      .then((updatedOrder) => {
+        setOrders((current) => current.map((order) => order.id === updatedOrder.id ? updatedOrder : order));
+        setMessage("실주문 체결 상태를 동기화했습니다.");
+      })
+      .catch(() => setMessage("실주문 체결 상태 동기화에 실패했습니다."))
+      .finally(() => setSyncingOrderId(null));
+  };
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -54,6 +68,9 @@ export function OrdersPage() {
           <option value="">전체 상태</option>
           <option value="SIMULATED">모의 체결</option>
           <option value="LIVE_SUBMITTED">실주문 제출</option>
+          <option value="LIVE_PARTIAL">부분 체결</option>
+          <option value="LIVE_FILLED">실주문 체결</option>
+          <option value="LIVE_CANCELED">실주문 취소</option>
           <option value="REJECTED">거절</option>
           <option value="FAILED">실패</option>
           <option value="TODO_LIVE_ORDER_NOT_IMPLEMENTED">실주문 차단</option>
@@ -67,7 +84,7 @@ export function OrdersPage() {
         <button className="secondary-button" onClick={clearFilters} type="button">초기화</button>
       </div>
       {message ? <div className="notice">{message}</div> : null}
-      <OrderTable orders={orders} />
+      <OrderTable orders={orders} onSyncLiveStatus={syncLiveStatus} syncingOrderId={syncingOrderId} />
     </section>
   );
 }

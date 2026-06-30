@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import OrderStatus, TradeOrder
 from app.schemas import TradeOrderRead
+from app.security import require_admin_api_key
+from app.services.trading_service import TradingService
 
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -30,3 +32,12 @@ def get_order(order_id: int, db: Session = Depends(get_db)) -> TradeOrderRead:
     if not order:
         raise HTTPException(status_code=404, detail="Order not found.")
     return order
+
+
+@router.post("/{order_id}/sync-live-status", response_model=TradeOrderRead, dependencies=[Depends(require_admin_api_key)])
+def sync_live_order_status(order_id: int, db: Session = Depends(get_db)) -> TradeOrderRead:
+    order = db.get(TradeOrder, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    service = TradingService()
+    return service.sync_live_order_status(db, order)

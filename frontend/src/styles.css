@@ -195,6 +195,12 @@ section h3 {
   padding: 6px 10px;
 }
 
+.compact-button {
+  min-height: 30px;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
