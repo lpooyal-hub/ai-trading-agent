@@ -6,9 +6,9 @@ function fillSummary(order: TradeOrder) {
     if (intent && typeof intent === "object") {
       const payload = intent as Record<string, unknown>;
       const key = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "no-key";
-      return `Live blocked · ${key}`;
+      return `실주문 차단 · ${key}`;
     }
-    return "Live blocked";
+    return "실주문 차단";
   }
   const fill = order.raw_response_json.simulated_fill;
   if (!fill || typeof fill !== "object") return "-";
@@ -26,15 +26,15 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
       <table>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Amount</th>
-            <th>Position Qty</th>
-            <th>Status</th>
-            <th>Reason</th>
+            <th>시각</th>
+            <th>종목</th>
+            <th>방향</th>
+            <th>수량</th>
+            <th>가격</th>
+            <th>금액</th>
+            <th>포지션 수량</th>
+            <th>상태</th>
+            <th>사유</th>
           </tr>
         </thead>
         <tbody>
@@ -53,7 +53,7 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
           ))}
           {!orders.length ? (
             <tr>
-              <td colSpan={9}>No simulated orders yet.</td>
+              <td colSpan={9}>아직 모의 주문이 없습니다.</td>
             </tr>
           ) : null}
         </tbody>

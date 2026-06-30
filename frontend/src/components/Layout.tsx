@@ -18,8 +18,8 @@ export function Layout({ activePage, navItems, onNavigate, children }: LayoutPro
     <div className="app-shell">
       <aside className="sidebar">
         <div>
-          <p className="eyebrow">Toss Securities Open API</p>
-          <h1>AI Trading Agent</h1>
+          <p className="eyebrow">토스증권 Open API</p>
+          <h1>AI 트레이딩 에이전트</h1>
         </div>
         <nav className="nav-list">
           {navItems.map((item) => (

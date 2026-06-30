@@ -12,15 +12,15 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
       <table>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Symbol</th>
-            <th>Action</th>
-            <th>Confidence</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Guard</th>
-            <th>Block Reason</th>
-            <th>Dry Run</th>
+            <th>시각</th>
+            <th>종목</th>
+            <th>판단</th>
+            <th>신뢰도</th>
+            <th>금액</th>
+            <th>상태</th>
+            <th>가드</th>
+            <th>차단 사유</th>
+            <th>모의</th>
             <th></th>
           </tr>
         </thead>
@@ -36,13 +36,13 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
                 <td>{Math.round(decision.confidence * 100)}%</td>
                 <td>${decision.recommended_order_amount.toFixed(2)}</td>
                 <td>{decision.status}</td>
-                <td>{guardWarnings.length ? `${guardWarnings.length} warning${guardWarnings.length > 1 ? "s" : ""}` : "OK"}</td>
+                <td>{guardWarnings.length ? `경고 ${guardWarnings.length}개` : "정상"}</td>
                 <td className="reason-cell">{blockReason || "-"}</td>
-                <td>{decision.dry_run ? "Yes" : "No"}</td>
+                <td>{decision.dry_run ? "예" : "아니오"}</td>
                 <td>
                   {onSelect ? (
                     <button className="small-button" onClick={() => onSelect(decision.id)} type="button">
-                      Detail
+                      상세
                     </button>
                   ) : null}
                 </td>
@@ -51,7 +51,7 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
           })}
           {!decisions.length ? (
             <tr>
-              <td colSpan={10}>No decisions yet.</td>
+              <td colSpan={10}>아직 판단 기록이 없습니다.</td>
             </tr>
           ) : null}
         </tbody>

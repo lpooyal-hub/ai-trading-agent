@@ -14,18 +14,18 @@ import { PortfolioPage } from "./pages/PortfolioPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "decisions", label: "Decisions" },
-  { id: "decision-detail", label: "Decision Detail" },
-  { id: "orders", label: "Orders" },
-  { id: "broker", label: "Broker" },
-  { id: "portfolio", label: "Portfolio" },
-  { id: "market", label: "Market" },
-  { id: "evaluations", label: "Evaluations" },
-  { id: "journal", label: "Journal" },
-  { id: "memory", label: "Memory" },
-  { id: "llm-usage", label: "LLM Usage" },
-  { id: "settings", label: "Settings" },
+  { id: "dashboard", label: "대시보드" },
+  { id: "decisions", label: "판단 기록" },
+  { id: "decision-detail", label: "판단 상세" },
+  { id: "orders", label: "주문 기록" },
+  { id: "broker", label: "브로커" },
+  { id: "portfolio", label: "포트폴리오" },
+  { id: "market", label: "시장 데이터" },
+  { id: "evaluations", label: "성과 평가" },
+  { id: "journal", label: "저널" },
+  { id: "memory", label: "메모리" },
+  { id: "llm-usage", label: "LLM 사용량" },
+  { id: "settings", label: "설정" },
 ];
 
 export default function App() {
