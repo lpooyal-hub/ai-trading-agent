@@ -73,6 +73,14 @@ SchedulerAgent
 
 이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조입니다. 이후 필요하면 retry, branching, schedule orchestration, frontend timeline view로 확장할 수 있습니다.
 
+### Redis runtime guard
+
+Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 사용합니다. `REDIS_ENABLED=true`와 `REDIS_URL`이 설정되어 있으면 `/agent/run-once` 실행 시 `agent:run_once:lock` lock을 잡아 중복 실행을 막습니다.
+
+- Redis 사용 가능: 같은 순간 두 번째 agent 실행은 `409 Conflict` 또는 scheduled run skip으로 처리됩니다.
+- Redis 미설정/미가용: 기존 DB 기반 실행 흐름을 유지하고, workflow에는 runtime lock 단계가 skipped로 남습니다.
+- 기본 TTL은 `REDIS_AGENT_RUN_LOCK_TTL_SECONDS=300`입니다.
+
 ## 보안 원칙
 
 - `.env`는 절대 커밋하지 않습니다.
@@ -128,6 +136,8 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `BROKER_PROVIDER=toss_securities`
 - `BOT_CAPITAL_LIMIT_USD=250`
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
+- `REDIS_ENABLED=false`
+- `REDIS_URL=redis://host.docker.internal:6379/0`
 
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
 OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` 버튼 또는 아래 endpoint로 작은 연결 테스트를 먼저 실행합니다. 이 테스트는 trading decision을 만들지 않고 LLM usage row만 기록합니다.

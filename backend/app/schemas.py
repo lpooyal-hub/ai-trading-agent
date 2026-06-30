@@ -355,6 +355,7 @@ class AgentStatusRead(BaseModel):
     active_universe: list[str]
     last_decision_id: int | None
     last_decision_status: str | None
+    redis_runtime: dict[str, Any]
 
 
 class AgentAutomationPolicyRead(BaseModel):

@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     toss_timeout_seconds: int = 8
     toss_read_cache_ttl_seconds: int = 15
     openai_api_key: str | None = None
+    redis_enabled: bool = False
+    redis_url: str | None = None
+    redis_agent_run_lock_ttl_seconds: int = 300
 
     @staticmethod
     def _split_csv(value: str) -> list[str]:

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.models import AgentDecision
 from app.services.agent_schedule_service import AgentScheduleService
-from app.services.agent_service import AgentService
+from app.services.agent_service import AgentRunLockedError, AgentService
 
 
 @dataclass
@@ -36,7 +36,15 @@ class SchedulerAgent:
                 decision=None,
             )
 
-        decision = AgentService(self.settings).run_once(db)
+        try:
+            decision = AgentService(self.settings).run_once(db)
+        except AgentRunLockedError as exc:
+            return SchedulerAgentResult(
+                triggered=False,
+                reason=str(exc),
+                schedule=self.schedule_service.get_schedule(db),
+                decision=None,
+            )
         return SchedulerAgentResult(
             triggered=True,
             reason=reason,

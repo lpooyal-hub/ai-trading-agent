@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.agents.scheduler_agent import SchedulerAgent
@@ -13,7 +13,7 @@ from app.schemas import (
     AgentStatusRead,
 )
 from app.services.agent_operations_service import AgentOperationsService
-from app.services.agent_service import AgentService
+from app.services.agent_service import AgentRunLockedError, AgentService
 
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -22,7 +22,10 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 @router.post("/run-once", response_model=AgentDecisionRead)
 def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
     service = AgentService()
-    return service.run_once(db)
+    try:
+        return service.run_once(db)
+    except AgentRunLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/run-scheduled", response_model=AgentScheduledRunRead)

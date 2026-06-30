@@ -15,7 +15,12 @@ from app.models import (
     WorkflowStepStatus,
 )
 from app.risk.llm_budget_manager import LLMBudgetManager
+from app.services.redis_runtime_service import RedisRuntimeService
 from app.services.workflow_service import WorkflowService
+
+
+class AgentRunLockedError(RuntimeError):
+    pass
 
 
 class AgentService:
@@ -30,19 +35,42 @@ class AgentService:
         self.order_agent = OrderAgent(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.workflow_service = WorkflowService()
+        self.redis_runtime = RedisRuntimeService(self.settings)
 
     def run_once(self, db: Session) -> AgentDecision:
-        workflow = self.workflow_service.start_run(
-            db,
-            workflow_name="agent.run_once",
-            trigger_source="manual",
-            input_json={
-                "active_universe": self.settings.active_universe,
-                "llm_mode": self.settings.llm_mode,
-                "automation_policy": self._automation_policy_snapshot(),
-            },
-        )
+        lock = self.redis_runtime.acquire_agent_run_lock()
+        if not lock.acquired:
+            raise AgentRunLockedError(lock.reason)
+
+        workflow = None
         try:
+            workflow = self.workflow_service.start_run(
+                db,
+                workflow_name="agent.run_once",
+                trigger_source="manual",
+                input_json={
+                    "active_universe": self.settings.active_universe,
+                    "llm_mode": self.settings.llm_mode,
+                    "automation_policy": self._automation_policy_snapshot(),
+                    "redis_lock": {
+                        "enabled": lock.enabled,
+                        "key": lock.key,
+                        "reason": lock.reason,
+                    },
+                },
+            )
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="runtime_lock",
+                status=WorkflowStepStatus.SUCCEEDED if lock.enabled else WorkflowStepStatus.SKIPPED,
+                output_json={
+                    "provider": "redis",
+                    "enabled": lock.enabled,
+                    "key": lock.key,
+                    "reason": lock.reason,
+                },
+            )
             market_result = self.market_agent.run(db)
             snapshots = market_result.snapshots
             candidates = market_result.candidates
@@ -201,13 +229,16 @@ class AgentService:
             )
             return logged.decision
         except Exception as exc:
-            self.workflow_service.finish_run(
-                db,
-                workflow,
-                status=WorkflowRunStatus.FAILED,
-                error_message=str(exc),
-            )
+            if workflow is not None:
+                self.workflow_service.finish_run(
+                    db,
+                    workflow,
+                    status=WorkflowRunStatus.FAILED,
+                    error_message=str(exc),
+                )
             raise
+        finally:
+            self.redis_runtime.release_lock(lock)
 
     def get_status(self, db: Session) -> dict:
         latest_decision = (
@@ -225,6 +256,7 @@ class AgentService:
             "active_universe": self.settings.active_universe,
             "last_decision_id": latest_decision.id if latest_decision else None,
             "last_decision_status": latest_decision.status.value if latest_decision else None,
+            "redis_runtime": self.redis_runtime.status(),
         }
 
     def get_automation_policy(self) -> dict:
