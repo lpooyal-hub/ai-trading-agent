@@ -35,12 +35,12 @@ cd /home/ubuntu/ai-trading-agent
 docker compose up --build
 ```
 
-Docker Compose 기본 frontend 주소는 `http://localhost:3000`입니다. Backend는 host `81`로도 노출되지만, 대시보드는 기본적으로 `/api` proxy를 통해 backend container로 요청을 전달합니다.
+Docker Compose 기본 frontend 주소는 `http://localhost:3000`입니다. 운영 도메인을 붙일 때도 대시보드는 기본적으로 `/api` proxy를 통해 backend container로 요청을 전달합니다.
 
 Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 기본값 `/api`를 사용합니다.
 
 - `http://localhost:5173`에서 열면 local backend `http://localhost:8000`
-- Docker Compose에서 `http://localhost:3000` 또는 `http://<SERVER_IP>:3000`으로 열면 `/api` proxy를 통해 backend container `http://backend:8000`
+- Docker Compose에서 `http://localhost:3000` 또는 운영 도메인으로 열면 `/api` proxy를 통해 backend container `http://backend:8000`
 
 Backend 주소를 직접 고정해야 할 때만 `.env` 또는 실행 환경에 아래 값을 설정합니다.
 
@@ -48,7 +48,7 @@ Backend 주소를 직접 고정해야 할 때만 `.env` 또는 실행 환경에 
 VITE_API_BASE_URL=http://localhost:81
 ```
 
-외부 서버에서 backend 주소를 직접 고정할 때는 `localhost` 대신 서버 IP를 사용합니다.
+운영 도메인에서는 `VITE_API_BASE_URL`을 비워두고 Nginx의 `/api` reverse proxy를 사용하는 것을 권장합니다. 외부 서버에서 backend 주소를 직접 고정해야 할 때만 `localhost` 대신 서버 IP 또는 별도 backend 도메인을 사용합니다.
 
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81

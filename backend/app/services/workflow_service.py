@@ -80,8 +80,8 @@ class WorkflowService:
                 "label": "Order Agent",
                 "agent_type": "python",
                 "uses_llm": False,
-                "runtime": "Paper execution adapter",
-                "responsibility": "Attempt policy-approved paper execution while live orders stay blocked.",
+                "runtime": "Paper or blocked-live execution adapter",
+                "responsibility": "Attempt policy-approved paper execution while live orders remain explicitly blocked.",
             },
             {
                 "id": "evaluation_agent",

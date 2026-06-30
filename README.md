@@ -1,6 +1,6 @@
 # AI Trading Agent Research Platform
 
-이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단을 기록하고, 리스크 관문을 통과시키고, LLM 사용량과 의사결정 품질을 평가하는 것입니다.
+이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단, 리스크 검증, 주문 시뮬레이션, LLM 비용, 사후 평가를 감사 가능한 workflow로 남기는 것입니다.
 
 ## Preview
 
@@ -26,26 +26,19 @@
 - 투자 판단을 대신하지 않습니다.
 - 기본 설정만으로 실제 주문을 보내지 않습니다.
 - 여러 증권사를 한 번에 지원하는 범용 브로커 플랫폼은 아닙니다.
-- 실제 계좌 정보, 실거래 기록, 실제 API 응답은 저장소에 포함하지 않습니다.
+- 공개 빌드에서는 `BlockedLiveExecutionAdapter`가 live order를 명시적으로 차단합니다.
+- 실제 계좌 정보, 실거래 기록, 실제 주문 API 응답은 저장소에 포함하지 않습니다.
 
 ## 핵심 기능
 
-- AI 에이전트 의사결정 기록
-- 설정 가능한 매매 universe
-- 설정 가능한 paper trading 자본 한도
-- 금액 기반 paper order sizing
-- RiskManager 기반 최종 승인/거절
-- 기존 보유 포지션 보호
-- DRY_RUN 기반 모의 주문
-- paper/live execution adapter 분리
-- decision 승인 후 DRY_RUN 주문 시뮬레이션
-- simulated order 기반 realized/unrealized PnL, win rate, symbol performance, realized trade 요약
-- LLM 토큰/예상 비용 기록
-- LLM 사용량 요약과 예산 제한
-- LLM 응답, 사용량, 지연 시간, 성공 여부 기록
-- rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한하고 후보 점수/사유를 기록
-- decision 사후 평가와 회고 기록
-- React dashboard 구조
+- Agentic workflow: Market, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계 기록
+- Runtime guard: Redis lock으로 중복 실행 방지
+- Decision audit: 판단 근거, 신뢰도, LLM 사용량, 비용, latency 저장
+- Paper execution: DRY_RUN 기반 금액 주문 시뮬레이션과 bot-only position 갱신
+- Risk control: 예산, 노출 한도, 보호 포지션, 일일 거래 수, 금지 키워드 검증
+- Performance loop: simulated PnL, win rate, symbol performance, evaluation, journal, memory feedback
+- Broker boundary: Toss read-only 조회와 live order 차단 adapter 분리
+- React dashboard: 대시보드, 실행 흐름, 판단, 주문, 포트폴리오, 평가, 저널, 메모리 화면
 
 ## 멀티에이전트 구조
 
@@ -77,7 +70,7 @@ SchedulerAgent
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
 - `ExecutionRiskAgent`: 포지션, 예산, 종목별 최대 노출, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
 - `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
-- `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 실주문은 아직 차단되어 있습니다.
+- `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 공개 빌드의 live order는 `BlockedLiveExecutionAdapter`에서 차단됩니다.
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
 - `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다.
 
@@ -132,6 +125,7 @@ docker compose ps
 
 - Frontend: `http://localhost:3000`
 - Backend health: `http://localhost:81/health`
+- Production domain example: `https://your-trading-domain.example`
 
 서버에서 실행 중이면 브라우저에서는 frontend만 열면 됩니다.
 
@@ -141,6 +135,8 @@ http://<SERVER_IP>:3000
 
 Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy가 backend container로 넘깁니다. 그래서 일반 실행에서는 browser가 backend `81` 포트를 직접 호출할 필요가 없습니다.
 각 Docker build context는 `.dockerignore`로 `.env`, DB 파일, cache, `node_modules` 같은 로컬 파일을 제외합니다.
+
+운영 도메인에서는 Nginx가 HTTPS 요청을 frontend `127.0.0.1:3000`으로, `/api/*` 요청을 backend `127.0.0.1:81`로 reverse proxy합니다.
 
 ## 기본 설정
 
@@ -179,14 +175,14 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 ## Execution 구조
 
-`TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 실제 주문 처리 방식은 execution adapter로 분리되어 있습니다.
+`TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 주문 처리 방식은 execution adapter로 분리되어 있으며, 공개 빌드는 live order endpoint를 호출하지 않습니다.
 
 - `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
-- `LiveTossExecutionAdapter`: Toss live order 경로의 자리입니다. 현재는 의도적으로 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order만 저장하고 실제 주문은 보내지 않습니다.
+- `BlockedLiveExecutionAdapter`: live trading flag가 켜져도 실제 브로커 주문 endpoint를 호출하지 않는 차단 경로입니다. 대신 order intent, idempotency key, 차단 사유를 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order로 저장합니다.
 
-Paper trading은 기본적으로 금액 기반 수량 계산을 사용합니다. `ORDER_SIZING_MODE=notional`에서 `recommended_order_amount / current_price`로 수량을 계산하고, `QUANTITY_DECIMAL_PLACES` 기준으로 반올림합니다. 실제 Toss live adapter를 연결할 때는 Toss의 소수점/금액 주문 지원 범위에 맞춰 adapter mapping을 검증해야 합니다.
+Paper trading은 기본적으로 금액 기반 수량 계산을 사용합니다. `ORDER_SIZING_MODE=notional`에서 `recommended_order_amount / current_price`로 수량을 계산하고, `QUANTITY_DECIMAL_PLACES` 기준으로 반올림합니다. 실제 broker live adapter를 연결할 때는 해당 브로커의 주문 단위, 소수점/금액 주문 지원 범위, 계좌 권한, idempotency 전략을 별도로 검증해야 합니다.
 
-이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 실행 adapter만 paper에서 live로 단계적으로 교체할 수 있습니다.
+이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 실행 adapter만 paper에서 blocked-live, 이후 검토된 live adapter로 단계적으로 교체할 수 있습니다.
 
 ## 서버 반영
 
@@ -200,6 +196,46 @@ docker compose up --build -d --force-recreate
 서버에서 frontend와 backend를 같은 Docker Compose로 띄우는 경우 `VITE_API_BASE_URL`을 외부 IP의 `:81`로 지정하지 않는 것을 권장합니다. Frontend는 기본 `/api` proxy를 통해 backend container로 접근하므로, browser가 backend public port를 직접 열 필요가 없습니다.
 
 브라우저에서 `Ctrl+Shift+R`로 강력 새로고침합니다.
+
+### 운영 도메인 + SSL
+
+DNS A 레코드가 서버 IP를 바라보고 있으면, 기존 Nginx reverse proxy에 이 앱용 `server_name` 블록을 추가합니다. 현재 서버처럼 `42222.cloud` 루트 도메인을 다른 프로젝트가 이미 사용 중이라면, 루트 설정을 덮어쓰지 말고 같은 Nginx 설정 파일에 `trade.42222.cloud`용 server block만 추가합니다.
+
+이 저장소에는 기존 VaccineDailyReport Nginx 구성에 붙일 수 있는 참고 snippet을 `deploy/nginx/trade.42222.cloud.vaccine-nginx.snippet.conf`로 둡니다. 공개 기본값인 `.env.example`에는 개인 운영 도메인을 넣지 않습니다.
+
+1. `backend/.env`에 운영 도메인 CORS를 포함합니다.
+
+```bash
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://trade.42222.cloud
+```
+
+2. 기존 `42222.cloud` Nginx 설정에 trade server block을 추가합니다.
+
+```bash
+cd /home/ubuntu/VaccineDailyReport
+# frontend/42222-default.conf에 trade.42222.cloud server block 추가
+```
+
+3. 인증서가 `trade.42222.cloud`를 포함하는지 확인합니다. 기존 `42222.cloud` 인증서가 wildcard 또는 SAN으로 서브도메인을 포함한다면 그대로 사용할 수 있습니다. 포함하지 않는다면 인증서를 확장 발급해야 합니다.
+
+```bash
+sudo certbot certificates
+```
+
+4. Nginx 설정을 검증하고 백신일보 frontend Nginx를 재반영합니다.
+
+```bash
+cd /home/ubuntu/VaccineDailyReport
+docker compose restart frontend
+```
+
+5. 인증서 자동 갱신을 확인합니다.
+
+```bash
+sudo certbot renew --dry-run
+```
+
+최종 접속 주소는 운영 도메인입니다. Backend public port `81`을 브라우저에 직접 노출하지 않고, 외부 요청은 Nginx의 `/api` reverse proxy를 통해 backend로 전달하는 구성을 권장합니다.
 
 ## API 참고
 
@@ -303,7 +339,7 @@ AGENT_AUTO_EXECUTE_MIN_CONFIDENCE=0.75
 AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
 ```
 
-`paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. 실거래 주문 자동 실행은 여전히 구현하지 않았습니다.
+`paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. 실거래 주문 자동 실행은 공개 빌드의 `BlockedLiveExecutionAdapter`에서 차단됩니다.
 
 반복 실행은 내부 백그라운드 루프를 바로 켜지 않고, 외부 cron/스케줄러가 호출할 수 있는 `/agent/run-scheduled`로 준비합니다.
 
@@ -364,13 +400,13 @@ npm run dev
 Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 기본값 `/api`를 사용하고, Vite dev server가 backend로 프록시합니다.
 
 - `http://localhost:5173`에서 열면 local backend `http://localhost:8000`
-- Docker Compose에서 `http://localhost:3000` 또는 `http://<SERVER_IP>:3000`으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
+- Docker Compose에서 `http://localhost:3000` 또는 운영 도메인으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
 
 Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다.
 
 ## Live Trading Readiness
 
-현재 공개 빌드는 실주문을 보내지 않습니다. `LIVE_TRADING_ENABLED=true`와 `DRY_RUN=false`를 설정해도 broker live order adapter가 아직 연결되어 있지 않아 주문은 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단됩니다.
+현재 공개 빌드는 실주문을 보내지 않습니다. `LIVE_TRADING_ENABLED=true`와 `DRY_RUN=false`를 설정해도 `BlockedLiveExecutionAdapter`가 활성화되어 실제 브로커 주문 endpoint는 호출되지 않습니다. 이때 주문은 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` 상태로 저장됩니다.
 
 실전 전환 전 점검은 아래 endpoint와 Dashboard/Settings 화면에서 확인할 수 있습니다.
 
@@ -378,7 +414,16 @@ Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false
 curl http://localhost:81/settings/live-readiness
 ```
 
-차단된 live order는 Orders와 Decision Detail에서 확인할 수 있으며, raw payload에는 order intent와 idempotency key가 남습니다. 이 값은 실제 주문 전송이 아니라 향후 broker adapter 구현을 검토하기 위한 감사용 정보입니다.
+차단된 live order는 Orders와 Decision Detail에서 확인할 수 있으며, raw payload에는 order intent, idempotency key, 차단 사유가 남습니다. 이 값은 실제 주문 전송이 아니라 향후 broker adapter 구현을 검토하기 위한 감사용 정보입니다.
+
+실제 live adapter로 교체하기 전에는 최소한 아래 항목을 별도 브랜치와 비공개 환경에서 검증해야 합니다.
+
+- 공식 주문 endpoint, 필수 header, 계좌 scope, 주문 가능 상품 범위 확인
+- 내부 `BUY/SELL`, 수량, 금액 주문 의도를 브로커 요청 필드로 매핑
+- 중복 제출 방지용 idempotency 또는 client order key 전략 추가
+- 주문 전 preview, 주문 후 status polling, 실패/취소 상태 처리
+- 실제 응답 저장 시 민감 정보 masking
+- 최소 금액 또는 sandbox 수준의 수동 검증
 
 ## Public Repo 운영 방침
 

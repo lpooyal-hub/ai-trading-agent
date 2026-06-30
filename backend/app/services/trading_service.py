@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.execution.adapters import ExecutionAdapter, LiveTossExecutionAdapter, PaperExecutionAdapter
+from app.execution.adapters import BlockedLiveExecutionAdapter, ExecutionAdapter, PaperExecutionAdapter
 from app.agents.risk_agent import RiskAgent
 from app.models import (
     AgentAction,
@@ -305,7 +305,7 @@ class TradingService:
 
     def _execution_adapter(self) -> ExecutionAdapter:
         if not self.settings.dry_run and self.settings.live_trading_enabled:
-            return LiveTossExecutionAdapter(self.settings)
+            return BlockedLiveExecutionAdapter(self.settings)
         return PaperExecutionAdapter(self)
 
     @staticmethod
@@ -323,8 +323,8 @@ class TradingService:
         legacy_protected: bool,
     ) -> list[str]:
         warnings: list[str] = []
-        if execution_mode == "LIVE_TODO_NOT_IMPLEMENTED":
-            warnings.extend(LiveTossExecutionAdapter(self.settings).preview_warnings())
+        if execution_mode == "LIVE_ORDER_BLOCKED":
+            warnings.extend(BlockedLiveExecutionAdapter(self.settings).preview_warnings())
         if execution_mode == "BLOCKED_LIVE_DISABLED":
             warnings.append("Live order execution is blocked because LIVE_TRADING_ENABLED is false.")
         if legacy_protected:
