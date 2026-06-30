@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
 
 from app.agents.decision_agent import DecisionAgent
+from app.agents.logger_agent import LoggerAgent
 from app.agents.market_agent import MarketAgent
+from app.agents.order_agent import OrderAgent
 from app.config import Settings, get_settings
-from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, MarketSnapshot
+from app.models import AgentAction, AgentDecision, DecisionStatus, MarketSnapshot
 from app.risk.llm_budget_manager import LLMBudgetManager
-from app.services.llm_usage_service import LLMUsageService
-from app.services.trading_service import TradingService
 
 
 class AgentService:
@@ -16,8 +16,9 @@ class AgentService:
         self.settings = settings or get_settings()
         self.market_agent = MarketAgent(self.settings)
         self.decision_agent = DecisionAgent(self.settings)
+        self.logger_agent = LoggerAgent(self.decision_agent)
+        self.order_agent = OrderAgent(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
-        self.llm_usage_service = LLMUsageService()
 
     def run_once(self, db: Session) -> AgentDecision:
         market_result = self.market_agent.run(db)
@@ -53,22 +54,6 @@ class AgentService:
             recommended_order_amount=response["recommended_order_amount"],
             thesis=response["thesis"],
             risk_notes=response["risk_notes"],
-            input_snapshot_json={
-                "candidate_symbols": [item.symbol for item in candidates],
-                "candidate_details": market_result.candidate_details,
-                "candidate_count": len(candidates),
-                "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
-                "active_universe": self.settings.active_universe,
-                "market_source": market_result.market_source,
-                "llm_mode": self.settings.llm_mode,
-            },
-            agent_response_json={
-                **decision_result.raw_response,
-                "llm_mode": self.settings.llm_mode,
-                "real_llm_ready": self.settings.real_llm_enabled,
-                "response_guard_warnings": decision_result.guard_warnings,
-                "automation_policy": self._automation_policy_snapshot(),
-            },
             llm_model=decision_result.model,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
@@ -83,33 +68,21 @@ class AgentService:
             ),
             dry_run=True,
         )
-        db.add(decision)
-        db.flush()
-        self.llm_usage_service.record_usage(
+        logged = self.logger_agent.save_decision_with_usage(
             db,
-            model=decision_result.model,
-            purpose=LLMPurpose.DECISION,
-            symbol=decision.symbol,
-            decision_id=decision.id,
-            prompt_tokens=usage["prompt_tokens"],
-            completion_tokens=usage["completion_tokens"],
-            total_tokens=usage["total_tokens"],
-            estimated_cost_usd=decision_result.estimated_cost_usd,
-            latency_ms=decision_result.latency_ms,
-            success=decision_result.success,
-            error_message=decision_result.error_message,
-            raw_usage_json={
-                **usage,
-                "source": decision_result.source,
-                "pricing_configured": self.decision_agent.pricing_configured(),
-                "raw_response": decision_result.raw_response,
-            },
-            commit=False,
+            decision=decision,
+            decision_result=decision_result,
+            market_source=market_result.market_source,
+            candidates=candidates,
+            candidate_details=market_result.candidate_details,
+            active_universe=self.settings.active_universe,
+            llm_mode=self.settings.llm_mode,
+            max_candidates_per_run=self.settings.llm_max_candidates_per_run_safe,
+            real_llm_ready=self.settings.real_llm_enabled,
+            automation_policy=self._automation_policy_snapshot(),
         )
-        db.commit()
-        db.refresh(decision)
-        self._execute_paper_auto_if_allowed(db, decision)
-        return decision
+        self.order_agent.run_paper_auto(db, logged.decision)
+        return logged.decision
 
     def get_status(self, db: Session) -> dict:
         latest_decision = (
@@ -260,10 +233,7 @@ class AgentService:
             rejection_reason=reason,
             dry_run=True,
         )
-        db.add(decision)
-        db.commit()
-        db.refresh(decision)
-        return decision
+        return self.logger_agent.save_skipped_decision(db, decision).decision
 
     @staticmethod
     def _snapshot_to_dict(snapshot: MarketSnapshot) -> dict:
@@ -290,19 +260,6 @@ class AgentService:
         if self.settings.llm_mode != "real_openai":
             return "LLM_NOT_READY"
         return "AGENT_GUARD"
-
-    def _execute_paper_auto_if_allowed(self, db: Session, decision: AgentDecision) -> None:
-        if not self._paper_auto_decision_allowed(decision):
-            return
-        TradingService(self.settings).execute_approved_decision(db, decision)
-
-    def _paper_auto_decision_allowed(self, decision: AgentDecision) -> bool:
-        return bool(
-            self.settings.paper_auto_enabled
-            and decision.status == DecisionStatus.PENDING
-            and decision.confidence >= self.settings.agent_auto_execute_min_confidence
-            and decision.recommended_order_amount <= self.settings.agent_auto_execute_max_order_amount_usd
-        )
 
     def _automation_policy_snapshot(self) -> dict:
         return {

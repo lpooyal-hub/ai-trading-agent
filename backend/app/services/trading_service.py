@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.execution.adapters import ExecutionAdapter, LiveTossExecutionAdapter, PaperExecutionAdapter
+from app.agents.risk_agent import RiskAgent
 from app.models import (
     AgentAction,
     AgentDecision,
@@ -12,13 +13,12 @@ from app.models import (
     OrderStatus,
     TradeOrder,
 )
-from app.risk.risk_manager import RiskManager
 
 
 class TradingService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
-        self.risk_manager = RiskManager(self.settings)
+        self.risk_agent = RiskAgent(self.settings)
 
     def preview_decision(self, db: Session, decision: AgentDecision) -> dict:
         available_budget = self.calculate_available_budget(db)
@@ -38,7 +38,7 @@ class TradingService:
             else decision.recommended_order_amount
         )
         execution_mode = self._execution_mode()
-        result = self.risk_manager.validate_decision(
+        result = self.risk_agent.validate_decision(
             decision,
             db,
             available_bot_budget=available_budget,
@@ -46,8 +46,8 @@ class TradingService:
         )
         return {
             "decision_id": decision.id,
-            "approved": result["approved"],
-            "reason": result["reason"],
+            "approved": result.approved,
+            "reason": result.reason,
             "symbol": decision.symbol,
             "action": decision.action,
             "side": self._side_for_decision(decision),
@@ -74,15 +74,15 @@ class TradingService:
             db.commit()
             return self._reject_order(db, decision, "HOLD decisions are not executable.")
 
-        risk_result = self.risk_manager.validate_decision(
+        risk_result = self.risk_agent.validate_decision(
             decision,
             db,
             available_bot_budget=self.calculate_available_budget(db),
         )
-        if not risk_result["approved"]:
+        if not risk_result.approved:
             decision.status = DecisionStatus.REJECTED
-            decision.rejection_reason = str(risk_result["reason"])
-            order = self._reject_order(db, decision, str(risk_result["reason"]), commit=False)
+            decision.rejection_reason = risk_result.reason
+            order = self._reject_order(db, decision, risk_result.reason, commit=False)
             db.add(order)
             db.commit()
             db.refresh(order)
