@@ -135,6 +135,37 @@ export type MemorySummary = {
   data_gaps: string[];
 };
 
+export type WorkflowStepStatus = "RUNNING" | "SUCCEEDED" | "FAILED" | "SKIPPED";
+
+export type WorkflowRunStatus = "RUNNING" | "SUCCEEDED" | "FAILED" | "SKIPPED";
+
+export type WorkflowStep = {
+  id: number;
+  run_id: number;
+  step_name: string;
+  status: WorkflowStepStatus;
+  started_at: string;
+  finished_at: string | null;
+  input_json: Record<string, unknown>;
+  output_json: Record<string, unknown>;
+  error_message: string | null;
+  retry_count: number;
+};
+
+export type WorkflowRun = {
+  id: number;
+  workflow_name: string;
+  status: WorkflowRunStatus;
+  started_at: string;
+  finished_at: string | null;
+  trigger_source: string;
+  decision_id: number | null;
+  input_json: Record<string, unknown>;
+  output_json: Record<string, unknown>;
+  error_message: string | null;
+  steps: WorkflowStep[];
+};
+
 export type DecisionFilters = {
   status?: string;
   symbol?: string;
@@ -708,6 +739,8 @@ export const api = {
   getJournalEntries: () => request<TradeJournalEntry[]>("/journal"),
   getJournalEntriesForDecision: (decisionId: number) => request<TradeJournalEntry[]>(`/journal/decision/${decisionId}`),
   getMemorySummary: () => request<MemorySummary>("/memory/summary"),
+  getWorkflowRuns: (limit = 50) => request<WorkflowRun[]>(`/workflows?limit=${limit}`),
+  getWorkflowRun: (id: number) => request<WorkflowRun>(`/workflows/${id}`),
   createJournalEntry: (payload: TradeJournalEntryCreate) => request<TradeJournalEntry>("/journal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -11,6 +11,8 @@ const STATUS_LABELS: Record<string, string> = {
   REJECTED: "거절",
   EXECUTED: "실행됨",
   SKIPPED: "건너뜀",
+  RUNNING: "진행 중",
+  SUCCEEDED: "성공",
   SIMULATED: "모의 체결",
   SIMULATED_FILLED: "모의 체결",
   TODO_LIVE_ORDER_NOT_IMPLEMENTED: "실주문 차단",
