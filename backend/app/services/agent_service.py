@@ -1,15 +1,12 @@
 from sqlalchemy.orm import Session
 
+from app.agents.decision_agent import DecisionAgent
 from app.agents.market_agent import MarketAgent
-from app.clients.llm_client import LLMClient
-from app.clients.mock_llm_client import MockLLMClient
 from app.config import Settings, get_settings
 from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, MarketSnapshot
 from app.risk.llm_budget_manager import LLMBudgetManager
-from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 from app.services.trading_service import TradingService
-from app.strategy.decision_response_guard import DecisionResponseGuard
 
 
 class AgentService:
@@ -18,13 +15,9 @@ class AgentService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.market_agent = MarketAgent(self.settings)
-        self.llm_client = MockLLMClient() if self.settings.use_mock_data else LLMClient(self.settings)
+        self.decision_agent = DecisionAgent(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
-        self.llm_cost_service = LLMCostService(self.settings)
         self.llm_usage_service = LLMUsageService()
-        self.decision_response_guard = DecisionResponseGuard(
-            max_order_amount_usd=self.settings.max_order_amount_usd,
-        )
 
     def run_once(self, db: Session) -> AgentDecision:
         market_result = self.market_agent.run(db)
@@ -47,18 +40,10 @@ class AgentService:
             )
 
         candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
-        llm_result = self.llm_client.create_decision(candidate_payload)
-        guarded_response = self.decision_response_guard.normalize(
-            llm_result.parsed_response,
-            candidate_payload,
-        )
-        response = guarded_response.response
+        decision_result = self.decision_agent.run(candidate_payload)
+        response = decision_result.response
         selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
-        usage = llm_result.usage
-        estimated_cost = self.llm_cost_service.estimate_cost_usd(
-            usage["prompt_tokens"],
-            usage["completion_tokens"],
-        )
+        usage = decision_result.usage
         decision = AgentDecision(
             symbol=response["symbol"],
             sector=self.settings.allowed_sector,
@@ -78,41 +63,46 @@ class AgentService:
                 "llm_mode": self.settings.llm_mode,
             },
             agent_response_json={
-                **llm_result.raw_response,
+                **decision_result.raw_response,
                 "llm_mode": self.settings.llm_mode,
                 "real_llm_ready": self.settings.real_llm_enabled,
-                "response_guard_warnings": guarded_response.warnings,
+                "response_guard_warnings": decision_result.guard_warnings,
                 "automation_policy": self._automation_policy_snapshot(),
             },
-            llm_model=self.llm_client.model,
+            llm_model=decision_result.model,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
-            estimated_llm_cost_usd=estimated_cost,
-            status=self._status_for_response(response, llm_result.success, guarded_response.has_warnings),
-            rejection_reason=self._rejection_reason(response, llm_result, guarded_response.warnings),
+            estimated_llm_cost_usd=decision_result.estimated_cost_usd,
+            status=self._status_for_response(response, decision_result.success, decision_result.guard_blocked),
+            rejection_reason=self._rejection_reason(
+                response,
+                decision_result.success,
+                decision_result.error_message,
+                decision_result.guard_warnings,
+            ),
             dry_run=True,
         )
         db.add(decision)
         db.flush()
         self.llm_usage_service.record_usage(
             db,
-            model=self.llm_client.model,
+            model=decision_result.model,
             purpose=LLMPurpose.DECISION,
             symbol=decision.symbol,
             decision_id=decision.id,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
-            estimated_cost_usd=estimated_cost,
-            latency_ms=llm_result.latency_ms,
-            success=llm_result.success,
-            error_message=llm_result.error_message,
+            estimated_cost_usd=decision_result.estimated_cost_usd,
+            latency_ms=decision_result.latency_ms,
+            success=decision_result.success,
+            error_message=decision_result.error_message,
             raw_usage_json={
                 **usage,
-                "source": self.llm_client.__class__.__name__,
-                "pricing_configured": self.llm_cost_service.pricing_configured(),
-                "raw_response": llm_result.raw_response,
+                "source": decision_result.source,
+                "pricing_configured": self.decision_agent.pricing_configured(),
+                "raw_response": decision_result.raw_response,
             },
             commit=False,
         )
@@ -324,9 +314,14 @@ class AgentService:
         }
 
     @staticmethod
-    def _rejection_reason(response: dict, llm_result, guard_warnings: list[str]) -> str | None:
-        if not llm_result.success:
-            return f"LLM call failed: {llm_result.error_message}"
+    def _rejection_reason(
+        response: dict,
+        llm_success: bool,
+        error_message: str | None,
+        guard_warnings: list[str],
+    ) -> str | None:
+        if not llm_success:
+            return f"LLM call failed: {error_message}"
         if guard_warnings:
             return f"LLM response guard blocked execution: {'; '.join(guard_warnings)}"
         if not response.get("should_execute"):
