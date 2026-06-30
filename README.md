@@ -160,6 +160,30 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
 OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` 버튼 또는 아래 endpoint로 작은 연결 테스트를 먼저 실행합니다. 이 테스트는 trading decision을 만들지 않고 LLM usage row만 기록합니다.
 
+### Execution Modes
+
+하나의 코드베이스를 유지하고 실행 모드는 env로 나눕니다.
+
+Paper trading이 기본값입니다.
+
+```bash
+DRY_RUN=true
+LIVE_TRADING_ENABLED=false
+USE_MOCK_DATA=true
+AGENT_AUTOMATION_MODE=manual_approval
+```
+
+실제 API 키와 계좌 조회를 연결하는 live-ready 모드는 env에서 명시적으로 전환합니다.
+
+```bash
+DRY_RUN=false
+LIVE_TRADING_ENABLED=true
+USE_MOCK_DATA=false
+REQUIRE_ADMIN_API_KEY=true
+```
+
+공개 포트폴리오 빌드에서는 live-ready env를 켜도 `BlockedLiveExecutionAdapter`가 실제 주문 전송을 차단합니다. 즉, env는 실행 의도와 readiness를 분리하고, 실제 broker order adapter 교체는 별도 검증 지점으로 둡니다.
+
 ## Dashboard 사용 흐름
 
 Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
@@ -426,7 +450,7 @@ curl http://localhost:81/settings/live-readiness
 
 차단된 live order는 Orders와 Decision Detail에서 확인할 수 있으며, raw payload에는 order intent, idempotency key, 차단 사유가 남습니다. 이 값은 실제 주문 전송이 아니라 향후 broker adapter 구현을 검토하기 위한 감사용 정보입니다.
 
-실제 live adapter로 교체하기 전에는 최소한 아래 항목을 별도 브랜치와 비공개 환경에서 검증해야 합니다.
+실제 live adapter로 교체하기 전에는 같은 코드베이스 안에서 env 전환과 adapter 경계를 유지한 채 최소한 아래 항목을 검증해야 합니다.
 
 - 공식 주문 endpoint, 필수 header, 계좌 scope, 주문 가능 상품 범위 확인
 - 내부 `BUY/SELL`, 수량, 금액 주문 의도를 브로커 요청 필드로 매핑
@@ -438,7 +462,7 @@ curl http://localhost:81/settings/live-readiness
 ## Public Repo 운영 방침
 
 - 기본 설정: DRY_RUN / demo / paper trading
-- 실거래 활성화는 opt-in이며, 사용자 본인이 브로커 약관과 관련 법규를 확인해야 합니다.
+- live-ready 전환은 env opt-in으로 관리하며, 공개 포트폴리오 빌드는 실제 주문 전송을 차단합니다.
 - API 키, 계좌번호, 실거래 로그, 실제 API 응답은 저장소에 포함하지 않습니다.
 
 ## 면책 문구

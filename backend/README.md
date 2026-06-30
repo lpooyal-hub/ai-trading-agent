@@ -2,7 +2,7 @@
 
 토스증권 Open API를 기본 브로커 어댑터로 가정한 실험용 AI 트레이딩 에이전트 백엔드입니다.
 
-현재 기본 설정은 DRY_RUN / paper trading입니다. 실거래는 기본값으로 비활성화되어 있으며, 사용자가 명시적으로 환경변수를 바꾸고 주문 동작을 검토한 경우에만 확장할 수 있습니다.
+현재 기본 설정은 DRY_RUN / paper trading입니다. 실행 모드는 별도 브랜치가 아니라 env로 나누며, 공개 포트폴리오 빌드에서는 live-ready env를 켜도 실제 주문 전송은 차단 adapter에서 멈춥니다.
 
 ## 현재 단계
 
@@ -97,6 +97,28 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-tr
 REQUIRE_ADMIN_API_KEY=true
 ADMIN_API_KEY=<set-on-server-only>
 ```
+
+## Execution Modes
+
+기본은 paper trading입니다.
+
+```bash
+DRY_RUN=true
+LIVE_TRADING_ENABLED=false
+USE_MOCK_DATA=true
+AGENT_AUTOMATION_MODE=manual_approval
+```
+
+실제 Toss/OpenAI 설정을 확인하는 live-ready 모드는 env로 전환합니다.
+
+```bash
+DRY_RUN=false
+LIVE_TRADING_ENABLED=true
+USE_MOCK_DATA=false
+REQUIRE_ADMIN_API_KEY=true
+```
+
+이 공개 포트폴리오 빌드에서는 위 live-ready 값이 실제 주문 전송을 의미하지 않습니다. `BlockedLiveExecutionAdapter`가 order intent와 idempotency key를 저장하고, broker order endpoint 호출은 차단합니다.
 
 ## 안전 원칙
 
