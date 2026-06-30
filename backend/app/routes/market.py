@@ -46,5 +46,5 @@ def create_market_snapshots(
 
 @router.post("/snapshots/refresh", response_model=MarketSnapshotRefreshResponse)
 def refresh_market_snapshots(db: Session = Depends(get_db)) -> MarketSnapshotRefreshResponse:
-    result = MarketService().refresh_top_universe_snapshot_result(db)
+    result = MarketService().refresh_active_universe_snapshot_result(db)
     return MarketSnapshotRefreshResponse(**result)

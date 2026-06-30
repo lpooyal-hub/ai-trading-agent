@@ -9,7 +9,7 @@ from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 from app.services.market_service import MarketService
 from app.services.trading_service import TradingService
-from app.strategy.semiconductor_agent import SemiconductorAgent
+from app.strategy.sector_candidate_selector import SectorCandidateSelector
 
 
 class AgentService:
@@ -22,14 +22,14 @@ class AgentService:
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.llm_cost_service = LLMCostService(self.settings)
         self.llm_usage_service = LLMUsageService()
-        self.strategy = SemiconductorAgent(
+        self.strategy = SectorCandidateSelector(
             active_universe=self.settings.active_universe,
             allowed_sector=self.settings.allowed_sector,
             max_candidates=self.settings.llm_max_candidates_per_run_safe,
         )
 
     def run_once(self, db: Session) -> AgentDecision:
-        snapshots = self.market_service.refresh_top_universe_snapshots(db)
+        snapshots = self.market_service.refresh_active_universe_snapshots(db)
         candidates = self._select_candidates(snapshots)
 
         if not candidates:
@@ -209,7 +209,10 @@ class AgentService:
 
         allowed_symbols = set(self.settings.active_universe)
         preview_snapshots: list[MarketSnapshot] = []
-        for item in self.market_service.mock_client.get_semiconductor_snapshots():
+        for item in self.market_service.mock_client.get_demo_snapshots(
+            symbols=self.settings.active_universe,
+            sector=self.settings.allowed_sector,
+        ):
             symbol = item["symbol"].upper()
             if symbol not in allowed_symbols:
                 continue

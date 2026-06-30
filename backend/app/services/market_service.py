@@ -15,12 +15,15 @@ class MarketService:
         self.mock_client = MockMarketDataClient()
         self.market_data_client = MarketDataClient()
 
-    def refresh_top_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
+    def refresh_active_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
         latest_snapshots = self.get_latest_universe_snapshots(db)
         if not self.settings.use_mock_data:
             return latest_snapshots
 
-        raw_snapshots = self.mock_client.get_semiconductor_snapshots()
+        raw_snapshots = self.mock_client.get_demo_snapshots(
+            symbols=self.settings.active_universe,
+            sector=self.settings.allowed_sector,
+        )
         allowed_symbols = set(self.settings.active_universe)
         snapshots: list[MarketSnapshot] = []
 
@@ -46,9 +49,9 @@ class MarketService:
 
         return snapshots
 
-    def refresh_top_universe_snapshot_result(self, db: Session) -> dict:
+    def refresh_active_universe_snapshot_result(self, db: Session) -> dict:
         if not self.settings.use_mock_data:
-            result = self.market_data_client.get_semiconductor_snapshots(self.settings.active_universe)
+            result = self.market_data_client.get_market_snapshots(self.settings.active_universe)
             return {
                 "created_count": 0,
                 "skipped_count": 0,
@@ -57,7 +60,7 @@ class MarketService:
                 "snapshots": self.get_latest_universe_snapshots(db),
             }
 
-        snapshots = self.refresh_top_universe_snapshots(db)
+        snapshots = self.refresh_active_universe_snapshots(db)
         return {
             "created_count": len(snapshots),
             "skipped_count": 0,

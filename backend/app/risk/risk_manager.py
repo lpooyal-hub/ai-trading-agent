@@ -31,7 +31,7 @@ class RiskManager:
             return self._reject("Live trading is disabled while DRY_RUN is false.")
 
         if symbol not in self.settings.allowed_symbols:
-            return self._reject(f"Symbol {symbol} is outside the active Top 10 universe.")
+            return self._reject(f"Symbol {symbol} is outside the active universe.")
 
         if symbol in self.settings.protected_symbols:
             return self._reject(f"Symbol {symbol} is protected and cannot be traded.")

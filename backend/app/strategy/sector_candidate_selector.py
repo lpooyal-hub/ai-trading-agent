@@ -10,8 +10,8 @@ class CandidateSignal:
     volume: float
 
 
-class SemiconductorAgent:
-    """Rule-based semiconductor candidate selector before LLM review."""
+class SectorCandidateSelector:
+    """Rule-based sector candidate selector before LLM review."""
 
     def __init__(self, active_universe: list[str], allowed_sector: str, max_candidates: int = 3):
         self.active_universe = {symbol.upper() for symbol in active_universe}

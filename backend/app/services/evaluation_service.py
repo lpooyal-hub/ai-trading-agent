@@ -171,7 +171,7 @@ class EvaluationService:
         if latest_snapshot:
             return latest_snapshot.price
 
-        snapshots = self.market_service.refresh_top_universe_snapshots(db)
+        snapshots = self.market_service.refresh_active_universe_snapshots(db)
         for snapshot in snapshots:
             if snapshot.symbol == decision.symbol:
                 return snapshot.price

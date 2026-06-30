@@ -14,7 +14,7 @@ class MarketDataClient:
 
     provider_name = "external_market_data"
 
-    def get_semiconductor_snapshots(self, symbols: list[str]) -> MarketDataResult:
+    def get_market_snapshots(self, symbols: list[str]) -> MarketDataResult:
         return MarketDataResult(
             success=False,
             status="NOT_CONFIGURED",

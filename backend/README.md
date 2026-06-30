@@ -102,14 +102,14 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
 - 실주문 API 호출은 기본 설정에서 비활성화되어 있습니다.
 - 기존 보유 주식은 legacy position으로 보호해야 합니다.
-- 봇은 반도체 Top 10 Universe 허용 종목만 다룰 수 있어야 합니다.
+- 봇은 `.env`의 `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 예시는 반도체 Top 10입니다.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - `USE_MOCK_DATA=true`에서는 mock market data와 mock LLM 응답을 사용합니다.
 - `USE_MOCK_DATA=false`에서는 저장된 최신 market snapshot만 사용하며, `/market/snapshots`로 수동/외부 가격 데이터를 입력할 수 있습니다.
 - `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 - `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
-- LLM 입력 비용을 줄이기 위해 Top 10 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
-- 후보 선택 규칙은 `SemiconductorAgent` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다.
+- LLM 입력 비용을 줄이기 위해 active universe 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
+- 후보 선택 규칙은 `SectorCandidateSelector` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다. 기본 universe는 반도체 Top 10이지만, `ALLOWED_SECTOR`와 `ALLOWED_SYMBOLS`를 바꾸면 다른 섹터에도 같은 후보 선택 구조를 적용할 수 있습니다.
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` 조합에서도 live order adapter가 아직 연결되지 않아 실제 주문은 전송되지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단됩니다.
@@ -143,7 +143,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 
 현재 `/agent/run-once`는 아래 순서로 동작합니다.
 
-1. `USE_MOCK_DATA=false`이면 저장된 최신 market snapshot만 사용하고, mock mode이면 Top 10 Universe의 mock snapshot을 저장합니다.
+1. `USE_MOCK_DATA=false`이면 저장된 최신 market snapshot만 사용하고, mock mode이면 active universe의 mock snapshot을 저장합니다.
 2. rule-based pre-filter로 1~3개 후보만 고릅니다. 후보는 change percent 절대값, volume, 상승/하락 압력 사유로 점수화됩니다.
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 LLM budget guard를 확인합니다.
@@ -180,7 +180,7 @@ Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision
 
 ## Market Snapshots
 
-실전 운용 전에는 `/market/snapshots`로 Top 10 universe 종목의 최신 가격, 등락률, 거래량을 저장할 수 있습니다.
+실전 운용 전에는 `/market/snapshots`로 active universe 종목의 최신 가격, 등락률, 거래량을 저장할 수 있습니다.
 
 ```bash
 curl http://localhost:8000/market/snapshots/status
@@ -196,7 +196,7 @@ curl -X POST http://localhost:8000/market/snapshots \
 `/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 
-허용 universe 밖의 심볼이나 semiconductor가 아닌 sector는 저장하지 않습니다.
+허용 universe 밖의 심볼이나 `ALLOWED_SECTOR`와 다른 sector는 저장하지 않습니다.
 
 LLM 예상 비용은 `LLM_INPUT_COST_PER_1M_TOKENS_USD`, `LLM_OUTPUT_COST_PER_1M_TOKENS_USD`를 기준으로 계산합니다. 기본값은 `0`이며, 모델 가격은 변동될 수 있으므로 사용자가 현재 단가를 `.env`에 직접 입력합니다.
 
