@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.agents.scheduler_agent import SchedulerAgent
 from app.database import get_db
 from app.schemas import (
     AgentAutomationPolicyRead,
@@ -12,7 +13,6 @@ from app.schemas import (
     AgentStatusRead,
 )
 from app.services.agent_operations_service import AgentOperationsService
-from app.services.agent_schedule_service import AgentScheduleService
 from app.services.agent_service import AgentService
 
 
@@ -27,21 +27,28 @@ def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
 
 @router.post("/run-scheduled", response_model=AgentScheduledRunRead)
 def run_scheduled_agent(db: Session = Depends(get_db)) -> AgentScheduledRunRead:
-    schedule_service = AgentScheduleService()
-    should_run, reason, schedule = schedule_service.should_run_now(db)
-    if not should_run:
+    result = SchedulerAgent().run_if_due(db)
+    if not result.triggered:
         return AgentScheduledRunRead(
             triggered=False,
-            reason=reason,
-            schedule=AgentScheduleRead(**schedule),
+            reason=result.reason,
+            schedule=AgentScheduleRead(**result.schedule),
             decision=None,
         )
 
-    decision = AgentService().run_once(db)
+    decision = result.decision
+    if decision is None:
+        return AgentScheduledRunRead(
+            triggered=False,
+            reason="Scheduler did not return a decision.",
+            schedule=AgentScheduleRead(**result.schedule),
+            decision=None,
+        )
+
     return AgentScheduledRunRead(
         triggered=True,
-        reason=reason,
-        schedule=AgentScheduleRead(**schedule_service.get_schedule(db)),
+        reason=result.reason,
+        schedule=AgentScheduleRead(**result.schedule),
         decision=AgentDecisionRead.model_validate(decision),
     )
 
@@ -60,8 +67,7 @@ def get_agent_automation_policy() -> AgentAutomationPolicyRead:
 
 @router.get("/schedule", response_model=AgentScheduleRead)
 def get_agent_schedule(db: Session = Depends(get_db)) -> AgentScheduleRead:
-    service = AgentScheduleService()
-    return AgentScheduleRead(**service.get_schedule(db))
+    return AgentScheduleRead(**SchedulerAgent().get_schedule(db))
 
 
 @router.get("/operations", response_model=AgentOperationsRead)
