@@ -111,6 +111,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - LLM 입력 비용을 줄이기 위해 active universe 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
 - 후보 선택 규칙은 `SectorCandidateSelector` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다. 기본 universe는 반도체 Top 10이지만, `ALLOWED_SECTOR`와 `ALLOWED_SYMBOLS`를 바꾸면 다른 섹터에도 같은 후보 선택 구조를 적용할 수 있습니다.
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
+- LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
 - `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` 조합에서도 live order adapter가 아직 연결되지 않아 실제 주문은 전송되지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단됩니다.
 - 차단된 live order에는 order intent와 idempotency key가 raw payload에 남으며, 이는 실제 주문 전송이 아니라 향후 broker adapter 구현 검토용입니다.
@@ -151,14 +152,15 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 6. budget이 남아 있고 `USE_MOCK_DATA=true`이면 공개 데모용 mock LLM 응답으로 `AgentDecision`을 저장합니다.
 7. `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 준비되면 real OpenAI LLM 응답으로 `AgentDecision`을 저장합니다.
 8. LLM client는 parsed response, raw response, usage, latency, success status를 반환합니다.
-9. LLM 사용량은 `LLMUsage`에 함께 기록합니다.
-10. 기본값에서는 사용자가 decision을 승인하면 RiskManager 검증 후 `PaperExecutionAdapter`가 `TradeOrder`를 `SIMULATED` 상태로 저장합니다. `paper_auto` 정책이 켜져 있고 confidence/order amount 기준을 통과하면 run-once 직후 paper order까지 자동 실행할 수 있습니다.
-11. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
-12. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
-13. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
-14. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
-15. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
-16. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
+9. LLM 응답은 저장 직전 guard를 통과하며, 안전하지 않은 JSON 값이 있으면 `HOLD`/`SKIPPED`로 정규화하고 guard warning을 decision raw payload에 남깁니다.
+10. LLM 사용량은 `LLMUsage`에 함께 기록합니다.
+11. 기본값에서는 사용자가 decision을 승인하면 RiskManager 검증 후 `PaperExecutionAdapter`가 `TradeOrder`를 `SIMULATED` 상태로 저장합니다. `paper_auto` 정책이 켜져 있고 confidence/order amount 기준을 통과하면 run-once 직후 paper order까지 자동 실행할 수 있습니다.
+12. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
+13. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
+14. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
+15. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
+16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
+17. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.

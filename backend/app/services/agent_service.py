@@ -9,6 +9,7 @@ from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 from app.services.market_service import MarketService
 from app.services.trading_service import TradingService
+from app.strategy.decision_response_guard import DecisionResponseGuard
 from app.strategy.sector_candidate_selector import SectorCandidateSelector
 
 
@@ -22,6 +23,9 @@ class AgentService:
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.llm_cost_service = LLMCostService(self.settings)
         self.llm_usage_service = LLMUsageService()
+        self.decision_response_guard = DecisionResponseGuard(
+            max_order_amount_usd=self.settings.max_order_amount_usd,
+        )
         self.strategy = SectorCandidateSelector(
             active_universe=self.settings.active_universe,
             allowed_sector=self.settings.allowed_sector,
@@ -47,8 +51,13 @@ class AgentService:
                 reason=f"LLM budget exceeded: {budget['reason']}",
             )
 
-        llm_result = self.llm_client.create_decision([self._snapshot_to_dict(item) for item in candidates])
-        response = llm_result.parsed_response
+        candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
+        llm_result = self.llm_client.create_decision(candidate_payload)
+        guarded_response = self.decision_response_guard.normalize(
+            llm_result.parsed_response,
+            candidate_payload,
+        )
+        response = guarded_response.response
         selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
         usage = llm_result.usage
         estimated_cost = self.llm_cost_service.estimate_cost_usd(
@@ -77,6 +86,7 @@ class AgentService:
                 **llm_result.raw_response,
                 "llm_mode": self.settings.llm_mode,
                 "real_llm_ready": self.settings.real_llm_enabled,
+                "response_guard_warnings": guarded_response.warnings,
                 "automation_policy": self._automation_policy_snapshot(),
             },
             llm_model=self.llm_client.model,
@@ -84,8 +94,8 @@ class AgentService:
             completion_tokens=usage["completion_tokens"],
             total_tokens=usage["total_tokens"],
             estimated_llm_cost_usd=estimated_cost,
-            status=self._status_for_response(response, llm_result.success),
-            rejection_reason=self._rejection_reason(response, llm_result),
+            status=self._status_for_response(response, llm_result.success, guarded_response.has_warnings),
+            rejection_reason=self._rejection_reason(response, llm_result, guarded_response.warnings),
             dry_run=True,
         )
         db.add(decision)
@@ -360,16 +370,22 @@ class AgentService:
         }
 
     @staticmethod
-    def _rejection_reason(response: dict, llm_result) -> str | None:
+    def _rejection_reason(response: dict, llm_result, guard_warnings: list[str]) -> str | None:
         if not llm_result.success:
             return f"LLM call failed: {llm_result.error_message}"
+        if guard_warnings:
+            return f"LLM response guard blocked execution: {'; '.join(guard_warnings)}"
         if not response.get("should_execute"):
             return "Agent did not request execution."
         return None
 
     @staticmethod
-    def _status_for_response(response: dict, llm_success: bool = True) -> DecisionStatus:
-        if not llm_success:
+    def _status_for_response(
+        response: dict,
+        llm_success: bool = True,
+        guard_blocked: bool = False,
+    ) -> DecisionStatus:
+        if not llm_success or guard_blocked:
             return DecisionStatus.SKIPPED
         if not response.get("should_execute"):
             return DecisionStatus.SKIPPED
