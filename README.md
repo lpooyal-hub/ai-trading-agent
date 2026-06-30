@@ -71,7 +71,7 @@ SchedulerAgent
 - `RuntimeLock`: Redis가 설정되어 있으면 `agent:run_once:lock`으로 중복 실행을 막습니다.
 - `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
 - `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
-- `RiskAgent`: 포지션, 예산, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
+- `RiskAgent`: 포지션, 예산, 종목별 최대 노출, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
 - `MemoryAgent`: 최근 저널/평가를 요약해 승률, 반복 실수, 모델/종목/프롬프트 개선 힌트를 `DecisionAgent` 입력에 포함합니다.
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
 - `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
@@ -149,6 +149,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `USE_MOCK_DATA=true`
 - `BROKER_PROVIDER=toss_securities`
 - `BOT_CAPITAL_LIMIT_USD=250`
+- `MAX_SYMBOL_EXPOSURE_PERCENT=40`
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
 - `REDIS_ENABLED=false`
 - `REDIS_URL=redis://host.docker.internal:6379/0`

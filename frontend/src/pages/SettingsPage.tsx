@@ -114,6 +114,7 @@ export function SettingsPage() {
         <div><dt>USE_MOCK_DATA</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
         <div><dt>BOT_CAPITAL_LIMIT_USD</dt><dd>${settings?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}</dd></div>
         <div><dt>MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.max_order_amount_usd.toFixed(2) ?? "100.00"}</dd></div>
+        <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent.toFixed(1) ?? "40.0"}%</dd></div>
         <div><dt>MAX_DAILY_TRADES</dt><dd>{settings?.max_daily_trades ?? 5}</dd></div>
         <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols.join(", ") ?? "-"}</dd></div>
         <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords.join(", ") ?? "-"}</dd></div>

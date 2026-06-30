@@ -567,6 +567,7 @@ export type SafetySettings = {
   max_order_amount_usd: number;
   max_positions: number;
   max_daily_trades: number;
+  max_symbol_exposure_percent: number;
   min_cash_reserve_usd: number;
   allowed_sector: string;
   allowed_symbols: string[];

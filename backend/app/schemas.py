@@ -694,6 +694,7 @@ class SafetySettingsRead(BaseModel):
     max_order_amount_usd: float
     max_positions: int
     max_daily_trades: int
+    max_symbol_exposure_percent: float
     min_cash_reserve_usd: float
     allowed_sector: str
     allowed_symbols: list[str]

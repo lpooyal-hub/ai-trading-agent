@@ -33,6 +33,7 @@ def get_safety_settings() -> SafetySettingsRead:
         max_order_amount_usd=settings.max_order_amount_usd,
         max_positions=settings.max_positions,
         max_daily_trades=settings.max_daily_trades,
+        max_symbol_exposure_percent=settings.max_symbol_exposure_percent,
         min_cash_reserve_usd=settings.min_cash_reserve_usd,
         allowed_sector=settings.allowed_sector,
         allowed_symbols=settings.allowed_symbols,

@@ -62,6 +62,10 @@ class RiskManager:
         if action == AgentAction.BUY and amount > budget:
             return self._reject("Available bot budget is insufficient.")
 
+        symbol_exposure_reason = self._symbol_exposure_guardrail_reason(bot_position, amount, action)
+        if symbol_exposure_reason:
+            return self._reject(symbol_exposure_reason)
+
         if action == AgentAction.BUY and not bot_position:
             open_positions = self.count_open_positions(db)
             if open_positions >= self.settings.max_positions:
@@ -151,6 +155,29 @@ class RiskManager:
         threshold = -abs(self.settings.hard_daily_loss_limit_percent)
         if daily_loss_percent <= threshold:
             return "Hard daily loss limit is reached."
+        return None
+
+    def _symbol_exposure_guardrail_reason(
+        self,
+        bot_position: BotPosition | None,
+        order_amount: float,
+        action: AgentAction,
+    ) -> str | None:
+        if action != AgentAction.BUY:
+            return None
+
+        max_percent = max(self.settings.max_symbol_exposure_percent, 0)
+        if max_percent <= 0:
+            return None
+
+        max_symbol_exposure = self.settings.bot_capital_limit_usd * (max_percent / 100)
+        current_symbol_exposure = bot_position.total_invested_amount if bot_position else 0
+        projected_symbol_exposure = current_symbol_exposure + order_amount
+        if projected_symbol_exposure > max_symbol_exposure:
+            return (
+                "Symbol exposure limit would be exceeded "
+                f"({projected_symbol_exposure:.2f} > {max_symbol_exposure:.2f})."
+            )
         return None
 
     @staticmethod

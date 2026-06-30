@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     max_order_amount_usd: float = 100
     max_positions: int = 3
     max_daily_trades: int = 5
+    max_symbol_exposure_percent: float = 40
     min_cash_reserve_usd: float = 25
     allowed_sector: str = "semiconductor"
     allowed_symbols_csv: str = Field(
