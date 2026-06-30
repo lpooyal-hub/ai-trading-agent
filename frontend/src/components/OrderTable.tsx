@@ -1,4 +1,5 @@
 import { TradeOrder } from "../api/client";
+import { actionLabel, statusLabel } from "../utils/labels";
 
 function fillSummary(order: TradeOrder) {
   if (order.raw_response_json.live_order_blocked) {
@@ -42,12 +43,12 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
             <tr key={order.id}>
               <td>{new Date(order.created_at).toLocaleString()}</td>
               <td>{order.symbol}</td>
-              <td>{order.side}</td>
+              <td>{actionLabel(order.side)}</td>
               <td>{order.quantity.toFixed(4)}</td>
               <td>${order.price.toFixed(2)}</td>
               <td>${order.order_amount.toFixed(2)}</td>
               <td>{fillSummary(order)}</td>
-              <td>{order.status}</td>
+              <td>{statusLabel(order.status)}</td>
               <td>{order.reason}</td>
             </tr>
           ))}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, LLMSmokeTest, SafetySettings, SecurityReadiness } from "../api/client";
+import { statusLabel } from "../utils/labels";
 
 function boolLabel(value: boolean | undefined, fallback = false) {
   return (value ?? fallback) ? "예" : "아니오";
@@ -144,7 +145,7 @@ export function SettingsPage() {
         <div><dt>MARKET_SNAPSHOT_MAX_AGE_MINUTES</dt><dd>{settings?.market_snapshot_max_age_minutes ?? 30}</dd></div>
         <div><dt>공개 데모 안전 상태</dt><dd>{boolLabel(security?.safe_for_public_demo)}</dd></div>
         <div><dt>실주문 준비</dt><dd>{boolLabel(liveReadiness?.live_order_ready)}</dd></div>
-        <div><dt>실주문 실행 모드</dt><dd>{liveReadiness?.execution_mode ?? "-"}</dd></div>
+        <div><dt>실주문 실행 모드</dt><dd>{statusLabel(liveReadiness?.execution_mode)}</dd></div>
         <div><dt>실주문 구현 상태</dt><dd>{liveReadiness?.live_order_implementation ?? "-"}</dd></div>
         <div><dt>실주문 차단 사유</dt><dd>{listOrNone(liveReadiness?.blockers)}</dd></div>
         <div><dt>실주문 어댑터 체크리스트</dt><dd>{listOrNone(liveReadiness?.adapter_checklist)}</dd></div>

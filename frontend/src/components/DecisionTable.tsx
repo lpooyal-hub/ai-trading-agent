@@ -1,5 +1,6 @@
 import { AgentDecision } from "../api/client";
 import { decisionBlockReason, decisionGuardWarnings } from "../utils/decisionSafety";
+import { actionLabel, statusLabel } from "../utils/labels";
 
 type DecisionTableProps = {
   decisions: AgentDecision[];
@@ -32,10 +33,10 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
               <tr key={decision.id}>
                 <td>{new Date(decision.created_at).toLocaleString()}</td>
                 <td>{decision.symbol}</td>
-                <td>{decision.action}</td>
+                <td>{actionLabel(decision.action)}</td>
                 <td>{Math.round(decision.confidence * 100)}%</td>
                 <td>${decision.recommended_order_amount.toFixed(2)}</td>
-                <td>{decision.status}</td>
+                <td>{statusLabel(decision.status)}</td>
                 <td>{guardWarnings.length ? `경고 ${guardWarnings.length}개` : "정상"}</td>
                 <td className="reason-cell">{blockReason || "-"}</td>
                 <td>{decision.dry_run ? "예" : "아니오"}</td>

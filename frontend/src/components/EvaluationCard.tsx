@@ -1,11 +1,12 @@
 import { DecisionEvaluation } from "../api/client";
+import { evaluationWindowLabel } from "../utils/labels";
 
 export function EvaluationCard({ evaluation }: { evaluation: DecisionEvaluation }) {
   return (
     <article className="evaluation-card">
       <div>
         <strong>판단 #{evaluation.decision_id}</strong>
-        <span>{evaluation.evaluation_window}</span>
+        <span>{evaluationWindowLabel(evaluation.evaluation_window)}</span>
       </div>
       <p>{evaluation.agent_self_review}</p>
       <dl>

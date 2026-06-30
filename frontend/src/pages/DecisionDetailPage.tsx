@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { api, AgentDecision, DecisionEvaluation, DecisionPreview, TradeJournalEntry, TradeOrder } from "../api/client";
 import { decisionGuardWarnings } from "../utils/decisionSafety";
+import { actionLabel, evaluationWindowLabel, outcomeLabel, statusLabel } from "../utils/labels";
 
 function orderFillSummary(order: TradeOrder) {
   const intent = order.raw_response_json.order_intent;
   if (intent && typeof intent === "object") {
     const payload = intent as Record<string, unknown>;
-    const side = typeof payload.side === "string" ? payload.side : "실주문";
+    const side = typeof payload.side === "string" ? actionLabel(payload.side) : "실주문";
     const quantity = typeof payload.quantity === "number" ? payload.quantity.toFixed(6) : "-";
     const idempotencyKey = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "no-key";
     return `${side} ${quantity} · ${idempotencyKey}`;
@@ -77,7 +78,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
     api.approveDecision(decision.id)
       .then((result) => {
         setOrder(result);
-        setMessage(`판단이 ${result.status} 상태로 승인되었습니다.`);
+        setMessage(`판단이 ${statusLabel(result.status)} 상태로 승인되었습니다.`);
       })
       .catch(() => setMessage("판단 승인에 실패했습니다."))
       .finally(() => setIsApproving(false));
@@ -118,18 +119,18 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
       <header className="page-header">
         <div>
           <p className="eyebrow">판단 #{decision.id}</p>
-          <h2>{decision.symbol} {decision.action}</h2>
+          <h2>{decision.symbol} {actionLabel(decision.action)}</h2>
         </div>
         <button className="primary-button" disabled={isApproving || (preview ? !preview.approved : false)} onClick={approve} type="button">
-          {isApproving ? "승인 중..." : `${preview?.execution_mode ?? "판단"} 승인`}
+          {isApproving ? "승인 중..." : `${statusLabel(preview?.execution_mode ?? "판단")} 승인`}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="detail-grid">
         <section>
           <h3>주문 미리보기</h3>
-          <p>{preview ? `${preview.side ?? "없음"} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} · $${preview.estimated_price.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
-          <p>{preview ? `$${preview.estimated_order_amount.toFixed(2)} · ${preview.execution_mode}` : null}</p>
+          <p>{preview ? `${actionLabel(preview.side)} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} · $${preview.estimated_price.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
+          <p>{preview ? `$${preview.estimated_order_amount.toFixed(2)} · ${statusLabel(preview.execution_mode)}` : null}</p>
         </section>
         <section>
           <h3>리스크 검증</h3>
@@ -153,17 +154,17 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
         </section>
         <section>
           <h3>LLM 사용량</h3>
-          <p>{decision.llm_model ?? "mock"} · {decision.total_tokens} tokens · ${decision.estimated_llm_cost_usd.toFixed(4)}</p>
+          <p>{decision.llm_model ?? "mock"} · {decision.total_tokens} 토큰 · ${decision.estimated_llm_cost_usd.toFixed(4)}</p>
         </section>
         <section>
           <h3>연결 주문</h3>
-          <p>{order ? `주문 #${order.id} ${order.status}` : decision.executed_order_id ?? "없음"}</p>
+          <p>{order ? `주문 #${order.id} ${statusLabel(order.status)}` : decision.executed_order_id ?? "없음"}</p>
           <p>{order ? orderFillSummary(order) : null}</p>
         </section>
         <section>
           <h3>저널</h3>
-          <p>{latestJournal ? `최근 #${latestJournal.id} · ${latestJournal.outcome_label} · 보상 ${latestJournal.reward_score.toFixed(4)}` : "아직 저널이 없습니다."}</p>
-          <p>{latestEvaluation ? `평가 #${latestEvaluation.id} · ${latestEvaluation.evaluation_window} · ${latestEvaluation.return_percent.toFixed(2)}%` : "연결된 평가가 없습니다."}</p>
+          <p>{latestJournal ? `최근 #${latestJournal.id} · ${outcomeLabel(latestJournal.outcome_label)} · 보상 ${latestJournal.reward_score.toFixed(4)}` : "아직 저널이 없습니다."}</p>
+          <p>{latestEvaluation ? `평가 #${latestEvaluation.id} · ${evaluationWindowLabel(latestEvaluation.evaluation_window)} · ${latestEvaluation.return_percent.toFixed(2)}%` : "연결된 평가가 없습니다."}</p>
           <button className="secondary-button" disabled={isCreatingJournal} onClick={createJournalEntry} type="button">
             {isCreatingJournal ? "생성 중..." : "저널 생성"}
           </button>

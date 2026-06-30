@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { api, MemoryGroupStat, MemorySummary } from "../api/client";
 import { StatCard } from "../components/StatCard";
+import { actionLabel } from "../utils/labels";
 
 function formatReward(value: number) {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(4)}`;
 }
 
-function MemoryStatsTable({ title, rows }: { title: string; rows: MemoryGroupStat[] }) {
+function MemoryStatsTable({ title, rows, formatKey = (value: string) => value }: { title: string; rows: MemoryGroupStat[]; formatKey?: (value: string) => string }) {
   return (
     <div className="memory-table-block">
       <h3>{title}</h3>
@@ -24,7 +25,7 @@ function MemoryStatsTable({ title, rows }: { title: string; rows: MemoryGroupSta
           <tbody>
             {rows.map((row) => (
               <tr key={`${title}-${row.key}`}>
-                <td>{row.key}</td>
+                <td>{formatKey(row.key)}</td>
                 <td>{row.count}</td>
                 <td>{row.win_rate_percent.toFixed(2)}%</td>
                 <td>{formatReward(row.average_reward_score)}</td>
@@ -83,7 +84,7 @@ export function MemoryPage() {
         <StatCard label="평균 보상" value={formatReward(summary?.average_reward_score ?? 0)} />
       </div>
       <div className="detail-grid">
-        <MemoryStatsTable title="판단별 메모리" rows={summary?.action_stats ?? []} />
+        <MemoryStatsTable title="판단별 메모리" rows={summary?.action_stats ?? []} formatKey={actionLabel} />
         <MemoryStatsTable title="모델별 메모리" rows={summary?.model_stats ?? []} />
       </div>
       <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} />
@@ -110,7 +111,7 @@ export function MemoryPage() {
           {(summary?.recent_lessons ?? []).map((lesson) => (
             <article className="journal-card" key={lesson.journal_id}>
               <p className="eyebrow">저널 #{lesson.journal_id}</p>
-              <h3>{lesson.symbol} {lesson.action}</h3>
+              <h3>{lesson.symbol} {actionLabel(lesson.action)}</h3>
               <p className="helper-text">보상 {formatReward(lesson.reward_score)}</p>
               <p>{lesson.lesson}</p>
             </article>

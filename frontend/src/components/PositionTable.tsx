@@ -1,4 +1,5 @@
 import { BotPosition, LegacyPosition } from "../api/client";
+import { statusLabel } from "../utils/labels";
 
 type PositionTableProps = {
   botPositions?: BotPosition[];
@@ -62,7 +63,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
               <td>${position.total_invested_amount.toFixed(2)}</td>
               <td>${position.current_price.toFixed(2)}</td>
               <td>{position.unrealized_pnl_percent.toFixed(2)}%</td>
-              <td>{position.status}</td>
+              <td>{statusLabel(position.status)}</td>
             </tr>
           ))}
           {!botPositions.length ? (

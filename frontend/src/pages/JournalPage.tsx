@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, TradeJournalEntry } from "../api/client";
 import { StatCard } from "../components/StatCard";
+import { actionLabel, outcomeLabel } from "../utils/labels";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString();
@@ -68,9 +69,9 @@ export function JournalPage() {
             <div className="journal-card-header">
               <div>
                 <p className="eyebrow">저널 #{entry.id}</p>
-                <h3>{entry.symbol} {entry.action}</h3>
+                <h3>{entry.symbol} {actionLabel(entry.action)}</h3>
               </div>
-              <span className={`status-pill ${outcomeTone(entry.outcome_label)}`}>{entry.outcome_label}</span>
+              <span className={`status-pill ${outcomeTone(entry.outcome_label)}`}>{outcomeLabel(entry.outcome_label)}</span>
             </div>
             <dl className="journal-meta">
               <div>
