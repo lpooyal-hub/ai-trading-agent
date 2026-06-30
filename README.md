@@ -37,6 +37,36 @@
 - decision 사후 평가와 회고 기록
 - React dashboard 구조
 
+## 멀티에이전트 구조
+
+이 프로젝트의 핵심 실행 흐름은 하나의 거대한 agent가 아니라, 역할별 agent가 순서대로 데이터를 넘기는 구조입니다. LLM이 꼭 필요한 판단/요약 역할과 Python으로 충분한 계산/검증 역할을 분리해 비용과 리스크를 줄입니다.
+
+```text
+SchedulerAgent
+  -> NewsAgent
+  -> MarketAgent
+  -> DecisionAgent
+  -> RiskAgent
+  -> OrderAgent
+  -> LoggerAgent
+  -> JournalAgent
+  -> EvaluationAgent
+  -> MemoryAgent
+```
+
+- `SchedulerAgent`: `/agent/run-scheduled` 호출 시 실행 가능 시간, 장중 여부, 실행 간격을 확인합니다.
+- `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
+- `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
+- `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
+- `RiskAgent`: 포지션, 예산, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
+- `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 실주문은 아직 차단되어 있습니다.
+- `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
+- `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다.
+- `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
+- `MemoryAgent`: 최근 저널/평가를 요약해 승률, 반복 실수, 모델/종목/프롬프트 개선 힌트를 제공합니다.
+
+현재 `NewsAgent`는 “실제 뉴스 수집기”가 아니라 `DecisionAgent` 입력 계약을 먼저 만든 버전입니다. 실제 뉴스 API를 붙이면 `NewsAgent` 내부 수집 로직만 교체하고 downstream agent 흐름은 유지할 수 있습니다.
+
 ## 보안 원칙
 
 - `.env`는 절대 커밋하지 않습니다.
