@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.agents.evaluation_agent import EvaluationAgent
 from app.database import get_db
 from app.models import DecisionEvaluation, EvaluationWindow
 from app.schemas import (
@@ -9,7 +10,6 @@ from app.schemas import (
     EvaluationRunRequest,
     EvaluationRunResponse,
 )
-from app.services.evaluation_service import EvaluationService
 
 
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
@@ -20,19 +20,18 @@ def run_due_evaluations(
     payload: EvaluationRunRequest | None = None,
     db: Session = Depends(get_db),
 ) -> EvaluationRunResponse:
-    service = EvaluationService()
+    agent = EvaluationAgent()
     window = payload.window if payload else EvaluationWindow.ONE_DAY
-    evaluations = service.evaluate_all_due_decisions(db, window)
+    result = agent.run_due_evaluations(db, window)
     return EvaluationRunResponse(
-        created_count=len(evaluations),
-        evaluations=evaluations,
+        created_count=result.created_count,
+        evaluations=result.evaluations,
     )
 
 
 @router.get("/status", response_model=EvaluationStatusRead)
 def get_evaluation_status(db: Session = Depends(get_db)) -> EvaluationStatusRead:
-    service = EvaluationService()
-    return EvaluationStatusRead(**service.get_status(db))
+    return EvaluationStatusRead(**EvaluationAgent().get_status(db))
 
 
 @router.post("/{decision_id}", response_model=DecisionEvaluationRead)
@@ -41,10 +40,10 @@ def evaluate_decision(
     payload: EvaluationRunRequest | None = None,
     db: Session = Depends(get_db),
 ) -> DecisionEvaluationRead:
-    service = EvaluationService()
+    agent = EvaluationAgent()
     window = payload.window if payload else EvaluationWindow.ONE_DAY
     try:
-        return service.evaluate_decision(db, decision_id, window)
+        return agent.evaluate_decision(db, decision_id, window)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
