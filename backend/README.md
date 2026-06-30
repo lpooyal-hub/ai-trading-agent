@@ -93,7 +93,7 @@ uvicorn app.main:app --reload
 외부 서버에서 frontend를 열어 backend를 호출하려면 `backend/.env`의 `CORS_ALLOWED_ORIGINS`에 브라우저에서 접속하는 frontend 주소를 함께 넣습니다.
 
 ```bash
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_IP>:3000
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-trading-domain.example
 ```
 
 ## 안전 원칙

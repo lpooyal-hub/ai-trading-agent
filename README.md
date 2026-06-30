@@ -125,6 +125,7 @@ docker compose ps
 
 - Frontend: `http://localhost:3000`
 - Backend health: `http://localhost:81/health`
+- Production domain example: `https://your-trading-domain.example`
 
 서버에서 실행 중이면 브라우저에서는 frontend만 열면 됩니다.
 
@@ -134,6 +135,8 @@ http://<SERVER_IP>:3000
 
 Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy가 backend container로 넘깁니다. 그래서 일반 실행에서는 browser가 backend `81` 포트를 직접 호출할 필요가 없습니다.
 각 Docker build context는 `.dockerignore`로 `.env`, DB 파일, cache, `node_modules` 같은 로컬 파일을 제외합니다.
+
+운영 도메인에서는 Nginx가 HTTPS 요청을 frontend `127.0.0.1:3000`으로, `/api/*` 요청을 backend `127.0.0.1:81`로 reverse proxy합니다.
 
 ## 기본 설정
 
@@ -193,6 +196,46 @@ docker compose up --build -d --force-recreate
 서버에서 frontend와 backend를 같은 Docker Compose로 띄우는 경우 `VITE_API_BASE_URL`을 외부 IP의 `:81`로 지정하지 않는 것을 권장합니다. Frontend는 기본 `/api` proxy를 통해 backend container로 접근하므로, browser가 backend public port를 직접 열 필요가 없습니다.
 
 브라우저에서 `Ctrl+Shift+R`로 강력 새로고침합니다.
+
+### 운영 도메인 + SSL
+
+DNS A 레코드가 서버 IP를 바라보고 있으면, 기존 Nginx reverse proxy에 이 앱용 `server_name` 블록을 추가합니다. 현재 서버처럼 `42222.cloud` 루트 도메인을 다른 프로젝트가 이미 사용 중이라면, 루트 설정을 덮어쓰지 말고 같은 Nginx 설정 파일에 `trade.42222.cloud`용 server block만 추가합니다.
+
+이 저장소에는 기존 VaccineDailyReport Nginx 구성에 붙일 수 있는 참고 snippet을 `deploy/nginx/trade.42222.cloud.vaccine-nginx.snippet.conf`로 둡니다. 공개 기본값인 `.env.example`에는 개인 운영 도메인을 넣지 않습니다.
+
+1. `backend/.env`에 운영 도메인 CORS를 포함합니다.
+
+```bash
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://trade.42222.cloud
+```
+
+2. 기존 `42222.cloud` Nginx 설정에 trade server block을 추가합니다.
+
+```bash
+cd /home/ubuntu/VaccineDailyReport
+# frontend/42222-default.conf에 trade.42222.cloud server block 추가
+```
+
+3. 인증서가 `trade.42222.cloud`를 포함하는지 확인합니다. 기존 `42222.cloud` 인증서가 wildcard 또는 SAN으로 서브도메인을 포함한다면 그대로 사용할 수 있습니다. 포함하지 않는다면 인증서를 확장 발급해야 합니다.
+
+```bash
+sudo certbot certificates
+```
+
+4. Nginx 설정을 검증하고 백신일보 frontend Nginx를 재반영합니다.
+
+```bash
+cd /home/ubuntu/VaccineDailyReport
+docker compose restart frontend
+```
+
+5. 인증서 자동 갱신을 확인합니다.
+
+```bash
+sudo certbot renew --dry-run
+```
+
+최종 접속 주소는 운영 도메인입니다. Backend public port `81`을 브라우저에 직접 노출하지 않고, 외부 요청은 Nginx의 `/api` reverse proxy를 통해 backend로 전달하는 구성을 권장합니다.
 
 ## API 참고
 
@@ -357,7 +400,7 @@ npm run dev
 Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용합니다. 값이 없으면 기본값 `/api`를 사용하고, Vite dev server가 backend로 프록시합니다.
 
 - `http://localhost:5173`에서 열면 local backend `http://localhost:8000`
-- Docker Compose에서 `http://localhost:3000` 또는 `http://<SERVER_IP>:3000`으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
+- Docker Compose에서 `http://localhost:3000` 또는 운영 도메인으로 열면 `/api` 프록시를 통해 backend container `http://backend:8000`
 
 Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다.
 
