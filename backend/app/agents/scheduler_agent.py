@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.models import AgentDecision
 from app.services.agent_schedule_service import AgentScheduleService
-from app.services.agent_service import AgentRunLockedError, AgentService
+from app.services.agent_service import AgentRunLockedError
+from app.services.workflow_execution_service import WorkflowExecutionService
 
 
 @dataclass
@@ -37,7 +38,7 @@ class SchedulerAgent:
             )
 
         try:
-            decision = AgentService(self.settings).run_once(db, trigger_source="scheduler")
+            run = WorkflowExecutionService(self.settings).run_once(db, trigger_source="scheduler")
         except AgentRunLockedError as exc:
             return SchedulerAgentResult(
                 triggered=False,
@@ -45,6 +46,7 @@ class SchedulerAgent:
                 schedule=self.schedule_service.get_schedule(db),
                 decision=None,
             )
+        decision = db.get(AgentDecision, run.decision_id) if run and run.decision_id else None
         return SchedulerAgentResult(
             triggered=True,
             reason=reason,

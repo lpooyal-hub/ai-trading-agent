@@ -114,7 +114,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         }
         return loadDashboardData();
       })
-      .catch(() => setError("에이전트 실행에 실패했습니다."))
+      .catch(() => setError("워크플로 실행에 실패했습니다."))
       .finally(() => setIsRunningAgent(false));
   };
 
@@ -131,7 +131,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         }
         return loadDashboardData();
       })
-      .catch(() => setError("예약 에이전트 실행에 실패했습니다."))
+      .catch(() => setError("예약 워크플로 실행에 실패했습니다."))
       .finally(() => setIsRunningScheduledAgent(false));
   };
 

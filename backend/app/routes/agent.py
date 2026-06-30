@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.agents.scheduler_agent import SchedulerAgent
 from app.database import get_db
+from app.models import AgentDecision
 from app.schemas import (
     AgentAutomationPolicyRead,
     AgentDecisionRead,
@@ -14,6 +15,7 @@ from app.schemas import (
 )
 from app.services.agent_operations_service import AgentOperationsService
 from app.services.agent_service import AgentRunLockedError, AgentService
+from app.services.workflow_execution_service import WorkflowExecutionService
 
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -21,11 +23,16 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 
 @router.post("/run-once", response_model=AgentDecisionRead)
 def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
-    service = AgentService()
     try:
-        return service.run_once(db)
+        run = WorkflowExecutionService().run_once(db, trigger_source="agent_legacy")
     except AgentRunLockedError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if run is None or run.decision_id is None:
+        raise HTTPException(status_code=500, detail="Workflow run did not produce a decision.")
+    decision = db.get(AgentDecision, run.decision_id)
+    if decision is None:
+        raise HTTPException(status_code=500, detail="Workflow decision was not found.")
+    return decision
 
 
 @router.post("/run-scheduled", response_model=AgentScheduledRunRead)

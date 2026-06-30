@@ -83,13 +83,13 @@ SchedulerAgent
 
 ### Workflow audit layer
 
-현재 구현은 Airflow/LangGraph 같은 범용 workflow engine이 아니라, agent 실행 결과를 추적하는 얇은 audit layer입니다. `/agent/run-once` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
+현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
 
-이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조입니다. 이후 필요하면 retry, branching, schedule orchestration, frontend timeline view로 확장할 수 있습니다.
+이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 workflow recording 경로를 통과합니다.
 
 ### Redis runtime guard
 
-Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 사용합니다. `REDIS_ENABLED=true`와 `REDIS_URL`이 설정되어 있으면 `/agent/run-once` 실행 시 `agent:run_once:lock` lock을 잡아 중복 실행을 막습니다.
+Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 사용합니다. `REDIS_ENABLED=true`와 `REDIS_URL`이 설정되어 있으면 `/workflows/run` 실행 시 `agent:run_once:lock` lock을 잡아 중복 실행을 막습니다.
 
 - Redis 사용 가능: 같은 순간 두 번째 agent 실행은 `409 Conflict` 또는 scheduled run skip으로 처리됩니다.
 - Redis 미설정/미가용: 기존 DB 기반 실행 흐름을 유지하고, workflow에는 runtime lock 단계가 skipped로 남습니다.
@@ -162,13 +162,14 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 1. `Dashboard`: demo 상태, market readiness, agent readiness, candidate queue 확인
 2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장. Active universe 전체가 fresh일 때 agent ready로 표시됩니다.
-3. `Decisions`: `Run Agent Once`로 paper decision 생성
-4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
-5. `Orders`: simulated fill과 bot position 수량 변화를 확인
-6. `Portfolio`: bot-only position, protected legacy position, PnL 확인
-7. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
-8. `Evaluations`: window별 evaluation coverage, pending, not-due decision 수 확인
-9. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적하고 UI에서 확인
+3. `Workflows`: `워크플로 실행`으로 agentic workflow run 생성
+4. `Decisions`: workflow에서 생성된 paper decision 확인
+5. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
+6. `Orders`: simulated fill과 bot position 수량 변화를 확인
+7. `Portfolio`: bot-only position, protected legacy position, PnL 확인
+8. `Broker`: Toss read-only 계좌/잔고 연결 상태 확인
+9. `Evaluations`: window별 evaluation coverage, pending, not-due decision 수 확인
+10. `Journal`: decision/order/evaluation을 묶어 self feedback과 reward 입력을 누적하고 UI에서 확인
 
 ## Execution 구조
 
@@ -285,7 +286,7 @@ Toss read-only 조회를 사용하려면 `backend/.env`에 아래 값을 설정�
 `/settings/llm-readiness`와 Dashboard의 `AI Automation` 카드는 mock 응답, real OpenAI LLM, unavailable 상태를 분리해서 보여줍니다.
 `USE_MOCK_DATA=true`에서 실행되는 agent는 공개 데모용 mock decision이며, 실제 AI 판단 기반 자동매매로 취급하지 않습니다.
 
-Paper 자동 실행은 기본적으로 꺼져 있습니다. 아래 값을 모두 의도적으로 설정해야 `/agent/run-once`가 승인 대기 decision을 paper order까지 자동 실행할 수 있습니다.
+Paper 자동 실행은 기본적으로 꺼져 있습니다. 아래 값을 모두 의도적으로 설정해야 `/workflows/run`이 승인 대기 decision을 paper order까지 자동 실행할 수 있습니다.
 
 ```bash
 AGENT_AUTOMATION_ENABLED=true

@@ -82,6 +82,19 @@ export function WorkflowsPage() {
 
   const latestRun = runs[0] ?? null;
   const visibleRun = selectedRun ?? latestRun;
+  const expectedStepCount = definition?.nodes.length ?? 0;
+  const visibleRunProgress = useMemo(() => {
+    const expectedStepIds = new Set((definition?.nodes ?? []).map((node) => node.id));
+    const recordedExpectedStepIds = new Set(
+      (visibleRun?.steps ?? [])
+        .map((step) => step.step_name)
+        .filter((stepName) => expectedStepIds.has(stepName)),
+    );
+    return {
+      recordedCount: recordedExpectedStepIds.size,
+      missingCount: Math.max(expectedStepIds.size - recordedExpectedStepIds.size, 0),
+    };
+  }, [definition, visibleRun]);
 
   const stats = useMemo(() => {
     const succeeded = runs.filter((run) => run.status === "SUCCEEDED").length;
@@ -132,6 +145,7 @@ export function WorkflowsPage() {
       .then((run) => {
         setSelectedRunId(run.id);
         setSelectedRun(run);
+        setMessage(`Run #${run.id} 워크플로 실행이 기록됐습니다.`);
         return api.getWorkflowRuns();
       })
       .then(setRuns)
@@ -165,6 +179,8 @@ export function WorkflowsPage() {
         <StatCard label="성공" value={`${stats.succeeded}`} />
         <StatCard label="스킵" value={`${stats.skipped}`} />
         <StatCard label="실패" value={`${stats.failed}`} detail={`${stats.running}개 진행 중`} />
+        <StatCard label="단계 기록" value={`${visibleRunProgress.recordedCount}/${expectedStepCount}`} detail={visibleRun ? `Run #${visibleRun.id}` : "선택된 Run 없음"} />
+        <StatCard label="미기록 단계" value={`${visibleRunProgress.missingCount}`} detail="정의된 Agent Graph 기준" />
       </div>
       <section className="workflow-definition">
         <div className="workflow-detail-header">
