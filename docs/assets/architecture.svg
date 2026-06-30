@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780" role="img" aria-labelledby="title desc">
+  <title id="title">AI Trading Agent Architecture</title>
+  <desc id="desc">Architecture diagram showing the agentic workflow, runtime guard, storage, dashboard, broker adapter, and memory loop.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1b64da"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #dce6f5; stroke-width: 2; filter: url(#shadow); }
+      .node { fill: #ffffff; stroke: #9fc8ff; stroke-width: 2; }
+      .guard { fill: #e8f3ff; stroke: #4e8fff; stroke-width: 2; }
+      .llm { fill: #eef6ff; stroke: #1b64da; stroke-width: 2; }
+      .storage { fill: #f8fbff; stroke: #7aa7ef; stroke-width: 2; }
+      .muted { fill: #6b7684; font-size: 22px; font-family: Inter, Arial, sans-serif; }
+      .small { fill: #4e5968; font-size: 18px; font-family: Inter, Arial, sans-serif; }
+      .label { fill: #191f28; font-weight: 800; font-size: 24px; font-family: Inter, Arial, sans-serif; }
+      .title { fill: #0b3a75; font-weight: 900; font-size: 42px; font-family: Inter, Arial, sans-serif; }
+      .section { fill: #0b3a75; font-weight: 900; font-size: 26px; font-family: Inter, Arial, sans-serif; }
+      .arrow { stroke: #1b64da; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .loop { stroke: #7aa7ef; stroke-width: 3; stroke-dasharray: 9 8; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1400" height="780" rx="0"/>
+  <text class="title" x="70" y="72">AI Trading Agent Research Platform</text>
+  <text class="muted" x="72" y="108">Agentic workflow for safe paper-trading experiments with audit trail, Redis guard, LLM budget, and memory feedback.</text>
+
+  <rect class="panel" x="60" y="145" width="1280" height="410" rx="24"/>
+  <text class="section" x="92" y="190">Agentic Workflow</text>
+
+  <rect class="guard" x="92" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="116" y="265">Scheduler</text>
+  <text class="small" x="116" y="294">manual / due</text>
+
+  <rect class="guard" x="280" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="309" y="265">Redis</text>
+  <text class="small" x="307" y="294">runtime lock</text>
+
+  <rect class="node" x="468" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="498" y="265">Market</text>
+  <text class="small" x="496" y="294">snapshots</text>
+
+  <rect class="node" x="656" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="697" y="265">News</text>
+  <text class="small" x="690" y="294">context</text>
+
+  <rect class="node" x="844" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="884" y="265">Risk</text>
+  <text class="small" x="874" y="294">guards</text>
+
+  <rect class="node" x="1032" y="225" width="145" height="95" rx="18"/>
+  <text class="label" x="1060" y="265">Memory</text>
+  <text class="small" x="1058" y="294">lessons</text>
+
+  <rect class="llm" x="112" y="385" width="170" height="100" rx="18"/>
+  <text class="label" x="152" y="425">Decision</text>
+  <text class="small" x="148" y="455">LLM / mock</text>
+
+  <rect class="node" x="352" y="385" width="170" height="100" rx="18"/>
+  <text class="label" x="394" y="425">Logger</text>
+  <text class="small" x="383" y="455">audit rows</text>
+
+  <rect class="node" x="592" y="385" width="170" height="100" rx="18"/>
+  <text class="label" x="637" y="425">Order</text>
+  <text class="small" x="619" y="455">paper only</text>
+
+  <rect class="storage" x="832" y="385" width="180" height="100" rx="18"/>
+  <text class="label" x="884" y="425">Journal</text>
+  <text class="small" x="874" y="455">feedback</text>
+
+  <rect class="storage" x="1082" y="385" width="180" height="100" rx="18"/>
+  <text class="label" x="1124" y="425">Evaluate</text>
+  <text class="small" x="1120" y="455">outcomes</text>
+
+  <path class="arrow" d="M237 272 H280"/>
+  <path class="arrow" d="M425 272 H468"/>
+  <path class="arrow" d="M613 272 H656"/>
+  <path class="arrow" d="M801 272 H844"/>
+  <path class="arrow" d="M989 272 H1032"/>
+  <path class="arrow" d="M1105 320 C1105 355 197 345 197 385"/>
+  <path class="arrow" d="M282 435 H352"/>
+  <path class="arrow" d="M522 435 H592"/>
+  <path class="arrow" d="M762 435 H832"/>
+  <path class="arrow" d="M1012 435 H1082"/>
+  <path class="loop" d="M1172 385 C1218 342 1215 325 1178 300"/>
+
+  <rect class="panel" x="60" y="590" width="390" height="120" rx="22"/>
+  <text class="section" x="92" y="634">React Dashboard</text>
+  <text class="small" x="92" y="666">Dashboard, Decisions, Orders,</text>
+  <text class="small" x="92" y="694">Workflow Timeline, Memory</text>
+
+  <rect class="panel" x="505" y="590" width="390" height="120" rx="22"/>
+  <text class="section" x="537" y="634">FastAPI Backend</text>
+  <text class="small" x="537" y="666">Agent services, risk rules,</text>
+  <text class="small" x="537" y="694">workflow APIs, broker adapter</text>
+
+  <rect class="panel" x="950" y="590" width="390" height="120" rx="22"/>
+  <text class="section" x="982" y="634">Storage / External</text>
+  <text class="small" x="982" y="666">SQLite audit DB, Redis lock,</text>
+  <text class="small" x="982" y="694">OpenAI-ready, Toss read-only</text>
+
+  <path class="arrow" d="M450 650 H505"/>
+  <path class="arrow" d="M895 650 H950"/>
+</svg>

@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Redacted AI Trading Agent Dashboard Screenshot</title>
+  <desc id="desc">A redacted app-only dashboard screenshot without browser address bar, tabs, taskbar, IP address, or personal desktop information.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .app-bg { fill: #f7f9fc; }
+      .sidebar { fill: #0b3a75; }
+      .nav-active { fill: #1b64da; }
+      .banner { fill: #e8f3ff; stroke: #9fc8ff; stroke-width: 1.5; }
+      .card { fill: #ffffff; stroke: #dce6f5; stroke-width: 1.5; filter: url(#shadow); }
+      .card-lite { fill: #ffffff; stroke: #dce6f5; stroke-width: 1.5; }
+      .table-head { fill: #f2f6fb; }
+      .blue { fill: #1b64da; }
+      .blue2 { fill: #4f6f9f; }
+      .muted { fill: #6b7684; font-size: 17px; font-family: Inter, Arial, sans-serif; }
+      .small { fill: #4e5968; font-size: 15px; font-family: Inter, Arial, sans-serif; }
+      .text { fill: #191f28; font-size: 19px; font-family: Inter, Arial, sans-serif; }
+      .strong { fill: #111827; font-weight: 900; font-size: 34px; font-family: Inter, Arial, sans-serif; }
+      .title { fill: #111827; font-weight: 900; font-size: 38px; font-family: Inter, Arial, sans-serif; }
+      .nav { fill: #f7fbff; font-size: 19px; font-family: Inter, Arial, sans-serif; }
+      .nav-small { fill: #d8e8ff; font-size: 15px; font-weight: 700; font-family: Inter, Arial, sans-serif; }
+      .side-title { fill: #ffffff; font-size: 28px; font-weight: 900; font-family: Inter, Arial, sans-serif; }
+      .button-text { fill: #ffffff; font-size: 17px; font-weight: 800; font-family: Inter, Arial, sans-serif; }
+      .line { stroke: #edf2f7; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect class="app-bg" width="1440" height="900"/>
+  <rect class="sidebar" x="0" y="0" width="260" height="900"/>
+  <text class="nav-small" x="24" y="42">TOSS SECURITIES OPEN API</text>
+  <text class="side-title" x="24" y="82">AI Trading Agent</text>
+
+  <rect class="nav-active" x="18" y="120" width="224" height="44" rx="7"/>
+  <text class="nav" x="36" y="149">Dashboard</text>
+  <text class="nav" x="36" y="203">Decisions</text>
+  <text class="nav" x="36" y="253">Decision Detail</text>
+  <text class="nav" x="36" y="303">Orders</text>
+  <text class="nav" x="36" y="353">Broker</text>
+  <text class="nav" x="36" y="403">Portfolio</text>
+  <text class="nav" x="36" y="453">Market Data</text>
+  <text class="nav" x="36" y="503">Evaluations</text>
+  <text class="nav" x="36" y="553">Journal</text>
+  <text class="nav" x="36" y="603">Memory</text>
+  <text class="nav" x="36" y="653">Workflow</text>
+  <text class="nav" x="36" y="703">LLM Usage</text>
+  <text class="nav" x="36" y="753">Settings</text>
+
+  <rect class="banner" x="290" y="32" width="1118" height="54" rx="6"/>
+  <text class="text" x="314" y="66" fill="#0b3a75" font-weight="800">Demo / DRY_RUN mode: all trades are simulated and no real orders are sent.</text>
+
+  <text class="muted" x="290" y="130" fill="#1b64da">Research Dashboard</text>
+  <text class="title" x="290" y="170">AI Decision Review</text>
+
+  <rect class="blue2" x="980" y="122" width="102" height="52" rx="7"/>
+  <text class="button-text" x="1007" y="154">Refresh</text>
+  <rect class="blue" x="1095" y="122" width="124" height="52" rx="7"/>
+  <text class="button-text" x="1125" y="154">Run Agent</text>
+  <rect class="blue2" x="1232" y="122" width="150" height="52" rx="7"/>
+  <text class="button-text" x="1259" y="154">Scheduled Run</text>
+
+  <g transform="translate(290 205)">
+    <rect class="card" x="0" y="0" width="260" height="100" rx="8"/>
+    <text class="muted" x="18" y="30">Bot capital limit</text>
+    <text class="strong" x="18" y="70">$250.00</text>
+
+    <rect class="card" x="280" y="0" width="260" height="100" rx="8"/>
+    <text class="muted" x="298" y="30">Available budget</text>
+    <text class="strong" x="298" y="70">$225.00</text>
+
+    <rect class="card" x="560" y="0" width="260" height="100" rx="8"/>
+    <text class="muted" x="578" y="30">Invested amount</text>
+    <text class="strong" x="578" y="70">$0.00</text>
+
+    <rect class="card" x="840" y="0" width="278" height="100" rx="8"/>
+    <text class="muted" x="858" y="30">Total PnL</text>
+    <text class="strong" x="858" y="70">$0.00</text>
+    <text class="small" x="858" y="92">0.00%</text>
+
+    <rect class="card" x="0" y="120" width="260" height="100" rx="8"/>
+    <text class="muted" x="18" y="150">Win rate</text>
+    <text class="strong" x="18" y="190">0.00%</text>
+    <text class="small" x="18" y="212">0 wins / 0 losses</text>
+
+    <rect class="card" x="280" y="120" width="260" height="100" rx="8"/>
+    <text class="muted" x="298" y="150">Today LLM calls</text>
+    <text class="strong" x="298" y="190">2</text>
+
+    <rect class="card" x="560" y="120" width="260" height="100" rx="8"/>
+    <text class="muted" x="578" y="150">Today tokens</text>
+    <text class="strong" x="578" y="190">606</text>
+
+    <rect class="card" x="840" y="120" width="278" height="100" rx="8"/>
+    <text class="muted" x="858" y="150">Market readiness</text>
+    <text class="strong" x="858" y="190">Needs data</text>
+    <text class="small" x="858" y="212">No fresh market snapshots.</text>
+
+    <rect class="card" x="0" y="240" width="260" height="100" rx="8"/>
+    <text class="muted" x="18" y="270">Fresh symbols</text>
+    <text class="strong" x="18" y="310">0</text>
+    <text class="small" x="18" y="332">10 missing</text>
+
+    <rect class="card" x="280" y="240" width="260" height="100" rx="8"/>
+    <text class="muted" x="298" y="270">Agent readiness</text>
+    <text class="strong" x="298" y="310">Check</text>
+    <text class="small" x="298" y="332">No candidate passed pre-filter.</text>
+
+    <rect class="card" x="560" y="240" width="260" height="100" rx="8"/>
+    <text class="muted" x="578" y="270">Latest decision</text>
+    <text class="strong" x="578" y="310">NONE</text>
+    <text class="small" x="578" y="332">SKIPPED</text>
+
+    <rect class="card" x="840" y="240" width="278" height="100" rx="8"/>
+    <text class="muted" x="858" y="270">Pending decisions</text>
+    <text class="strong" x="858" y="310">0</text>
+    <text class="small" x="858" y="332">0 executable</text>
+
+    <rect class="card-lite" x="0" y="374" width="542" height="180" rx="8"/>
+    <text class="text" x="18" y="412" font-weight="900">Candidate Queue</text>
+    <rect class="table-head" x="18" y="438" width="506" height="36" rx="6"/>
+    <text class="small" x="34" y="462">Symbol</text>
+    <text class="small" x="150" y="462">Score</text>
+    <text class="small" x="250" y="462">Reason</text>
+    <line class="line" x1="18" y1="490" x2="524" y2="490"/>
+    <text class="muted" x="34" y="525">No candidate passed the rule-based pre-filter.</text>
+
+    <rect class="card-lite" x="576" y="374" width="542" height="180" rx="8"/>
+    <text class="text" x="594" y="412" font-weight="900">Recent Decisions</text>
+    <rect class="table-head" x="594" y="438" width="506" height="36" rx="6"/>
+    <text class="small" x="610" y="462">Time</text>
+    <text class="small" x="760" y="462">Symbol</text>
+    <text class="small" x="880" y="462">Status</text>
+    <line class="line" x1="594" y1="490" x2="1100" y2="490"/>
+    <text class="muted" x="610" y="525">Redacted demo data for public portfolio.</text>
+  </g>
+
+  <rect x="290" y="800" width="1118" height="52" rx="10" fill="#e8f3ff" stroke="#9fc8ff"/>
+  <text class="small" x="314" y="832">Redacted screenshot: browser tabs, URL, IP address, desktop taskbar, and personal bookmarks are intentionally removed.</text>
+</svg>

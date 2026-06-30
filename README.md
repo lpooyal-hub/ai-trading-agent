@@ -2,6 +2,16 @@
 
 이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단을 기록하고, 리스크 관문을 통과시키고, LLM 사용량과 의사결정 품질을 평가하는 것입니다.
 
+## Preview
+
+브라우저 주소, 서버 IP, 북마크, 작업표시줄 같은 개인 정보가 보이지 않도록 앱 화면만 재구성한 포트폴리오용 redacted preview입니다.
+
+![Redacted dashboard screenshot](docs/assets/dashboard-redacted.svg)
+
+## Architecture
+
+![AI Trading Agent architecture diagram](docs/assets/architecture.svg)
+
 ## 프로젝트 목표
 
 - AI 에이전트의 매매 판단을 기록하고 사후 평가할 수 있는 연구 환경을 만듭니다.
