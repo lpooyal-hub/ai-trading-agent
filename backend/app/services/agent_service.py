@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.agents.decision_agent import DecisionAgent
 from app.agents.logger_agent import LoggerAgent
 from app.agents.market_agent import MarketAgent
+from app.agents.news_agent import NewsAgent
 from app.agents.order_agent import OrderAgent
 from app.config import Settings, get_settings
 from app.models import AgentAction, AgentDecision, DecisionStatus, MarketSnapshot
@@ -15,6 +16,7 @@ class AgentService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.market_agent = MarketAgent(self.settings)
+        self.news_agent = NewsAgent(self.settings)
         self.decision_agent = DecisionAgent(self.settings)
         self.logger_agent = LoggerAgent(self.decision_agent)
         self.order_agent = OrderAgent(self.settings)
@@ -24,11 +26,14 @@ class AgentService:
         market_result = self.market_agent.run(db)
         snapshots = market_result.snapshots
         candidates = market_result.candidates
+        news_result = self.news_agent.run(snapshots)
+        news_context = self._news_context_snapshot(news_result)
 
         if not candidates:
             return self._save_skipped_decision(
                 db,
                 snapshots=snapshots,
+                news_context=news_context,
                 reason=self.no_candidate_reason,
             )
 
@@ -37,11 +42,12 @@ class AgentService:
             return self._save_skipped_decision(
                 db,
                 snapshots=snapshots,
+                news_context=news_context,
                 reason=f"LLM budget exceeded: {budget['reason']}",
             )
 
         candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
-        decision_result = self.decision_agent.run(candidate_payload)
+        decision_result = self.decision_agent.run(candidate_payload, news_context=news_context)
         response = decision_result.response
         selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
         usage = decision_result.usage
@@ -75,6 +81,7 @@ class AgentService:
             market_source=market_result.market_source,
             candidates=candidates,
             candidate_details=market_result.candidate_details,
+            news_context=news_context,
             active_universe=self.settings.active_universe,
             llm_mode=self.settings.llm_mode,
             max_candidates_per_run=self.settings.llm_max_candidates_per_run_safe,
@@ -203,6 +210,7 @@ class AgentService:
         self,
         db: Session,
         snapshots: list[MarketSnapshot],
+        news_context: dict,
         reason: str,
     ) -> AgentDecision:
         decision = AgentDecision(
@@ -217,6 +225,7 @@ class AgentService:
             input_snapshot_json={
                 "snapshot_symbols": [item.symbol for item in snapshots],
                 "snapshot_count": len(snapshots),
+                "news_context": news_context,
                 "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
                 "llm_mode": self.settings.llm_mode,
@@ -243,6 +252,14 @@ class AgentService:
             "change_percent": snapshot.change_percent,
             "volume": snapshot.volume,
             "sector": snapshot.sector,
+        }
+
+    @staticmethod
+    def _news_context_snapshot(news_result) -> dict:
+        return {
+            "summary": news_result.summary,
+            "items": news_result.items,
+            "source": news_result.source,
         }
 
     def _skipped_risk_notes(self, reason: str) -> str:

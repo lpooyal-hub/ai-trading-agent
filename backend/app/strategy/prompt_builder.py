@@ -6,6 +6,7 @@ class PromptBuilder:
         self,
         *,
         candidates: list[dict],
+        news_context: dict | None = None,
         settings_snapshot: dict,
     ) -> list[dict]:
         return [
@@ -33,6 +34,10 @@ class PromptBuilder:
                             {
                                 "settings": settings_snapshot,
                                 "candidates": candidates,
+                                "news_context": news_context or {
+                                    "summary": "No news context provided.",
+                                    "items": [],
+                                },
                                 "required_json_shape": {
                                     "symbol": "NVDA",
                                     "action": "BUY|SELL|HOLD",
