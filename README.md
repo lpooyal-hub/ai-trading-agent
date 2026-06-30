@@ -72,13 +72,13 @@ SchedulerAgent
 - `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
 - `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 공개 빌드의 live order는 `BlockedLiveExecutionAdapter`에서 차단됩니다.
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
-- `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다.
+- `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다. 후보 없음, 예산 초과처럼 guard에서 멈춘 실행도 별도 저널로 남겨 Memory Agent가 반복 패턴을 볼 수 있게 합니다.
 
 현재 `NewsAgent`는 “실제 뉴스 수집기”가 아니라 `DecisionAgent` 입력 계약을 먼저 만든 버전입니다. 실제 뉴스 API를 붙이면 `NewsAgent` 내부 수집 로직만 교체하고 downstream agent 흐름은 유지할 수 있습니다.
 
 ### Workflow audit layer
 
-현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
+현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다. 실행 전 guard에서 멈춘 경우에도 스킵 사유와 저널 ID가 함께 남습니다.
 
 이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 workflow recording 경로를 통과합니다.
 
@@ -195,28 +195,34 @@ docker compose up --build -d --force-recreate
 
 서버에서 frontend와 backend를 같은 Docker Compose로 띄우는 경우 `VITE_API_BASE_URL`을 외부 IP의 `:81`로 지정하지 않는 것을 권장합니다. Frontend는 기본 `/api` proxy를 통해 backend container로 접근하므로, browser가 backend public port를 직접 열 필요가 없습니다.
 
+운영 도메인 뒤에서 Vite dev server를 그대로 사용할 경우, frontend container 환경변수에 허용 host를 추가합니다. 이 값은 공개 `.env.example`이 아니라 실제 서버 환경에서만 설정합니다.
+
+```bash
+VITE_ALLOWED_HOSTS=your-trading-domain.example
+```
+
 브라우저에서 `Ctrl+Shift+R`로 강력 새로고침합니다.
 
 ### 운영 도메인 + SSL
 
-DNS A 레코드가 서버 IP를 바라보고 있으면, 기존 Nginx reverse proxy에 이 앱용 `server_name` 블록을 추가합니다. 현재 서버처럼 `42222.cloud` 루트 도메인을 다른 프로젝트가 이미 사용 중이라면, 루트 설정을 덮어쓰지 말고 같은 Nginx 설정 파일에 `trade.42222.cloud`용 server block만 추가합니다.
+DNS A 레코드가 서버 IP를 바라보고 있으면, 기존 Nginx reverse proxy에 이 앱용 `server_name` 블록을 추가합니다. 루트 도메인을 다른 프로젝트가 이미 사용 중이라면, 루트 설정을 덮어쓰지 말고 같은 Nginx 설정 파일에 별도 서브도메인용 server block만 추가합니다.
 
-이 저장소에는 기존 VaccineDailyReport Nginx 구성에 붙일 수 있는 참고 snippet을 `deploy/nginx/trade.42222.cloud.vaccine-nginx.snippet.conf`로 둡니다. 공개 기본값인 `.env.example`에는 개인 운영 도메인을 넣지 않습니다.
+공개 기본값인 `.env.example`에는 개인 운영 도메인을 넣지 않습니다. 운영 도메인은 실제 서버의 `.env`와 Nginx 설정에서만 관리합니다.
 
 1. `backend/.env`에 운영 도메인 CORS를 포함합니다.
 
 ```bash
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://trade.42222.cloud
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-trading-domain.example
+VITE_ALLOWED_HOSTS=your-trading-domain.example
 ```
 
-2. 기존 `42222.cloud` Nginx 설정에 trade server block을 추가합니다.
+2. 기존 Nginx 설정에 앱용 server block을 추가합니다.
 
 ```bash
-cd /home/ubuntu/VaccineDailyReport
-# frontend/42222-default.conf에 trade.42222.cloud server block 추가
+# 예: 기존 reverse proxy 프로젝트의 Nginx conf에 your-trading-domain.example server block 추가
 ```
 
-3. 인증서가 `trade.42222.cloud`를 포함하는지 확인합니다. 기존 `42222.cloud` 인증서가 wildcard 또는 SAN으로 서브도메인을 포함한다면 그대로 사용할 수 있습니다. 포함하지 않는다면 인증서를 확장 발급해야 합니다.
+3. 인증서가 운영 도메인을 포함하는지 확인합니다. 기존 인증서가 wildcard 또는 SAN으로 서브도메인을 포함한다면 그대로 사용할 수 있습니다. 포함하지 않는다면 인증서를 확장 발급해야 합니다.
 
 ```bash
 sudo certbot certificates

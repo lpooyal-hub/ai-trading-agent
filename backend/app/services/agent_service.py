@@ -527,6 +527,7 @@ class AgentService:
         decision: AgentDecision,
         reason: str,
     ) -> None:
+        journal_entry = self._create_skipped_journal_entry(db, workflow, decision, reason)
         self.workflow_service.record_step(
             db,
             workflow,
@@ -538,12 +539,67 @@ class AgentService:
                 "reason": reason,
             },
         )
+        self.workflow_service.record_step(
+            db,
+            workflow,
+            step_name="logger_agent",
+            status=WorkflowStepStatus.SUCCEEDED,
+            output_json={
+                "decision_id": decision.id,
+                "decision_status": decision.status.value,
+                "reason": "Skipped decision was persisted for audit.",
+            },
+        )
+        self.workflow_service.record_step(
+            db,
+            workflow,
+            step_name="journal_agent",
+            status=WorkflowStepStatus.SUCCEEDED if journal_entry else WorkflowStepStatus.FAILED,
+            input_json={"decision_id": decision.id},
+            output_json={
+                "journal_id": journal_entry.id if journal_entry else None,
+                "decision_id": decision.id,
+                "outcome_label": journal_entry.outcome_label if journal_entry else None,
+                "reason": reason,
+            },
+            error_message=None if journal_entry else "Skipped decision journal entry was not created.",
+        )
         self.workflow_service.finish_run(
             db,
             workflow,
             status=WorkflowRunStatus.SKIPPED,
             decision_id=decision.id,
-            output_json=self._workflow_skipped_output(decision, reason),
+            output_json=self._workflow_skipped_output(decision, reason, journal_entry),
+        )
+
+    def _create_skipped_journal_entry(
+        self,
+        db: Session,
+        workflow,
+        decision: AgentDecision,
+        reason: str,
+    ):
+        return self.journal_agent.create_entry(
+            db,
+            TradeJournalEntryCreate(
+                decision_id=decision.id,
+                outcome_label="SKIPPED_GUARD",
+                agent_self_feedback=(
+                    "Workflow stopped before execution. The skipped decision is journaled so MemoryAgent can track guard patterns."
+                ),
+                lesson="Review market readiness, LLM budget, and pre-filter thresholds before the next run.",
+                strategy_tags=[
+                    "agent_run",
+                    "skipped",
+                    decision.agent_response_json.get("skip_reason_category", "AGENT_GUARD"),
+                ],
+                journal_json={
+                    "workflow_run_id": workflow.id,
+                    "skip_reason": reason,
+                    "skip_reason_category": decision.agent_response_json.get("skip_reason_category"),
+                    "memory_signal": "guard_pattern",
+                },
+            ),
         )
 
     @staticmethod
@@ -613,7 +669,8 @@ class AgentService:
         }
 
     @staticmethod
-    def _workflow_skipped_output(decision: AgentDecision, reason: str) -> dict:
+    def _workflow_skipped_output(decision: AgentDecision, reason: str, journal_entry) -> dict:
+        journal_id = journal_entry.id if journal_entry else None
         return {
             "summary_label": "Agentic workflow stopped before an executable decision.",
             "agentic_path": [
@@ -621,6 +678,8 @@ class AgentService:
                 "market_agent",
                 "news_agent",
                 "decision_agent",
+                "logger_agent",
+                "journal_agent",
             ],
             "decision_id": decision.id,
             "decision_status": decision.status.value,
@@ -647,10 +706,11 @@ class AgentService:
                 "evaluation_ids": [],
             },
             "journal": {
-                "journal_id": None,
-                "outcome_label": None,
+                "journal_id": journal_id,
+                "outcome_label": journal_entry.outcome_label if journal_entry else None,
             },
-            "memory_feedback_loop": "Skipped decisions are persisted so later runs can show data gaps in MemoryAgent context.",
+            "memory_feedback_loop": "Skipped decisions are journaled so later runs can surface repeated guard patterns in MemoryAgent context.",
+            "journal_id": journal_id,
         }
 
     @staticmethod

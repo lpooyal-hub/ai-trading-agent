@@ -161,7 +161,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-tr
 13. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
 14. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
 15. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
-16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
+16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. guard로 스킵된 run도 `SKIPPED_GUARD` 저널로 남겨 반복적인 데이터/예산/후보 부족 패턴을 추적할 수 있습니다.
 17. `/memory/summary`는 최근 journal 100건 기준 action/symbol/model별 win rate, reward, 반복 mistake, lesson, data gap을 요약합니다.
 18. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
 

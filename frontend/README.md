@@ -53,3 +53,9 @@ VITE_API_BASE_URL=http://localhost:81
 ```bash
 VITE_API_BASE_URL=http://<SERVER_IP>:81
 ```
+
+운영 도메인 뒤에서 Vite dev server를 그대로 노출하는 경우에는 host allowlist도 실제 서버 환경에 설정합니다.
+
+```bash
+VITE_ALLOWED_HOSTS=your-trading-domain.example
+```

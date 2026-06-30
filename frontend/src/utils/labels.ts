@@ -37,6 +37,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   PROFITABLE: "수익",
   UNPROFITABLE: "손실",
   PENDING_REVIEW: "리뷰 대기",
+  SKIPPED_GUARD: "가드로 스킵",
   EVALUATED: "평가 완료",
 };
 
