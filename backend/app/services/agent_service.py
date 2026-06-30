@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.agents.market_agent import MarketAgent
 from app.clients.llm_client import LLMClient
 from app.clients.mock_llm_client import MockLLMClient
 from app.config import Settings, get_settings
@@ -7,10 +8,8 @@ from app.models import AgentAction, AgentDecision, DecisionStatus, LLMPurpose, M
 from app.risk.llm_budget_manager import LLMBudgetManager
 from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
-from app.services.market_service import MarketService
 from app.services.trading_service import TradingService
 from app.strategy.decision_response_guard import DecisionResponseGuard
-from app.strategy.sector_candidate_selector import SectorCandidateSelector
 
 
 class AgentService:
@@ -18,7 +17,7 @@ class AgentService:
 
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
-        self.market_service = MarketService(self.settings)
+        self.market_agent = MarketAgent(self.settings)
         self.llm_client = MockLLMClient() if self.settings.use_mock_data else LLMClient(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.llm_cost_service = LLMCostService(self.settings)
@@ -26,15 +25,11 @@ class AgentService:
         self.decision_response_guard = DecisionResponseGuard(
             max_order_amount_usd=self.settings.max_order_amount_usd,
         )
-        self.strategy = SectorCandidateSelector(
-            active_universe=self.settings.active_universe,
-            allowed_sector=self.settings.allowed_sector,
-            max_candidates=self.settings.llm_max_candidates_per_run_safe,
-        )
 
     def run_once(self, db: Session) -> AgentDecision:
-        snapshots = self.market_service.refresh_active_universe_snapshots(db)
-        candidates = self._select_candidates(snapshots)
+        market_result = self.market_agent.run(db)
+        snapshots = market_result.snapshots
+        candidates = market_result.candidates
 
         if not candidates:
             return self._save_skipped_decision(
@@ -75,11 +70,11 @@ class AgentService:
             risk_notes=response["risk_notes"],
             input_snapshot_json={
                 "candidate_symbols": [item.symbol for item in candidates],
-                "candidate_details": self._candidate_details(snapshots),
+                "candidate_details": market_result.candidate_details,
                 "candidate_count": len(candidates),
                 "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
-                "market_source": "mock_market_data" if self.settings.use_mock_data else "stored_market_snapshots",
+                "market_source": market_result.market_source,
                 "llm_mode": self.settings.llm_mode,
             },
             agent_response_json={
@@ -159,9 +154,9 @@ class AgentService:
         }
 
     def get_readiness(self, db: Session) -> dict:
-        market_status = self.market_service.get_snapshot_status(db)
-        snapshots = self._readiness_snapshots(db)
-        candidates = self._select_candidates(snapshots)
+        market_result = self.market_agent.preview(db)
+        market_status = market_result.snapshot_status or {}
+        candidates = market_result.candidates
         budget = self.llm_budget_manager.check_budget(db)
         budget_ready = bool(budget["approved"])
         market_ready = bool(candidates)
@@ -190,53 +185,12 @@ class AgentService:
             "market_ready": market_ready,
             "budget_ready": budget_ready,
             "candidate_symbols": [snapshot.symbol for snapshot in candidates],
-            "candidate_details": self._candidate_details(snapshots),
+            "candidate_details": market_result.candidate_details,
             "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
-            "fresh_symbol_count": market_status["fresh_symbol_count"],
-            "missing_symbols": market_status["missing_symbols"],
+            "fresh_symbol_count": market_status.get("fresh_symbol_count", 0),
+            "missing_symbols": market_status.get("missing_symbols", []),
             "llm_budget_reason": str(budget["reason"]),
         }
-
-    def _select_candidates(self, snapshots: list[MarketSnapshot]) -> list[MarketSnapshot]:
-        return self.strategy.select_candidates(snapshots)
-
-    def _candidate_details(self, snapshots: list[MarketSnapshot]) -> list[dict]:
-        return [
-            {
-                "symbol": signal.symbol,
-                "score": signal.score,
-                "reason": signal.reason,
-                "change_percent": signal.change_percent,
-                "volume": signal.volume,
-            }
-            for signal in self.strategy.selected_candidate_signals(snapshots)
-        ]
-
-    def _readiness_snapshots(self, db: Session) -> list[MarketSnapshot]:
-        snapshots = self.market_service.get_latest_universe_snapshots(db)
-        if snapshots or not self.settings.use_mock_data:
-            return snapshots
-
-        allowed_symbols = set(self.settings.active_universe)
-        preview_snapshots: list[MarketSnapshot] = []
-        for item in self.market_service.mock_client.get_demo_snapshots(
-            symbols=self.settings.active_universe,
-            sector=self.settings.allowed_sector,
-        ):
-            symbol = item["symbol"].upper()
-            if symbol not in allowed_symbols:
-                continue
-            preview_snapshots.append(
-                MarketSnapshot(
-                    symbol=symbol,
-                    price=item["price"],
-                    change_percent=item["change_percent"],
-                    volume=item["volume"],
-                    sector=item["sector"],
-                    extra_json=item.get("extra_json", {}),
-                )
-            )
-        return preview_snapshots
 
     @staticmethod
     def _readiness_reason(market_ready: bool, budget_ready: bool, budget: dict) -> str:

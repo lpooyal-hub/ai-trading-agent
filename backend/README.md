@@ -171,7 +171,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 
 1. Scheduler: 정해진 주기와 market-hours guard에 따라 agent run을 트리거합니다.
 2. News Agent: 뉴스 수집과 요약을 담당합니다. 아직 구현 전이며 LLM 사용 후보입니다.
-3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재는 market snapshot 저장/조회와 후보 pre-filter가 일부 역할을 맡고 있습니다.
+3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재 `MarketAgent`가 market snapshot refresh/readiness preview와 후보 pre-filter를 맡습니다.
 4. Decision Agent: LLM으로 매수/매도/HOLD 판단과 이유를 생성합니다.
 5. Risk Agent: 투자 비중, 손절/익절, protected legacy position, budget guard를 검증합니다.
 6. Order Agent: paper/live execution adapter를 통해 주문 intent, simulated fill, 향후 Toss 주문/체결 조회를 담당합니다.
@@ -179,7 +179,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
 9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
 
-현재 구현된 Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률과 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
+현재 구현된 역할 분리는 점진 적용 중입니다. `MarketAgent`는 코드 레벨로 분리되었고, Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률과 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
