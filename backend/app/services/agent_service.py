@@ -66,6 +66,7 @@ class AgentService:
             risk_notes=response["risk_notes"],
             input_snapshot_json={
                 "candidate_symbols": [item.symbol for item in candidates],
+                "candidate_details": self._candidate_details(snapshots),
                 "candidate_count": len(candidates),
                 "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
@@ -179,6 +180,7 @@ class AgentService:
             "market_ready": market_ready,
             "budget_ready": budget_ready,
             "candidate_symbols": [snapshot.symbol for snapshot in candidates],
+            "candidate_details": self._candidate_details(snapshots),
             "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
             "fresh_symbol_count": market_status["fresh_symbol_count"],
             "missing_symbols": market_status["missing_symbols"],
@@ -187,6 +189,18 @@ class AgentService:
 
     def _select_candidates(self, snapshots: list[MarketSnapshot]) -> list[MarketSnapshot]:
         return self.strategy.select_candidates(snapshots)
+
+    def _candidate_details(self, snapshots: list[MarketSnapshot]) -> list[dict]:
+        return [
+            {
+                "symbol": signal.symbol,
+                "score": signal.score,
+                "reason": signal.reason,
+                "change_percent": signal.change_percent,
+                "volume": signal.volume,
+            }
+            for signal in self.strategy.selected_candidate_signals(snapshots)
+        ]
 
     def _readiness_snapshots(self, db: Session) -> list[MarketSnapshot]:
         snapshots = self.market_service.get_latest_universe_snapshots(db)

@@ -122,10 +122,19 @@ export type AgentReadiness = {
   market_ready: boolean;
   budget_ready: boolean;
   candidate_symbols: string[];
+  candidate_details: AgentCandidate[];
   max_candidates_per_run: number;
   fresh_symbol_count: number;
   missing_symbols: string[];
   llm_budget_reason: string;
+};
+
+export type AgentCandidate = {
+  symbol: string;
+  score: number;
+  reason: string;
+  change_percent: number;
+  volume: number;
 };
 
 export type AgentAutomationPolicy = {

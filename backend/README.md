@@ -144,7 +144,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 현재 `/agent/run-once`는 아래 순서로 동작합니다.
 
 1. `USE_MOCK_DATA=false`이면 저장된 최신 market snapshot만 사용하고, mock mode이면 Top 10 Universe의 mock snapshot을 저장합니다.
-2. rule-based pre-filter로 1~3개 후보만 고릅니다.
+2. rule-based pre-filter로 1~3개 후보만 고릅니다. 후보는 change percent 절대값, volume, 상승/하락 압력 사유로 점수화됩니다.
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 LLM budget guard를 확인합니다.
 5. budget이 초과되면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
@@ -156,8 +156,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 11. BUY/SELL 시뮬레이션은 bot-only `BotPosition`만 갱신하고 legacy position은 건드리지 않습니다.
 12. simulated order raw payload에는 fill 요약과 bot position 수량 before/after가 남습니다.
 13. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
-14. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
-15. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
+14. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
+15. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
+16. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.

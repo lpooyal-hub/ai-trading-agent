@@ -345,6 +345,14 @@ class AgentOperationsRead(BaseModel):
     latest_activity_at: datetime | None
 
 
+class AgentCandidateRead(BaseModel):
+    symbol: str
+    score: float
+    reason: str
+    change_percent: float
+    volume: float
+
+
 class AgentReadinessRead(BaseModel):
     ready: bool
     reason: str
@@ -360,6 +368,7 @@ class AgentReadinessRead(BaseModel):
     market_ready: bool
     budget_ready: bool
     candidate_symbols: list[str]
+    candidate_details: list[AgentCandidateRead]
     max_candidates_per_run: int
     fresh_symbol_count: int
     missing_symbols: list[str]

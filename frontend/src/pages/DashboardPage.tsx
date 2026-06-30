@@ -199,6 +199,38 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         </div>
       </section>
       <section>
+        <h3>Candidate Queue</h3>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Score</th>
+                <th>Reason</th>
+                <th>Change</th>
+                <th>Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(agentReadiness?.candidate_details ?? []).map((candidate) => (
+                <tr key={candidate.symbol}>
+                  <td>{candidate.symbol}</td>
+                  <td>{candidate.score.toFixed(2)}</td>
+                  <td>{candidate.reason}</td>
+                  <td>{candidate.change_percent.toFixed(2)}%</td>
+                  <td>{Math.round(candidate.volume).toLocaleString()}</td>
+                </tr>
+              ))}
+              {!(agentReadiness?.candidate_details ?? []).length ? (
+                <tr>
+                  <td colSpan={5}>No candidates passed the pre-filter.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
         <h3>Top Symbols</h3>
         <div className="table-wrap">
           <table>

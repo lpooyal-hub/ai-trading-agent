@@ -33,7 +33,7 @@
 - LLM 토큰/예상 비용 기록
 - LLM 사용량 요약과 예산 제한
 - LLM 응답, 사용량, 지연 시간, 성공 여부 기록
-- rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한
+- rule-based candidate pre-filter로 LLM 입력 후보를 1~3개로 제한하고 후보 점수/사유를 기록
 - decision 사후 평가와 회고 기록
 - React dashboard 구조
 
@@ -100,7 +100,7 @@ OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` �
 
 Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
-1. `Dashboard`: demo 상태, market readiness, agent readiness 확인
+1. `Dashboard`: demo 상태, market readiness, agent readiness, candidate queue 확인
 2. `Market`: `Refresh Source`로 demo market snapshot 생성 또는 수동 snapshot 저장. Active universe 전체가 fresh일 때 agent ready로 표시됩니다.
 3. `Decisions`: `Run Agent Once`로 paper decision 생성
 4. `Decision Detail`: preview 확인 후 approve하면 DRY_RUN simulated order 생성
