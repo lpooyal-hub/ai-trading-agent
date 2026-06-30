@@ -8,6 +8,6 @@ export function decisionGuardWarnings(decision: AgentDecision): string[] {
 
 export function decisionBlockReason(decision: AgentDecision): string {
   const guardWarnings = decisionGuardWarnings(decision);
-  if (guardWarnings.length) return `Guard blocked: ${guardWarnings[0]}`;
+  if (guardWarnings.length) return `응답 가드 차단: ${guardWarnings[0]}`;
   return decision.rejection_reason ?? "";
 }

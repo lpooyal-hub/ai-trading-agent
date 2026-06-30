@@ -41,19 +41,19 @@ export function MarketPage() {
     const parsedVolume = Number(volume);
 
     if (!normalizedSymbol) {
-      setMessage("Symbol is required.");
+      setMessage("종목을 입력해야 합니다.");
       return;
     }
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      setMessage("Price must be greater than zero.");
+      setMessage("가격은 0보다 커야 합니다.");
       return;
     }
     if (!Number.isFinite(parsedChangePercent)) {
-      setMessage("Change percent must be a valid number.");
+      setMessage("등락률은 숫자여야 합니다.");
       return;
     }
     if (!Number.isFinite(parsedVolume) || parsedVolume < 0) {
-      setMessage("Volume must be zero or greater.");
+      setMessage("거래량은 0 이상이어야 합니다.");
       return;
     }
 
@@ -69,7 +69,7 @@ export function MarketPage() {
       },
     ])
       .then((result) => {
-        setMessage(`${result.created_count} saved, ${result.skipped_count} skipped.`);
+        setMessage(`${result.created_count}개 저장, ${result.skipped_count}개 건너뜀.`);
         if (result.created_count > 0) {
           setPrice("0");
           setChangePercent("0");
@@ -81,7 +81,7 @@ export function MarketPage() {
         setSnapshots(snapshotRows);
         setStatus(snapshotStatus);
       })
-      .catch(() => setMessage("Market snapshot save failed."))
+      .catch(() => setMessage("시장 스냅샷 저장에 실패했습니다."))
       .finally(() => setIsSavingSnapshot(false));
   };
 
@@ -91,11 +91,11 @@ export function MarketPage() {
     api.refreshMarketSnapshots()
       .then((result) => {
         setSnapshots(result.snapshots);
-        setMessage(`${result.message} ${result.created_count} saved, ${result.skipped_count} skipped.`);
+        setMessage(`${result.message} ${result.created_count}개 저장, ${result.skipped_count}개 건너뜀.`);
         return api.getMarketSnapshotStatus();
       })
       .then(setStatus)
-      .catch(() => setMessage("Market snapshot refresh failed."))
+      .catch(() => setMessage("시장 스냅샷 새로고침에 실패했습니다."))
       .finally(() => setIsRefreshingSource(false));
   };
 
@@ -103,55 +103,55 @@ export function MarketPage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Market Inputs</p>
-          <h2>Manual Snapshots</h2>
+          <p className="eyebrow">시장 입력</p>
+          <h2>수동 스냅샷</h2>
         </div>
         <div className="button-row">
           <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
-            {isRefreshing ? "Refreshing..." : "Refresh"}
+            {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
           <button className="primary-button" disabled={isRefreshingSource} onClick={refreshFromSource} type="button">
-            {isRefreshingSource ? "Refreshing..." : "Refresh Source"}
+            {isRefreshingSource ? "갱신 중..." : "소스 갱신"}
           </button>
         </div>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Agent Ready" value={status?.ready_for_agent ? "Ready" : "Not Ready"} detail={status?.message} />
-        <StatCard label="Fresh Symbols" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}m freshness window`} />
-        <StatCard label="Missing Symbols" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.join(", ") || "None"} />
+        <StatCard label="에이전트 준비" value={status?.ready_for_agent ? "준비됨" : "미준비"} detail={status?.message} />
+        <StatCard label="신선한 종목" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}분 freshness window`} />
+        <StatCard label="누락 종목" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.join(", ") || "없음"} />
       </div>
       <div className="filter-row">
         <label>
-          Symbol
+          종목
           <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} />
         </label>
         <label>
-          Price
+          가격
           <input value={price} onChange={(event) => setPrice(event.target.value)} type="number" />
         </label>
         <label>
-          Change %
+          등락률 %
           <input value={changePercent} onChange={(event) => setChangePercent(event.target.value)} type="number" />
         </label>
         <label>
-          Volume
+          거래량
           <input value={volume} onChange={(event) => setVolume(event.target.value)} type="number" />
         </label>
         <button className="primary-button" disabled={isSavingSnapshot} onClick={saveSnapshot} type="button">
-          {isSavingSnapshot ? "Saving..." : "Save Snapshot"}
+          {isSavingSnapshot ? "저장 중..." : "스냅샷 저장"}
         </button>
       </div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Symbol</th>
-              <th>Price</th>
-              <th>Change</th>
-              <th>Volume</th>
-              <th>Source</th>
+              <th>시각</th>
+              <th>종목</th>
+              <th>가격</th>
+              <th>등락률</th>
+              <th>거래량</th>
+              <th>소스</th>
             </tr>
           </thead>
           <tbody>
@@ -167,7 +167,7 @@ export function MarketPage() {
             ))}
             {!snapshots.length ? (
               <tr>
-                <td colSpan={6}>No market snapshots yet.</td>
+                <td colSpan={6}>아직 시장 스냅샷이 없습니다.</td>
               </tr>
             ) : null}
           </tbody>

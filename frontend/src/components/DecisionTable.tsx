@@ -8,7 +8,7 @@ type DecisionTableProps = {
 
 export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap wide-table">
       <table>
         <thead>
           <tr>

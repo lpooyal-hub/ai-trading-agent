@@ -22,7 +22,7 @@ function fillSummary(order: TradeOrder) {
 
 export function OrderTable({ orders }: { orders: TradeOrder[] }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap wide-table">
       <table>
         <thead>
           <tr>

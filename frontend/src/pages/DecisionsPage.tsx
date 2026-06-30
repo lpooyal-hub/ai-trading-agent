@@ -22,7 +22,7 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
       .then(setDecisions)
       .catch(() => {
         setDecisions([]);
-        setMessage("Decision refresh failed.");
+        setMessage("판단 기록 새로고침에 실패했습니다.");
       })
       .finally(() => setIsRefreshing(false));
   };
@@ -50,34 +50,34 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Agent Decisions</p>
-          <h2>Decision Log</h2>
+          <p className="eyebrow">에이전트 판단</p>
+          <h2>판단 기록</h2>
         </div>
         <div className="button-row">
           <button className="secondary-button" disabled={isRefreshing} onClick={refreshDecisions} type="button">
-            {isRefreshing ? "Refreshing..." : "Refresh"}
+            {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
-            {isRunningAgent ? "Running..." : "Run Agent Once"}
+            {isRunningAgent ? "실행 중..." : "에이전트 실행"}
           </button>
         </div>
       </header>
       <div className="button-row">
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <option value="">All statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="EXECUTED">Executed</option>
-          <option value="SKIPPED">Skipped</option>
+          <option value="">전체 상태</option>
+          <option value="PENDING">대기</option>
+          <option value="APPROVED">승인</option>
+          <option value="REJECTED">거절</option>
+          <option value="EXECUTED">실행됨</option>
+          <option value="SKIPPED">건너뜀</option>
         </select>
         <input
           onChange={(event) => setSymbolFilter(event.target.value.toUpperCase())}
-          placeholder="Symbol"
+          placeholder="종목"
           value={symbolFilter}
         />
-        <button className="secondary-button" onClick={() => refreshDecisions()} type="button">Apply</button>
-        <button className="secondary-button" onClick={clearFilters} type="button">Clear</button>
+        <button className="secondary-button" onClick={() => refreshDecisions()} type="button">적용</button>
+        <button className="secondary-button" onClick={clearFilters} type="button">초기화</button>
       </div>
       {message ? <div className="notice">{message}</div> : null}
       <DecisionTable decisions={decisions} onSelect={onSelectDecision} />

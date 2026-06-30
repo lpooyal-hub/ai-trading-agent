@@ -6,7 +6,7 @@ function orderFillSummary(order: TradeOrder) {
   const intent = order.raw_response_json.order_intent;
   if (intent && typeof intent === "object") {
     const payload = intent as Record<string, unknown>;
-    const side = typeof payload.side === "string" ? payload.side : "LIVE";
+    const side = typeof payload.side === "string" ? payload.side : "실주문";
     const quantity = typeof payload.quantity === "number" ? payload.quantity.toFixed(6) : "-";
     const idempotencyKey = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "no-key";
     return `${side} ${quantity} · ${idempotencyKey}`;
@@ -19,7 +19,7 @@ function orderFillSummary(order: TradeOrder) {
   const before = typeof payload.position_quantity_before === "number" ? payload.position_quantity_before : null;
   const after = typeof payload.position_quantity_after === "number" ? payload.position_quantity_after : null;
   if (before === null || after === null) return null;
-  return `Position ${before.toFixed(4)} -> ${after.toFixed(4)}`;
+  return `포지션 ${before.toFixed(4)} -> ${after.toFixed(4)}`;
 }
 
 export function DecisionDetailPage({ decisionId }: { decisionId: number | null }) {
@@ -63,11 +63,11 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
   }, [decisionId]);
 
   if (!decisionId) {
-    return <div className="notice">Select a decision to review its details.</div>;
+    return <div className="notice">상세를 확인할 판단을 선택하세요.</div>;
   }
 
   if (!decision) {
-    return <div className="notice">Decision detail is not available.</div>;
+    return <div className="notice">판단 상세를 불러올 수 없습니다.</div>;
   }
 
   const approve = () => {
@@ -77,9 +77,9 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
     api.approveDecision(decision.id)
       .then((result) => {
         setOrder(result);
-        setMessage(`Decision approved as ${result.status}.`);
+        setMessage(`판단이 ${result.status} 상태로 승인되었습니다.`);
       })
-      .catch(() => setMessage("Decision approval failed."))
+      .catch(() => setMessage("판단 승인에 실패했습니다."))
       .finally(() => setIsApproving(false));
   };
 
@@ -101,10 +101,10 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
     })
       .then((entry) => {
         setJournalEntries((current) => [entry, ...current]);
-        setMessage(`Journal entry #${entry.id} created.`);
+        setMessage(`저널 #${entry.id}을 생성했습니다.`);
       })
       .catch((error) => {
-        setMessage(error instanceof Error ? error.message : "Journal entry creation failed.");
+        setMessage(error instanceof Error ? error.message : "저널 생성에 실패했습니다.");
       })
       .finally(() => setIsCreatingJournal(false));
   };
@@ -117,62 +117,62 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Decision #{decision.id}</p>
+          <p className="eyebrow">판단 #{decision.id}</p>
           <h2>{decision.symbol} {decision.action}</h2>
         </div>
         <button className="primary-button" disabled={isApproving || (preview ? !preview.approved : false)} onClick={approve} type="button">
-          {isApproving ? "Approving..." : `Approve ${preview?.execution_mode ?? "Decision"}`}
+          {isApproving ? "승인 중..." : `${preview?.execution_mode ?? "판단"} 승인`}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="detail-grid">
         <section>
-          <h3>Order Preview</h3>
-          <p>{preview ? `${preview.side ?? "NONE"} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} at $${preview.estimated_price.toFixed(2)}` : "Preview unavailable"}</p>
+          <h3>주문 미리보기</h3>
+          <p>{preview ? `${preview.side ?? "없음"} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} · $${preview.estimated_price.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
           <p>{preview ? `$${preview.estimated_order_amount.toFixed(2)} · ${preview.execution_mode}` : null}</p>
         </section>
         <section>
-          <h3>RiskManager</h3>
-          <p>{preview ? `${preview.approved ? "Approved" : "Rejected"} · ${preview.reason}` : "Preview unavailable"}</p>
+          <h3>리스크 검증</h3>
+          <p>{preview ? `${preview.approved ? "승인" : "거절"} · ${preview.reason}` : "미리보기를 사용할 수 없습니다."}</p>
         </section>
         <section>
-          <h3>Budget Impact</h3>
-          <p>{preview ? `Available $${preview.available_budget.toFixed(2)} · Exposure $${preview.bot_exposure.toFixed(2)}` : "Preview unavailable"}</p>
+          <h3>예산 영향</h3>
+          <p>{preview ? `사용 가능 $${preview.available_budget.toFixed(2)} · 노출 $${preview.bot_exposure.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
         </section>
         <section>
-          <h3>Position Scope</h3>
-          <p>{preview ? `Bot owned ${preview.bot_owned_quantity.toFixed(6)} · Legacy protected ${preview.legacy_protected ? "Yes" : "No"}` : "Preview unavailable"}</p>
+          <h3>포지션 범위</h3>
+          <p>{preview ? `봇 보유 ${preview.bot_owned_quantity.toFixed(6)} · 기존 보유 보호 ${preview.legacy_protected ? "예" : "아니오"}` : "미리보기를 사용할 수 없습니다."}</p>
         </section>
         <section>
-          <h3>Thesis</h3>
+          <h3>판단 근거</h3>
           <p>{decision.thesis}</p>
         </section>
         <section>
-          <h3>Risk Notes</h3>
+          <h3>리스크 메모</h3>
           <p>{decision.risk_notes}</p>
         </section>
         <section>
-          <h3>LLM Usage</h3>
+          <h3>LLM 사용량</h3>
           <p>{decision.llm_model ?? "mock"} · {decision.total_tokens} tokens · ${decision.estimated_llm_cost_usd.toFixed(4)}</p>
         </section>
         <section>
-          <h3>Linked Order</h3>
-          <p>{order ? `Order #${order.id} ${order.status}` : decision.executed_order_id ?? "None"}</p>
+          <h3>연결 주문</h3>
+          <p>{order ? `주문 #${order.id} ${order.status}` : decision.executed_order_id ?? "없음"}</p>
           <p>{order ? orderFillSummary(order) : null}</p>
         </section>
         <section>
-          <h3>Journal</h3>
-          <p>{latestJournal ? `Latest #${latestJournal.id} · ${latestJournal.outcome_label} · reward ${latestJournal.reward_score.toFixed(4)}` : "No journal entry yet"}</p>
-          <p>{latestEvaluation ? `Evaluation #${latestEvaluation.id} · ${latestEvaluation.evaluation_window} · ${latestEvaluation.return_percent.toFixed(2)}%` : "No evaluation linked yet"}</p>
+          <h3>저널</h3>
+          <p>{latestJournal ? `최근 #${latestJournal.id} · ${latestJournal.outcome_label} · 보상 ${latestJournal.reward_score.toFixed(4)}` : "아직 저널이 없습니다."}</p>
+          <p>{latestEvaluation ? `평가 #${latestEvaluation.id} · ${latestEvaluation.evaluation_window} · ${latestEvaluation.return_percent.toFixed(2)}%` : "연결된 평가가 없습니다."}</p>
           <button className="secondary-button" disabled={isCreatingJournal} onClick={createJournalEntry} type="button">
-            {isCreatingJournal ? "Creating..." : "Create Journal"}
+            {isCreatingJournal ? "생성 중..." : "저널 생성"}
           </button>
         </section>
       </div>
       {guardWarnings.length ? (
         <section className="warning-panel">
-          <h3>Response Guard</h3>
-          <p>LLM response was normalized before saving, so this decision is blocked from execution.</p>
+          <h3>응답 가드</h3>
+          <p>LLM 응답이 저장 전 정규화되어 이 판단은 실행이 차단되었습니다.</p>
           <ul>
             {guardWarnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
@@ -180,18 +180,18 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
       ) : null}
       {preview?.warnings.length ? (
         <section>
-          <h3>Preview Warnings</h3>
+          <h3>미리보기 경고</h3>
           <ul>
             {preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
         </section>
       ) : null}
       <section>
-        <h3>Input Snapshot</h3>
+        <h3>입력 스냅샷</h3>
         <pre>{JSON.stringify(decision.input_snapshot_json, null, 2)}</pre>
       </section>
       <section>
-        <h3>Agent Raw JSON</h3>
+        <h3>에이전트 Raw JSON</h3>
         <pre>{JSON.stringify(decision.agent_response_json, null, 2)}</pre>
       </section>
     </section>

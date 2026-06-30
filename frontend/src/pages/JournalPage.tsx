@@ -29,7 +29,7 @@ export function JournalPage() {
       .then(setEntries)
       .catch((error) => {
         setEntries([]);
-        setMessage(error instanceof Error ? error.message : "Journal entries are not available.");
+        setMessage(error instanceof Error ? error.message : "저널을 불러올 수 없습니다.");
       })
       .finally(() => setIsRefreshing(false));
   };
@@ -48,61 +48,61 @@ export function JournalPage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Agent Memory</p>
-          <h2>Trade Journal</h2>
+          <p className="eyebrow">에이전트 메모리</p>
+          <h2>거래 저널</h2>
         </div>
         <button className="primary-button" disabled={isRefreshing} onClick={refresh} type="button">
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+          {isRefreshing ? "새로고침 중..." : "새로고침"}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Entries" value={`${entries.length}`} />
-        <StatCard label="Reviewed" value={`${reviewedCount}`} detail="linked to outcome labels" />
-        <StatCard label="Positive Reward" value={`${positiveCount}`} />
-        <StatCard label="Avg Reward" value={formatReward(averageReward)} />
+        <StatCard label="저널 수" value={`${entries.length}`} />
+        <StatCard label="리뷰 완료" value={`${reviewedCount}`} detail="결과 라벨 연결됨" />
+        <StatCard label="양수 보상" value={`${positiveCount}`} />
+        <StatCard label="평균 보상" value={formatReward(averageReward)} />
       </div>
       <div className="journal-grid">
         {entries.map((entry) => (
           <article className="journal-card" key={entry.id}>
             <div className="journal-card-header">
               <div>
-                <p className="eyebrow">Journal #{entry.id}</p>
+                <p className="eyebrow">저널 #{entry.id}</p>
                 <h3>{entry.symbol} {entry.action}</h3>
               </div>
               <span className={`status-pill ${outcomeTone(entry.outcome_label)}`}>{entry.outcome_label}</span>
             </div>
             <dl className="journal-meta">
               <div>
-                <dt>Decision</dt>
+                <dt>판단</dt>
                 <dd>#{entry.decision_id}</dd>
               </div>
               <div>
-                <dt>Order</dt>
+                <dt>주문</dt>
                 <dd>{entry.order_id ? `#${entry.order_id}` : "-"}</dd>
               </div>
               <div>
-                <dt>Evaluation</dt>
+                <dt>평가</dt>
                 <dd>{entry.evaluation_id ? `#${entry.evaluation_id}` : "-"}</dd>
               </div>
               <div>
-                <dt>Reward</dt>
+                <dt>보상</dt>
                 <dd>{formatReward(entry.reward_score)}</dd>
               </div>
             </dl>
             <p className="helper-text">{formatDate(entry.created_at)}</p>
             <section>
-              <h4>Self Feedback</h4>
+              <h4>자기 피드백</h4>
               <p>{entry.agent_self_feedback}</p>
             </section>
             {entry.lesson ? (
               <section>
-                <h4>Lesson</h4>
+                <h4>교훈</h4>
                 <p>{entry.lesson}</p>
               </section>
             ) : null}
             <section>
-              <h4>Thesis Snapshot</h4>
+              <h4>판단 근거 스냅샷</h4>
               <p>{entry.thesis_snapshot}</p>
             </section>
             {entry.strategy_tags_json.length ? (
@@ -113,7 +113,7 @@ export function JournalPage() {
           </article>
         ))}
       </div>
-      {!entries.length && !message ? <div className="notice">No journal entries yet. Create one from a decision detail page.</div> : null}
+      {!entries.length && !message ? <div className="notice">아직 저널이 없습니다. 판단 상세 화면에서 생성할 수 있습니다.</div> : null}
     </section>
   );
 }

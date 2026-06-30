@@ -21,7 +21,7 @@ export function OrdersPage() {
       .then(setOrders)
       .catch(() => {
         setOrders([]);
-        setMessage("Orders refresh failed.");
+        setMessage("주문 기록 새로고침에 실패했습니다.");
       })
       .finally(() => setIsRefreshing(false));
   };
@@ -41,29 +41,29 @@ export function OrdersPage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">DRY_RUN</p>
-          <h2>Simulated Orders</h2>
+          <h2>모의 주문 기록</h2>
         </div>
         <div className="button-row">
           <button className="secondary-button" disabled={isRefreshing} onClick={() => refresh()} type="button">
-            {isRefreshing ? "Refreshing..." : "Refresh"}
+            {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
         </div>
       </header>
       <div className="button-row">
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <option value="">All statuses</option>
-          <option value="SIMULATED">Simulated</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="FAILED">Failed</option>
-          <option value="TODO_LIVE_ORDER_NOT_IMPLEMENTED">Live Blocked</option>
+          <option value="">전체 상태</option>
+          <option value="SIMULATED">모의 체결</option>
+          <option value="REJECTED">거절</option>
+          <option value="FAILED">실패</option>
+          <option value="TODO_LIVE_ORDER_NOT_IMPLEMENTED">실주문 차단</option>
         </select>
         <input
           onChange={(event) => setSymbolFilter(event.target.value.toUpperCase())}
-          placeholder="Symbol"
+          placeholder="종목"
           value={symbolFilter}
         />
-        <button className="secondary-button" onClick={() => refresh()} type="button">Apply</button>
-        <button className="secondary-button" onClick={clearFilters} type="button">Clear</button>
+        <button className="secondary-button" onClick={() => refresh()} type="button">적용</button>
+        <button className="secondary-button" onClick={clearFilters} type="button">초기화</button>
       </div>
       {message ? <div className="notice">{message}</div> : null}
       <OrderTable orders={orders} />

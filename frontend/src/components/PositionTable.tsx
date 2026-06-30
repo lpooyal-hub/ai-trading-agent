@@ -16,11 +16,11 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
         <table>
           <thead>
             <tr>
-              <th>Symbol</th>
-              <th>Name</th>
-              <th>Quantity</th>
-              <th>Avg Price</th>
-              <th>Protected</th>
+              <th>종목</th>
+              <th>이름</th>
+              <th>수량</th>
+              <th>평균가</th>
+              <th>보호</th>
             </tr>
           </thead>
           <tbody>
@@ -30,7 +30,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
                 <td>{position.name}</td>
                 <td>{position.quantity}</td>
                 <td>{formatOptionalCurrency(position.avg_price)}</td>
-                <td>{position.is_protected ? "Yes" : "No"}</td>
+                <td>{position.is_protected ? "예" : "아니오"}</td>
               </tr>
             ))}
           </tbody>
@@ -44,13 +44,13 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
       <table>
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th>Quantity</th>
-            <th>Avg Buy</th>
-            <th>Invested</th>
-            <th>Current</th>
-            <th>PnL</th>
-            <th>Status</th>
+            <th>종목</th>
+            <th>수량</th>
+            <th>평균 매수가</th>
+            <th>투입 금액</th>
+            <th>현재가</th>
+            <th>손익률</th>
+            <th>상태</th>
           </tr>
         </thead>
         <tbody>
@@ -67,7 +67,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
           ))}
           {!botPositions.length ? (
             <tr>
-              <td colSpan={7}>No bot positions yet.</td>
+              <td colSpan={7}>아직 봇 포지션이 없습니다.</td>
             </tr>
           ) : null}
         </tbody>

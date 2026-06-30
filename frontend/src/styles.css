@@ -220,11 +220,15 @@ dt {
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 980px;
+  min-width: 720px;
 }
 
 .compact-table table {
   min-width: 520px;
+}
+
+.wide-table table {
+  min-width: 980px;
 }
 
 th,
