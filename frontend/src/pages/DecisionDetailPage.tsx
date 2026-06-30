@@ -21,6 +21,12 @@ function orderFillSummary(order: TradeOrder) {
   return `Position ${before.toFixed(4)} -> ${after.toFixed(4)}`;
 }
 
+function decisionGuardWarnings(decision: AgentDecision): string[] {
+  const warnings = decision.agent_response_json.response_guard_warnings;
+  if (!Array.isArray(warnings)) return [];
+  return warnings.filter((warning): warning is string => typeof warning === "string" && warning.trim().length > 0);
+}
+
 export function DecisionDetailPage({ decisionId }: { decisionId: number | null }) {
   const [decision, setDecision] = useState<AgentDecision | null>(null);
   const [preview, setPreview] = useState<DecisionPreview | null>(null);
@@ -110,6 +116,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
 
   const latestJournal = journalEntries[0] ?? null;
   const latestEvaluation = evaluations[0] ?? null;
+  const guardWarnings = decisionGuardWarnings(decision);
 
   return (
     <section className="page-stack">
@@ -167,6 +174,15 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
           </button>
         </section>
       </div>
+      {guardWarnings.length ? (
+        <section className="warning-panel">
+          <h3>Response Guard</h3>
+          <p>LLM response was normalized before saving, so this decision is blocked from execution.</p>
+          <ul>
+            {guardWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </section>
+      ) : null}
       {preview?.warnings.length ? (
         <section>
           <h3>Preview Warnings</h3>

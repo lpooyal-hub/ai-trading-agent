@@ -152,12 +152,27 @@ section h3 {
 .stat-card,
 .evaluation-card,
 .notice,
+.warning-panel,
 .detail-grid section,
 .settings-list div {
   background: #ffffff;
   border: 1px solid #dfe6dc;
   border-radius: 8px;
   padding: 14px;
+}
+
+.warning-panel {
+  border-color: #d89b45;
+  background: #fff8ec;
+  color: #51380f;
+}
+
+.warning-panel h3 {
+  margin-top: 0;
+}
+
+.warning-panel p {
+  margin: 6px 0 10px;
 }
 
 .stat-card {
