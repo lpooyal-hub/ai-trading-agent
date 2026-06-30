@@ -94,14 +94,16 @@ class LiveTossExecutionAdapter:
             "quantity": self._quantity_from_decision(decision),
             "price": decision.current_price,
             "order_amount": decision.recommended_order_amount,
+            "order_sizing_mode": self.settings.order_sizing_mode_normalized,
+            "fractional_trading_enabled": self.settings.fractional_trading_enabled,
             "decision_id": decision.id,
             "idempotency_key": f"decision-{decision.id}-{decision.symbol}-{decision.action.value}",
         }
 
-    @staticmethod
-    def _quantity_from_decision(decision: AgentDecision) -> float:
+    def _quantity_from_decision(self, decision: AgentDecision) -> float:
         if decision.current_price <= 0:
             return 0
-        if decision.action == AgentAction.SELL:
-            return decision.recommended_order_amount / decision.current_price
-        return decision.recommended_order_amount / decision.current_price
+        quantity = decision.recommended_order_amount / decision.current_price
+        if not self.settings.fractional_trading_enabled:
+            return float(int(quantity))
+        return round(quantity, self.settings.quantity_decimal_places_safe)

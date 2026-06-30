@@ -50,6 +50,17 @@ class RiskManager:
         if amount > self.settings.max_order_amount_usd:
             return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_USD.")
 
+        if action in {AgentAction.BUY, AgentAction.SELL} and amount < self.settings.min_order_amount_usd:
+            return self._reject("Recommended order amount is below MIN_ORDER_AMOUNT_USD.")
+
+        estimated_quantity = self._estimate_quantity(amount, price)
+        if (
+            action in {AgentAction.BUY, AgentAction.SELL}
+            and not self.settings.fractional_trading_enabled
+            and estimated_quantity < 1
+        ):
+            return self._reject("Fractional trading is disabled and estimated quantity is below 1 share.")
+
         exposure = self.calculate_bot_exposure(db)
         if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_usd:
             return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_USD.")
@@ -76,7 +87,7 @@ class RiskManager:
 
         if action == AgentAction.SELL:
             owned_quantity = bot_position.quantity if bot_position else 0
-            requested_quantity = sell_quantity or self._estimate_quantity(amount, price)
+            requested_quantity = sell_quantity or estimated_quantity
             if requested_quantity > owned_quantity:
                 return self._reject("Sell quantity exceeds bot-owned quantity.")
 

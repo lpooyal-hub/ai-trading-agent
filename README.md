@@ -150,6 +150,9 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `BROKER_PROVIDER=toss_securities`
 - `BOT_CAPITAL_LIMIT_USD=250`
 - `MAX_SYMBOL_EXPOSURE_PERCENT=40`
+- `FRACTIONAL_TRADING_ENABLED=true`
+- `ORDER_SIZING_MODE=notional`
+- `MIN_ORDER_AMOUNT_USD=5`
 - `ALLOWED_SYMBOLS=NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT`
 - `REDIS_ENABLED=false`
 - `REDIS_URL=redis://host.docker.internal:6379/0`
@@ -178,6 +181,8 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 - `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
 - `LiveTossExecutionAdapter`: Toss live order 경로의 자리입니다. 현재는 의도적으로 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order만 저장하고 실제 주문은 보내지 않습니다.
+
+반도체 종목은 1주 가격이 높은 경우가 많아서 paper trading은 기본적으로 금액 기반 소수점 수량을 사용합니다. `ORDER_SIZING_MODE=notional`에서 `recommended_order_amount / current_price`로 수량을 계산하고, `QUANTITY_DECIMAL_PLACES` 기준으로 반올림합니다. 실제 Toss live adapter를 연결할 때는 Toss의 소수점/금액 주문 지원 범위에 맞춰 adapter mapping을 검증해야 합니다.
 
 이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 실행 adapter만 paper에서 live로 단계적으로 교체할 수 있습니다.
 

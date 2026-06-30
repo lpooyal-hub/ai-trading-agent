@@ -123,6 +123,8 @@ class TradingService:
             raw_response_json={
                 "source": "trading_service",
                 "dry_run": True,
+                "order_sizing_mode": self.settings.order_sizing_mode_normalized,
+                "fractional_trading_enabled": self.settings.fractional_trading_enabled,
                 "simulated_fill": {
                     "side": OrderSide.BUY.value,
                     "quantity": quantity,
@@ -164,6 +166,8 @@ class TradingService:
             raw_response_json={
                 "source": "trading_service",
                 "dry_run": True,
+                "order_sizing_mode": self.settings.order_sizing_mode_normalized,
+                "fractional_trading_enabled": self.settings.fractional_trading_enabled,
                 "simulated_fill": {
                     "side": OrderSide.SELL.value,
                     "quantity": quantity,
@@ -331,8 +335,10 @@ class TradingService:
             warnings.append("Recommended order amount is zero.")
         return warnings
 
-    @staticmethod
-    def _quantity_from_decision(decision: AgentDecision) -> float:
+    def _quantity_from_decision(self, decision: AgentDecision) -> float:
         if decision.current_price <= 0:
             return 0
-        return decision.recommended_order_amount / decision.current_price
+        quantity = decision.recommended_order_amount / decision.current_price
+        if not self.settings.fractional_trading_enabled:
+            return float(int(quantity))
+        return round(quantity, self.settings.quantity_decimal_places_safe)

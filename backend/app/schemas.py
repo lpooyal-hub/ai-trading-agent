@@ -696,6 +696,10 @@ class SafetySettingsRead(BaseModel):
     max_daily_trades: int
     max_symbol_exposure_percent: float
     min_cash_reserve_usd: float
+    fractional_trading_enabled: bool
+    min_order_amount_usd: float
+    quantity_decimal_places: int
+    order_sizing_mode: str
     allowed_sector: str
     allowed_symbols: list[str]
     forbidden_keywords: list[str]

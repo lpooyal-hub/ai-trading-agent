@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     max_daily_trades: int = 5
     max_symbol_exposure_percent: float = 40
     min_cash_reserve_usd: float = 25
+    fractional_trading_enabled: bool = True
+    min_order_amount_usd: float = 5
+    quantity_decimal_places: int = 6
+    order_sizing_mode: str = "notional"
     allowed_sector: str = "semiconductor"
     allowed_symbols_csv: str = Field(
         default="NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT",
@@ -216,6 +220,15 @@ class Settings(BaseSettings):
     @property
     def agent_scheduler_interval_minutes_safe(self) -> int:
         return max(self.agent_scheduler_interval_minutes, 1)
+
+    @property
+    def quantity_decimal_places_safe(self) -> int:
+        return min(max(self.quantity_decimal_places, 0), 8)
+
+    @property
+    def order_sizing_mode_normalized(self) -> str:
+        mode = self.order_sizing_mode.strip().lower()
+        return mode if mode in {"notional", "quantity"} else "notional"
 
     @property
     def agent_market_closed_dates(self) -> list[str]:

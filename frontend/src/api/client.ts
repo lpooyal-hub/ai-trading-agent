@@ -569,6 +569,10 @@ export type SafetySettings = {
   max_daily_trades: number;
   max_symbol_exposure_percent: number;
   min_cash_reserve_usd: number;
+  fractional_trading_enabled: boolean;
+  min_order_amount_usd: number;
+  quantity_decimal_places: number;
+  order_sizing_mode: string;
   allowed_sector: string;
   allowed_symbols: string[];
   forbidden_keywords: string[];
