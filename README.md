@@ -61,8 +61,8 @@ SchedulerAgent
   -> DecisionAgent
   -> LoggerAgent
   -> OrderAgent
-
-EvaluationAgent / JournalAgent
+  -> EvaluationAgent
+  -> JournalAgent
   -> MemoryAgent
   -> next DecisionAgent input
 ```
@@ -83,7 +83,7 @@ EvaluationAgent / JournalAgent
 
 ### Workflow audit layer
 
-현재 구현은 Airflow/LangGraph 같은 범용 workflow engine이 아니라, agent 실행 결과를 추적하는 얇은 audit layer입니다. `/agent/run-once` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Logger, Order 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
+현재 구현은 Airflow/LangGraph 같은 범용 workflow engine이 아니라, agent 실행 결과를 추적하는 얇은 audit layer입니다. `/agent/run-once` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
 
 이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조입니다. 이후 필요하면 retry, branching, schedule orchestration, frontend timeline view로 확장할 수 있습니다.
 

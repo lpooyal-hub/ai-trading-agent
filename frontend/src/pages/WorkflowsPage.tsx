@@ -12,6 +12,8 @@ const STEP_LABELS: Record<string, string> = {
   decision_agent: "판단 에이전트",
   logger_agent: "로거 에이전트",
   order_agent: "주문 에이전트",
+  evaluation_agent: "평가 에이전트",
+  journal_agent: "저널 에이전트",
 };
 
 function stepLabel(stepName: string) {

@@ -75,6 +75,22 @@ class WorkflowService:
                 "runtime": "Paper execution adapter",
                 "responsibility": "Attempt policy-approved paper execution while live orders stay blocked.",
             },
+            {
+                "id": "evaluation_agent",
+                "label": "Evaluation Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "Python",
+                "responsibility": "Evaluate due historical decisions and produce hindsight performance signals.",
+            },
+            {
+                "id": "journal_agent",
+                "label": "Journal Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "SQLAlchemy",
+                "responsibility": "Persist a decision/order journal entry for later MemoryAgent feedback.",
+            },
         ],
         "edges": [
             {"from": "runtime_lock", "to": "market_agent"},
@@ -84,12 +100,14 @@ class WorkflowService:
             {"from": "memory_agent", "to": "decision_agent"},
             {"from": "decision_agent", "to": "logger_agent"},
             {"from": "logger_agent", "to": "order_agent"},
+            {"from": "order_agent", "to": "evaluation_agent"},
+            {"from": "evaluation_agent", "to": "journal_agent"},
         ],
         "side_loops": [
             {
                 "name": "evaluation_memory_loop",
-                "description": "Decision and order outcomes feed Evaluation, Journal, and Memory for future prompt context.",
-                "nodes": ["evaluation_agent", "journal_agent", "memory_agent"],
+                "description": "Evaluation and Journal entries become MemoryAgent context for future DecisionAgent prompts.",
+                "nodes": ["evaluation_agent", "journal_agent", "memory_agent", "decision_agent"],
             }
         ],
     }

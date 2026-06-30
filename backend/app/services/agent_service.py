@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.agents.decision_agent import DecisionAgent
+from app.agents.evaluation_agent import EvaluationAgent
+from app.agents.journal_agent import JournalAgent
 from app.agents.logger_agent import LoggerAgent
 from app.agents.market_agent import MarketAgent
 from app.agents.memory_agent import MemoryAgent
@@ -11,11 +13,13 @@ from app.models import (
     AgentAction,
     AgentDecision,
     DecisionStatus,
+    EvaluationWindow,
     MarketSnapshot,
     WorkflowRunStatus,
     WorkflowStepStatus,
 )
 from app.risk.llm_budget_manager import LLMBudgetManager
+from app.schemas import TradeJournalEntryCreate
 from app.services.redis_runtime_service import RedisRuntimeService
 from app.services.workflow_service import WorkflowService
 
@@ -35,6 +39,8 @@ class AgentService:
         self.logger_agent = LoggerAgent(self.decision_agent)
         self.memory_agent = MemoryAgent()
         self.order_agent = OrderAgent(self.settings)
+        self.evaluation_agent = EvaluationAgent()
+        self.journal_agent = JournalAgent()
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.workflow_service = WorkflowService()
         self.redis_runtime = RedisRuntimeService(self.settings)
@@ -240,6 +246,59 @@ class AgentService:
                     "reason": order_result.reason,
                 },
             )
+            evaluation_result = self.evaluation_agent.run_due_evaluations(db, EvaluationWindow.ONE_DAY)
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="evaluation_agent",
+                status=WorkflowStepStatus.SUCCEEDED if evaluation_result.created_count else WorkflowStepStatus.SKIPPED,
+                input_json={"window": EvaluationWindow.ONE_DAY.value},
+                output_json={
+                    "created_count": evaluation_result.created_count,
+                    "evaluation_ids": [item.id for item in evaluation_result.evaluations],
+                    "reason": (
+                        "Due decisions were evaluated."
+                        if evaluation_result.created_count
+                        else "No decisions are due for the 1d evaluation window."
+                    ),
+                },
+            )
+            journal_entry = self.journal_agent.create_entry(
+                db,
+                TradeJournalEntryCreate(
+                    decision_id=logged.decision.id,
+                    order_id=order_result.order.id if order_result.order else None,
+                    outcome_label="PENDING_REVIEW",
+                    agent_self_feedback=(
+                        "Agent run completed. Journal entry is waiting for a fresh evaluation window."
+                    ),
+                    strategy_tags=[
+                        "agent_run",
+                        "paper_trading",
+                        "pending_evaluation",
+                    ],
+                    journal_json={
+                        "workflow_run_id": workflow.id,
+                        "order_attempted": order_result.attempted,
+                        "order_reason": order_result.reason,
+                        "evaluation_window": EvaluationWindow.ONE_DAY.value,
+                    },
+                ),
+            )
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="journal_agent",
+                status=WorkflowStepStatus.SUCCEEDED if journal_entry else WorkflowStepStatus.FAILED,
+                input_json={"decision_id": logged.decision.id},
+                output_json={
+                    "journal_id": journal_entry.id if journal_entry else None,
+                    "decision_id": logged.decision.id,
+                    "order_id": order_result.order.id if order_result.order else None,
+                    "outcome_label": journal_entry.outcome_label if journal_entry else None,
+                },
+                error_message=None if journal_entry else "Journal entry was not created.",
+            )
             self.workflow_service.finish_run(
                 db,
                 workflow,
@@ -249,6 +308,8 @@ class AgentService:
                     "decision_id": logged.decision.id,
                     "decision_status": logged.decision.status.value,
                     "order_attempted": order_result.attempted,
+                    "evaluation_created_count": evaluation_result.created_count,
+                    "journal_id": journal_entry.id if journal_entry else None,
                 },
             )
             return logged.decision
