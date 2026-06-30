@@ -51,8 +51,18 @@ class TossClient:
         }
 
     def place_live_order(self, *args, **kwargs):
-        # Live trading must stay behind explicit configuration and safety review.
-        return self._todo_live_order_response("Real Toss Securities order execution is blocked in this public build.")
+        order_intent = kwargs.get("order_intent") if kwargs else None
+        if not order_intent and args:
+            order_intent = args[0]
+        if not isinstance(order_intent, dict):
+            return self._live_order_error_response("Live order intent is required.")
+        if not self._live_order_endpoint_ready():
+            return self._live_order_error_response("Toss live order endpoint or credentials are not configured.")
+        return self._authenticated_post(
+            self.settings.toss_order_path,
+            self._live_order_payload(order_intent),
+            idempotency_key=order_intent.get("idempotency_key"),
+        )
 
     def get_accounts(self) -> dict:
         if not self._read_only_endpoint_ready(self.settings.toss_accounts_path, require_account=False):
@@ -65,13 +75,30 @@ class TossClient:
         return self._authenticated_get(self.settings.toss_positions_path)
 
     def preview_live_order(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order preview is blocked in this public build.")
+        return self._todo_live_order_response(
+            "Live Toss Securities order preview is not a broker-side preview call; use internal decision preview."
+        )
 
     def cancel_live_order(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order cancellation is blocked in this public build.")
+        order_id = kwargs.get("order_id") if kwargs else None
+        if not order_id and args:
+            order_id = args[0]
+        if not self.settings.toss_order_cancel_path:
+            return self._live_order_error_response("Toss live order cancellation endpoint is not configured.")
+        return self._authenticated_post(
+            self.settings.toss_order_cancel_path,
+            {"order_id": order_id},
+            idempotency_key=f"cancel-{order_id}" if order_id else None,
+        )
 
     def get_live_order_status(self, *args, **kwargs) -> dict:
-        return self._todo_live_order_response("Live Toss Securities order status lookup is blocked in this public build.")
+        order_id = kwargs.get("order_id") if kwargs else None
+        if not order_id and args:
+            order_id = args[0]
+        if not self.settings.toss_order_status_path:
+            return self._live_order_error_response("Toss live order status endpoint is not configured.")
+        path = self.settings.toss_order_status_path.format(order_id=parse.quote(str(order_id)))
+        return self._authenticated_get(path)
 
     @staticmethod
     def _todo_live_order_response(message: str) -> dict:
@@ -118,6 +145,55 @@ class TossClient:
             return response_payload
         except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             return self._safe_error_response(exc)
+
+    def _authenticated_post(
+        self,
+        path: str | None,
+        payload: dict,
+        *,
+        idempotency_key: str | None = None,
+        include_account_header: bool = True,
+    ) -> dict:
+        if not path:
+            return self._live_order_error_response("Toss live order endpoint path is not configured.")
+
+        token_result = self._issue_access_token()
+        if not token_result["success"]:
+            return token_result
+
+        headers = {
+            "Authorization": f"Bearer {token_result['access_token']}",
+            "Content-Type": "application/json",
+        }
+        if include_account_header:
+            headers[self.settings.toss_order_account_header_name] = self.settings.toss_account_id or ""
+        if idempotency_key:
+            headers[self.settings.toss_order_idempotency_header_name] = idempotency_key
+
+        req = request.Request(
+            self._url(path),
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        try:
+            with request.urlopen(req, timeout=self.settings.toss_timeout_seconds) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            return {
+                "success": True,
+                "status": "LIVE_ORDER_SUBMITTED",
+                "data": body,
+                "request_payload": self._safe_live_order_payload(payload),
+                "idempotency_key": idempotency_key,
+                "raw_response_saved": True,
+            }
+        except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            error_response = self._safe_error_response(exc)
+            return {
+                **error_response,
+                "request_payload": self._safe_live_order_payload(payload),
+                "idempotency_key": idempotency_key,
+            }
 
     def _cache_key(self, path: str, include_account_header: bool) -> tuple[str, bool, str]:
         account_id = self.settings.toss_account_id or ""
@@ -202,11 +278,57 @@ class TossClient:
             and path
         )
 
+    def _live_order_endpoint_ready(self) -> bool:
+        return bool(
+            not self.settings.use_mock_data
+            and not self.settings.dry_run
+            and self.settings.live_trading_enabled
+            and self.settings.toss_credentials_ready
+            and self.settings.toss_token_path
+            and self.settings.toss_order_path
+        )
+
+    @staticmethod
+    def _live_order_payload(order_intent: dict) -> dict:
+        return {
+            "account_id": order_intent.get("account_id"),
+            "symbol": order_intent.get("symbol"),
+            "side": order_intent.get("side"),
+            "quantity": order_intent.get("quantity"),
+            "price": order_intent.get("price"),
+            "order_amount": order_intent.get("order_amount"),
+            "order_sizing_mode": order_intent.get("order_sizing_mode"),
+            "order_type": order_intent.get("order_type", "MARKET"),
+            "fractional": order_intent.get("fractional_trading_enabled"),
+            "client_order_id": order_intent.get("idempotency_key"),
+            "metadata": {
+                "decision_id": order_intent.get("decision_id"),
+                "source": "ai_trading_agent",
+            },
+        }
+
+    @staticmethod
+    def _safe_live_order_payload(payload: dict) -> dict:
+        return {
+            key: value
+            for key, value in payload.items()
+            if key not in {"account_id"}
+        }
+
     @staticmethod
     def _todo_read_only_response(message: str) -> dict:
         return {
             "success": False,
             "status": "TODO_READ_ONLY_API_NOT_CONFIGURED",
+            "message": message,
+            "raw_response_saved": False,
+        }
+
+    @staticmethod
+    def _live_order_error_response(message: str) -> dict:
+        return {
+            "success": False,
+            "status": "LIVE_ORDER_FAILED",
             "message": message,
             "raw_response_saved": False,
         }

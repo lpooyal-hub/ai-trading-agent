@@ -141,6 +141,8 @@ class PortfolioSummaryRead(BaseModel):
 
 class PortfolioPerformanceRead(BaseModel):
     simulated_order_count: int
+    live_submitted_order_count: int
+    live_submitted_order_amount_usd: float
     buy_order_count: int
     sell_order_count: int
     gross_bought_usd: float

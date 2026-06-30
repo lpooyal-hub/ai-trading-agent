@@ -2,7 +2,7 @@
 
 토스증권 Open API를 기본 브로커 어댑터로 가정한 실험용 AI 트레이딩 에이전트 백엔드입니다.
 
-현재 기본 설정은 DRY_RUN / paper trading입니다. 실행 모드는 별도 브랜치가 아니라 env로 나누며, 공개 포트폴리오 빌드에서는 live-ready env를 켜도 실제 주문 전송은 차단 adapter에서 멈춥니다.
+현재 기본 설정은 DRY_RUN / paper trading입니다. 실행 모드는 별도 브랜치가 아니라 env로 나누며, live order는 Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key가 모두 준비된 경우에만 opt-in으로 전송됩니다.
 
 ## 현재 단계
 
@@ -96,6 +96,7 @@ uvicorn app.main:app --reload
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-trading-domain.example
 REQUIRE_ADMIN_API_KEY=true
 ADMIN_API_KEY=<set-on-server-only>
+TOSS_ORDER_PATH=<official-toss-order-path>
 ```
 
 ## Execution Modes
@@ -116,16 +117,17 @@ DRY_RUN=false
 LIVE_TRADING_ENABLED=true
 USE_MOCK_DATA=false
 REQUIRE_ADMIN_API_KEY=true
+TOSS_ORDER_PATH=<official-toss-order-path>
 ```
 
-이 공개 포트폴리오 빌드에서는 위 live-ready 값이 실제 주문 전송을 의미하지 않습니다. `BlockedLiveExecutionAdapter`가 order intent와 idempotency key를 저장하고, broker order endpoint 호출은 차단합니다.
+위 값과 Toss credentials가 모두 준비되면 `TossLiveExecutionAdapter`가 broker order endpoint를 호출합니다. readiness가 부족하면 `BlockedLiveExecutionAdapter`가 order intent와 idempotency key를 저장하고 endpoint 호출은 차단합니다.
 
 ## 안전 원칙
 
 - 기본 브로커 provider는 `toss_securities`입니다.
 - `DRY_RUN=true`가 기본값입니다.
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
-- 실주문 API 호출은 기본 설정에서 비활성화되어 있습니다.
+- 실주문 API 호출은 기본 설정에서 비활성화되어 있으며, env opt-in과 관리자 API key guard가 필요합니다.
 - 기존 보유 주식은 legacy position으로 보호해야 합니다.
 - 봇은 `.env`의 `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 예시는 반도체 Top 10입니다.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
@@ -137,9 +139,10 @@ REQUIRE_ADMIN_API_KEY=true
 - 후보 선택 규칙은 `SectorCandidateSelector` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다. 기본 universe는 반도체 Top 10이지만, `ALLOWED_SECTOR`와 `ALLOWED_SYMBOLS`를 바꾸면 다른 섹터에도 같은 후보 선택 구조를 적용할 수 있습니다.
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
-- decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
-- `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` 조합에서도 공개 포트폴리오 빌드는 실제 주문을 전송하지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단합니다.
-- 차단된 live order에는 order intent와 idempotency key가 raw payload에 남으며, 이는 실제 주문 전송이 아니라 향후 broker adapter 구현 검토용입니다.
+- decision 승인 시에도 RiskManager가 최종 검증하며, env에 따라 DRY_RUN simulated order 또는 Toss live order 제출로 분기합니다.
+- `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false`, `USE_MOCK_DATA=false`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 `TossLiveExecutionAdapter`가 live order를 제출합니다.
+- Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 제출 건수와 제출 금액으로 별도 표시하며, 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않습니다.
+- readiness가 부족한 live intent는 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단되며, order intent와 idempotency key가 raw payload에 남습니다.
 - `/decisions/{decision_id}/preview`는 승인 전 예상 주문 수량, 금액, 예산 영향, legacy 보호 여부, RiskManager 결과를 보여줍니다.
 - decision evaluation은 최신 snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
 - Memory Agent는 journal/evaluation/decision 이력을 요약해 최근 성과, 반복 실수, lesson, 모델별 성과를 확인하는 read-only 분석 레이어입니다.
@@ -188,7 +191,7 @@ REQUIRE_ADMIN_API_KEY=true
 15. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
 16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. guard로 스킵된 run도 `SKIPPED_GUARD` 저널로 남겨 반복적인 데이터/예산/후보 부족 패턴을 추적할 수 있습니다.
 17. `/memory/summary`는 최근 journal 100건 기준 action/symbol/model/prompt version별 win rate, reward, 반복 mistake, lesson, data gap을 요약합니다.
-18. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
+18. `TossLiveExecutionAdapter`는 env opt-in live order 연결 지점입니다. 준비가 완료되면 broker order endpoint를 호출하고, 준비가 부족하면 blocked-live adapter가 order intent만 저장합니다.
 
 ## Agent Roles
 

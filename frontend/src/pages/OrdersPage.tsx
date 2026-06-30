@@ -53,6 +53,7 @@ export function OrdersPage() {
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           <option value="">전체 상태</option>
           <option value="SIMULATED">모의 체결</option>
+          <option value="LIVE_SUBMITTED">실주문 제출</option>
           <option value="REJECTED">거절</option>
           <option value="FAILED">실패</option>
           <option value="TODO_LIVE_ORDER_NOT_IMPLEMENTED">실주문 차단</option>

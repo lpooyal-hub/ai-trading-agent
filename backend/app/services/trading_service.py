@@ -1,7 +1,12 @@
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.execution.adapters import BlockedLiveExecutionAdapter, ExecutionAdapter, PaperExecutionAdapter
+from app.execution.adapters import (
+    BlockedLiveExecutionAdapter,
+    ExecutionAdapter,
+    PaperExecutionAdapter,
+    TossLiveExecutionAdapter,
+)
 from app.agents.risk_agent import RiskAgent
 from app.models import (
     AgentAction,
@@ -94,7 +99,11 @@ class TradingService:
         db.add(order)
         db.flush()
         decision.executed_order_id = order.id
-        decision.status = DecisionStatus.EXECUTED if order.status == OrderStatus.SIMULATED else DecisionStatus.REJECTED
+        decision.status = (
+            DecisionStatus.EXECUTED
+            if order.status in {OrderStatus.SIMULATED, OrderStatus.LIVE_SUBMITTED}
+            else DecisionStatus.REJECTED
+        )
         db.commit()
         db.refresh(order)
         db.refresh(decision)
@@ -305,6 +314,8 @@ class TradingService:
 
     def _execution_adapter(self) -> ExecutionAdapter:
         if not self.settings.dry_run and self.settings.live_trading_enabled:
+            if self.settings.toss_live_order_ready and self.settings.admin_auth_enabled:
+                return TossLiveExecutionAdapter(self.settings)
             return BlockedLiveExecutionAdapter(self.settings)
         return PaperExecutionAdapter(self)
 
@@ -323,6 +334,8 @@ class TradingService:
         legacy_protected: bool,
     ) -> list[str]:
         warnings: list[str] = []
+        if execution_mode == "LIVE_ORDER":
+            warnings.extend(TossLiveExecutionAdapter(self.settings).preview_warnings())
         if execution_mode == "LIVE_ORDER_BLOCKED":
             warnings.extend(BlockedLiveExecutionAdapter(self.settings).preview_warnings())
         if execution_mode == "BLOCKED_LIVE_DISABLED":

@@ -167,6 +167,7 @@ class PortfolioService:
 
     def get_performance(self, db: Session) -> dict:
         orders = self._list_simulated_orders(db)
+        live_submitted_orders = self._list_live_submitted_orders(db)
         realized_trades = self._calculate_realized_trades(orders)
         buy_order_count = 0
         sell_order_count = 0
@@ -197,6 +198,8 @@ class PortfolioService:
 
         return {
             "simulated_order_count": len(orders),
+            "live_submitted_order_count": len(live_submitted_orders),
+            "live_submitted_order_amount_usd": sum(order.order_amount for order in live_submitted_orders),
             "buy_order_count": buy_order_count,
             "sell_order_count": sell_order_count,
             "gross_bought_usd": gross_bought,
@@ -288,6 +291,15 @@ class PortfolioService:
         return (
             db.query(TradeOrder)
             .filter(TradeOrder.status == OrderStatus.SIMULATED)
+            .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
+            .all()
+        )
+
+    @staticmethod
+    def _list_live_submitted_orders(db: Session) -> list[TradeOrder]:
+        return (
+            db.query(TradeOrder)
+            .filter(TradeOrder.status == OrderStatus.LIVE_SUBMITTED)
             .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
             .all()
         )

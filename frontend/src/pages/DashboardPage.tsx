@@ -200,6 +200,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <StatCard label="전체 손익" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
+        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={`$${performance?.live_submitted_order_amount_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="순손익" value={`$${costRecovery?.net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail="LLM 비용 반영" />
         <StatCard label="워크플로 준비" value={statusText(agentReadiness?.ready)} detail={agentReadiness?.reason} />
         <StatCard label="최근 판단" value={agentOperations?.last_decision_symbol ?? "-"} detail={agentOperations?.last_decision_status ?? "없음"} />

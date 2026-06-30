@@ -102,6 +102,20 @@ class Settings(BaseSettings):
         default="/api/v1/holdings",
         validation_alias=AliasChoices("TOSS_HOLDINGS_PATH", "TOSS_POSITIONS_PATH"),
     )
+    toss_order_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TOSS_ORDER_PATH", "TOSS_ORDERS_PATH"),
+    )
+    toss_order_status_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TOSS_ORDER_STATUS_PATH", "TOSS_ORDER_DETAIL_PATH"),
+    )
+    toss_order_cancel_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("TOSS_ORDER_CANCEL_PATH", "TOSS_CANCEL_ORDER_PATH"),
+    )
+    toss_order_account_header_name: str = "X-Tossinvest-Account"
+    toss_order_idempotency_header_name: str = "Idempotency-Key"
     toss_timeout_seconds: int = 8
     toss_read_cache_ttl_seconds: int = 15
     openai_api_key: str | None = None
@@ -252,6 +266,17 @@ class Settings(BaseSettings):
             and self.toss_token_path
             and self.toss_accounts_path
             and self.toss_positions_path
+        )
+
+    @property
+    def toss_live_order_ready(self) -> bool:
+        return bool(
+            not self.use_mock_data
+            and not self.dry_run
+            and self.live_trading_enabled
+            and self.toss_credentials_ready
+            and self.toss_token_path
+            and self.toss_order_path
         )
 
     @property

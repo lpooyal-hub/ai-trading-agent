@@ -104,6 +104,7 @@ export function PortfolioPage() {
         <StatCard label="매도 금액" value={`$${performance?.gross_sold_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
+        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={`$${performance?.live_submitted_order_amount_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="봇 포지션" value={`${summary?.bot_position_count ?? 0}`} />
         <StatCard label="기존 보유분" value={`${summary?.legacy_position_count ?? 0}`} />
       </div>

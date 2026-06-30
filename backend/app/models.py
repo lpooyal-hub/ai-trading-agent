@@ -28,6 +28,7 @@ class OrderSide(str, enum.Enum):
 
 class OrderStatus(str, enum.Enum):
     SIMULATED = "SIMULATED"
+    LIVE_SUBMITTED = "LIVE_SUBMITTED"
     REJECTED = "REJECTED"
     FAILED = "FAILED"
     TODO_LIVE_ORDER_NOT_IMPLEMENTED = "TODO_LIVE_ORDER_NOT_IMPLEMENTED"

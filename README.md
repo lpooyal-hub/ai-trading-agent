@@ -26,7 +26,7 @@
 - 투자 판단을 대신하지 않습니다.
 - 기본 설정만으로 실제 주문을 보내지 않습니다.
 - 여러 증권사를 한 번에 지원하는 범용 브로커 플랫폼은 아닙니다.
-- 공개 빌드에서는 `BlockedLiveExecutionAdapter`가 live order를 명시적으로 차단합니다.
+- 실주문은 env opt-in이며, Toss 주문 endpoint와 credentials가 준비된 경우에만 `TossLiveExecutionAdapter`가 broker order endpoint를 호출합니다.
 - 실제 계좌 정보, 실거래 기록, 실제 주문 API 응답은 저장소에 포함하지 않습니다.
 
 ## 핵심 기능
@@ -37,7 +37,7 @@
 - Paper execution: DRY_RUN 기반 금액 주문 시뮬레이션과 bot-only position 갱신
 - Risk control: 예산, 노출 한도, 보호 포지션, 일일 거래 수, 금지 키워드 검증
 - Performance loop: simulated PnL, win rate, symbol performance, evaluation, journal, memory feedback
-- Broker boundary: Toss read-only 조회와 live order 차단 adapter 분리
+- Broker boundary: Toss read-only 조회와 env opt-in live order adapter 분리
 - React dashboard: 대시보드, 실행 흐름, 판단, 주문, 포트폴리오, 평가, 저널, 메모리 화면
 
 ## 멀티에이전트 구조
@@ -70,7 +70,7 @@ SchedulerAgent
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
 - `ExecutionRiskAgent`: 포지션, 예산, 종목별 최대 노출, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
 - `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
-- `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 공개 빌드의 live order는 `BlockedLiveExecutionAdapter`에서 차단됩니다.
+- `OrderAgent`: 승인된 판단을 paper 또는 live execution adapter로 넘깁니다. live order는 env opt-in과 관리자 API key guard를 요구합니다.
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
 - `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다. 후보 없음, 예산 초과처럼 guard에서 멈춘 실행도 별도 저널로 남겨 Memory Agent가 반복 패턴을 볼 수 있게 합니다.
 
@@ -98,7 +98,7 @@ Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 �
 - 공개 데모는 `USE_MOCK_DATA=true`로 실행합니다.
 - 운영 도메인에 노출할 때는 `REQUIRE_ADMIN_API_KEY=true`와 `ADMIN_API_KEY`를 실제 서버 `.env`에만 설정해 실행/변경성 API를 보호합니다.
 - 관리자 키는 `X-Admin-API-Key` 또는 `Authorization: Bearer ...` 헤더로 전달하며, 공개 `.env.example`에는 실제 값을 넣지 않습니다.
-- 공개 포트폴리오 빌드는 실주문 전송을 범위 밖으로 두며, live order path는 감사 가능한 차단 adapter로 남깁니다.
+- 실주문 전송은 `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key가 모두 준비된 경우에만 활성화되는 opt-in 경로입니다.
 
 ## Quick Start
 
@@ -180,9 +180,10 @@ DRY_RUN=false
 LIVE_TRADING_ENABLED=true
 USE_MOCK_DATA=false
 REQUIRE_ADMIN_API_KEY=true
+TOSS_ORDER_PATH=<official-toss-order-path>
 ```
 
-공개 포트폴리오 빌드에서는 live-ready env를 켜도 `BlockedLiveExecutionAdapter`가 실제 주문 전송을 차단합니다. 즉, env는 실행 의도와 readiness를 분리하고, 실제 broker order adapter 교체는 별도 검증 지점으로 둡니다.
+위 값과 Toss credentials가 모두 준비되면 `TossLiveExecutionAdapter`가 주문 endpoint를 호출합니다. `TOSS_ORDER_PATH`가 비어 있거나 readiness가 부족하면 `BlockedLiveExecutionAdapter`가 order intent와 차단 사유를 저장합니다.
 
 ## Dashboard 사용 흐름
 
@@ -201,14 +202,17 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 
 ## Execution 구조
 
-`TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 주문 처리 방식은 execution adapter로 분리되어 있으며, 공개 빌드는 live order endpoint를 호출하지 않습니다.
+`TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 주문 처리 방식은 execution adapter로 분리되어 있으며, env 설정에 따라 paper, blocked-live, Toss live 경로를 선택합니다.
 
 - `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
-- `BlockedLiveExecutionAdapter`: live trading flag가 켜져도 실제 브로커 주문 endpoint를 호출하지 않는 차단 경로입니다. 대신 order intent, idempotency key, 차단 사유를 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order로 저장합니다.
+- `TossLiveExecutionAdapter`: `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 broker order endpoint를 호출하고 `LIVE_SUBMITTED` 또는 `FAILED` order를 저장합니다.
+- `BlockedLiveExecutionAdapter`: live intent는 있지만 readiness가 부족한 경우 실제 endpoint 호출 없이 order intent, idempotency key, 차단 사유를 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order로 저장합니다.
 
 Paper trading은 기본적으로 금액 기반 수량 계산을 사용합니다. `ORDER_SIZING_MODE=notional`에서 `recommended_order_amount / current_price`로 수량을 계산하고, `QUANTITY_DECIMAL_PLACES` 기준으로 반올림합니다. 실제 broker live adapter를 연결할 때는 해당 브로커의 주문 단위, 소수점/금액 주문 지원 범위, 계좌 권한, idempotency 전략을 별도로 검증해야 합니다.
 
-이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 실행 adapter만 paper에서 blocked-live, 이후 검토된 live adapter로 단계적으로 교체할 수 있습니다.
+Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 실주문 제출 건수와 제출 금액으로 별도 표시합니다. 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않고, broker 체결 상태 조회가 확정된 뒤 별도 반영하도록 분리합니다.
+
+이 구조 덕분에 agent core, risk check, journal/evaluation 흐름은 유지하면서 env에 따라 paper, blocked-live, Toss live adapter를 선택할 수 있습니다.
 
 ## 서버 반영
 
@@ -373,7 +377,7 @@ AGENT_AUTO_EXECUTE_MIN_CONFIDENCE=0.75
 AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
 ```
 
-`paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. 실거래 주문 자동 실행은 공개 빌드의 `BlockedLiveExecutionAdapter`에서 차단됩니다.
+`paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. live order는 별도 approval endpoint와 관리자 API key guard를 통과한 경우에만 실행됩니다.
 
 반복 실행은 내부 백그라운드 루프를 바로 켜지 않고, 외부 cron/스케줄러가 호출할 수 있는 `/agent/run-scheduled`로 준비합니다.
 
@@ -440,7 +444,7 @@ Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false
 
 ## Live Trading Readiness
 
-현재 공개 빌드는 실주문을 보내지 않습니다. `LIVE_TRADING_ENABLED=true`와 `DRY_RUN=false`를 설정해도 `BlockedLiveExecutionAdapter`가 활성화되어 실제 브로커 주문 endpoint는 호출되지 않습니다. 이때 주문은 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` 상태로 저장됩니다.
+기본값은 paper trading이며 실제 주문은 전송하지 않습니다. `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, `USE_MOCK_DATA=false`, Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key가 모두 준비되면 `TossLiveExecutionAdapter`가 broker order endpoint를 호출합니다. readiness가 부족하면 `BlockedLiveExecutionAdapter`가 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` 상태로 order intent만 저장합니다.
 
 실전 전환 전 점검은 아래 endpoint와 Dashboard/Settings 화면에서 확인할 수 있습니다.
 
@@ -448,9 +452,9 @@ Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false
 curl http://localhost:81/settings/live-readiness
 ```
 
-차단된 live order는 Orders와 Decision Detail에서 확인할 수 있으며, raw payload에는 order intent, idempotency key, 차단 사유가 남습니다. 이 값은 실제 주문 전송이 아니라 향후 broker adapter 구현을 검토하기 위한 감사용 정보입니다.
+live order와 차단된 live intent는 Orders와 Decision Detail에서 확인할 수 있습니다. raw payload에는 order intent, idempotency key, broker response 또는 차단 사유가 남습니다.
 
-실제 live adapter로 교체하기 전에는 같은 코드베이스 안에서 env 전환과 adapter 경계를 유지한 채 최소한 아래 항목을 검증해야 합니다.
+live order를 켜기 전에는 같은 코드베이스 안에서 env 전환과 adapter 경계를 유지한 채 최소한 아래 항목을 검증해야 합니다.
 
 - 공식 주문 endpoint, 필수 header, 계좌 scope, 주문 가능 상품 범위 확인
 - 내부 `BUY/SELL`, 수량, 금액 주문 의도를 브로커 요청 필드로 매핑
@@ -462,7 +466,7 @@ curl http://localhost:81/settings/live-readiness
 ## Public Repo 운영 방침
 
 - 기본 설정: DRY_RUN / demo / paper trading
-- live-ready 전환은 env opt-in으로 관리하며, 공개 포트폴리오 빌드는 실제 주문 전송을 차단합니다.
+- live order 전환은 env opt-in으로 관리하며, API 키와 주문 권한 사용 책임은 실행자에게 있습니다.
 - API 키, 계좌번호, 실거래 로그, 실제 API 응답은 저장소에 포함하지 않습니다.
 
 ## 면책 문구

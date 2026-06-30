@@ -352,6 +352,8 @@ export type BotPositionMarketSyncResponse = {
 
 export type PortfolioPerformance = {
   simulated_order_count: number;
+  live_submitted_order_count: number;
+  live_submitted_order_amount_usd: number;
   buy_order_count: number;
   sell_order_count: number;
   gross_bought_usd: number;

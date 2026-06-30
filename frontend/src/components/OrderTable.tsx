@@ -32,7 +32,7 @@ function fillSummary(order: TradeOrder) {
 
 function statusTone(value: string) {
   const normalized = value.toUpperCase();
-  if (["SIMULATED", "SIMULATED_FILLED", "EXECUTED", "SUCCEEDED"].includes(normalized)) return "positive";
+  if (["SIMULATED", "SIMULATED_FILLED", "LIVE_SUBMITTED", "EXECUTED", "SUCCEEDED"].includes(normalized)) return "positive";
   if (["FAILED", "REJECTED"].includes(normalized)) return "negative";
   return "neutral";
 }

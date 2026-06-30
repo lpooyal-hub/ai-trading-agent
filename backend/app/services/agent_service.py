@@ -465,7 +465,7 @@ class AgentService:
         if not blockers:
             return ["Review generated orders and LLM usage after each paper auto run."]
         return [
-            "Keep real live orders blocked while validating paper automation.",
+            "Keep DRY_RUN=true while validating paper automation.",
             "Set AGENT_AUTOMATION_ENABLED=true and AGENT_AUTOMATION_MODE=paper_auto only after reviewing risk limits.",
         ]
 

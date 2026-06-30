@@ -27,7 +27,7 @@
 
   <rect class="bg" x="0" y="0" width="1400" height="780" rx="0"/>
   <text class="title" x="70" y="72">AI Trading Agent Research Platform</text>
-  <text class="muted" x="72" y="108">Agentic workflow for safe paper-trading experiments with audit trail, Redis guard, LLM budget, and memory feedback.</text>
+  <text class="muted" x="72" y="108">Agentic workflow with audit trail, Redis guard, LLM budget, broker adapter, and memory feedback.</text>
 
   <rect class="panel" x="60" y="145" width="1280" height="410" rx="24"/>
   <text class="section" x="92" y="190">Agentic Workflow</text>
@@ -70,7 +70,7 @@
 
   <rect class="node" x="692" y="385" width="150" height="100" rx="18"/>
   <text class="label" x="737" y="425">Order</text>
-  <text class="small" x="719" y="455">paper only</text>
+  <text class="small" x="716" y="455">paper / live</text>
 
   <rect class="storage" x="892" y="385" width="150" height="100" rx="18"/>
   <text class="label" x="916" y="425">Journal</text>
@@ -106,7 +106,7 @@
   <rect class="panel" x="950" y="590" width="390" height="120" rx="22"/>
   <text class="section" x="982" y="634">Storage / External</text>
   <text class="small" x="982" y="666">SQLite audit DB, Redis lock,</text>
-  <text class="small" x="982" y="694">OpenAI-ready, Toss read-only</text>
+  <text class="small" x="982" y="694">LLM-ready, broker adapter</text>
 
   <path class="arrow" d="M450 650 H505"/>
   <path class="arrow" d="M895 650 H950"/>

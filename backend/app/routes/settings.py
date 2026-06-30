@@ -84,7 +84,10 @@ def get_security_readiness() -> SecurityReadinessRead:
     if not settings.dry_run:
         warnings.append("DRY_RUN is disabled. Review all order paths before running the agent.")
     if settings.live_trading_enabled:
-        warnings.append("LIVE_TRADING_ENABLED is true, but BlockedLiveExecutionAdapter still prevents real orders.")
+        if settings.toss_live_order_ready and settings.admin_auth_enabled:
+            warnings.append("LIVE_TRADING_ENABLED is true and TossLiveExecutionAdapter can submit live orders.")
+        else:
+            warnings.append("LIVE_TRADING_ENABLED is true, but live order readiness is incomplete.")
     if settings.use_mock_data and settings.has_external_api_credentials:
         warnings.append("Mock mode is enabled while external API credentials are configured.")
     if not settings.use_mock_data and not settings.toss_api_credentials_ready:
@@ -132,7 +135,7 @@ def get_live_trading_readiness() -> LiveTradingReadinessRead:
 
     if settings.dry_run:
         blockers.append("DRY_RUN is true.")
-        next_actions.append("Keep DRY_RUN=true until BlockedLiveExecutionAdapter is replaced after review.")
+        next_actions.append("Set DRY_RUN=false only when live order submission is intended.")
     if not settings.live_trading_enabled:
         blockers.append("LIVE_TRADING_ENABLED is false.")
     if settings.use_mock_data:
@@ -141,27 +144,32 @@ def get_live_trading_readiness() -> LiveTradingReadinessRead:
         blockers.append("Toss API credentials or TOSS_ACCOUNT_ID are incomplete.")
     if not settings.toss_read_only_ready:
         blockers.append("Toss read-only readiness is incomplete.")
+    if not settings.toss_order_path:
+        blockers.append("TOSS_ORDER_PATH is not configured.")
+        next_actions.append("Set TOSS_ORDER_PATH from the official Toss Securities order API documentation.")
+    if settings.require_admin_api_key and not settings.admin_api_key_configured:
+        blockers.append("ADMIN_API_KEY is required but not configured.")
+    if not settings.require_admin_api_key:
+        next_actions.append("Set REQUIRE_ADMIN_API_KEY=true before exposing live order endpoints.")
 
-    blockers.append("BlockedLiveExecutionAdapter is active.")
-    next_actions.append("Replace the blocked-live adapter only after a separate broker order adapter review.")
     adapter_checklist = [
-        "Map internal BUY/SELL order intent to Toss order request fields.",
+        "Confirm internal BUY/SELL order intent matches Toss order request fields.",
         "Confirm account scope, order endpoint path, and required headers from official Toss docs.",
-        "Add idempotency or duplicate-submit protection before any real order call.",
+        "Confirm idempotency header support or broker-side duplicate-submit protection.",
         "Persist masked broker response metadata without storing secrets.",
-        "Add a broker adapter test plan before replacing BlockedLiveExecutionAdapter.",
-        "Run manual broker sandbox or minimum-size production validation outside public demo mode.",
+        "Run manual broker sandbox or minimum-size production validation before automation.",
     ]
+    live_order_ready = bool(settings.toss_live_order_ready and settings.admin_auth_enabled)
 
     return LiveTradingReadinessRead(
-        live_order_ready=False,
-        execution_mode="LIVE_ORDER_BLOCKED",
+        live_order_ready=live_order_ready,
+        execution_mode="LIVE_ORDER" if live_order_ready else "LIVE_ORDER_BLOCKED",
         dry_run_enabled=settings.dry_run,
         live_trading_enabled=settings.live_trading_enabled,
         mock_data_enabled=settings.use_mock_data,
         toss_credentials_ready=settings.toss_credentials_ready,
         toss_read_only_ready=settings.toss_read_only_ready,
-        live_order_implementation="BlockedLiveExecutionAdapter",
+        live_order_implementation="TossLiveExecutionAdapter" if live_order_ready else "BlockedLiveExecutionAdapter",
         adapter_checklist=adapter_checklist,
         blockers=blockers,
         next_actions=next_actions,

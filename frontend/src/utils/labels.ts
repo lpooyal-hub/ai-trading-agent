@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
   SUCCEEDED: "성공",
   SIMULATED: "모의 체결",
   SIMULATED_FILLED: "모의 체결",
+  LIVE_SUBMITTED: "실주문 제출",
   TODO_LIVE_ORDER_NOT_IMPLEMENTED: "실주문 차단",
   FAILED: "실패",
   PENDING_REVIEW: "리뷰 대기",
