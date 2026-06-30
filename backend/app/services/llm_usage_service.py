@@ -95,6 +95,14 @@ class LLMUsageService:
     def latest_usage(self, db: Session) -> LLMUsage | None:
         return db.query(LLMUsage).order_by(LLMUsage.created_at.desc()).first()
 
+    def latest_usage_for_cooldown(self, db: Session) -> LLMUsage | None:
+        return (
+            db.query(LLMUsage)
+            .filter(LLMUsage.purpose != LLMPurpose.TEST)
+            .order_by(LLMUsage.created_at.desc())
+            .first()
+        )
+
     def _aggregate_since(self, db: Session, start: datetime) -> dict:
         row = (
             db.query(
