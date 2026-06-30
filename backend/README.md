@@ -116,7 +116,7 @@ ADMIN_API_KEY=<set-on-server-only>
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, 현재는 DRY_RUN simulated order만 생성합니다.
-- `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` 조합에서도 live order adapter가 아직 연결되지 않아 실제 주문은 전송되지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단됩니다.
+- `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` 조합에서도 공개 포트폴리오 빌드는 실제 주문을 전송하지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단합니다.
 - 차단된 live order에는 order intent와 idempotency key가 raw payload에 남으며, 이는 실제 주문 전송이 아니라 향후 broker adapter 구현 검토용입니다.
 - `/decisions/{decision_id}/preview`는 승인 전 예상 주문 수량, 금액, 예산 영향, legacy 보호 여부, RiskManager 결과를 보여줍니다.
 - decision evaluation은 최신 snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
@@ -173,7 +173,7 @@ ADMIN_API_KEY=<set-on-server-only>
 목표 구조는 아래 역할 분리를 기준으로 확장합니다.
 
 1. Scheduler: 정해진 주기와 market-hours guard에 따라 agent run을 트리거합니다.
-2. News Agent: 뉴스 수집과 요약을 담당합니다. 아직 구현 전이며 LLM 사용 후보입니다.
+2. News Agent: 외부 뉴스/실적/캘린더 API를 붙일 수 있는 이벤트 컨텍스트 경계입니다. 공개 포트폴리오 버전에서는 market snapshot 기반 context contract를 먼저 고정합니다.
 3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재 `MarketAgent`가 market snapshot refresh/readiness preview와 후보 pre-filter를 맡습니다.
 4. Decision Agent: LLM으로 매수/매도/HOLD 판단과 이유를 생성합니다. 현재 `DecisionAgent`가 LLM 호출, 응답 guard, 예상 비용 계산을 맡습니다.
 5. Risk Agent: 투자 비중, 손절/익절, protected legacy position, budget guard를 검증합니다.
@@ -182,7 +182,7 @@ ADMIN_API_KEY=<set-on-server-only>
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
 9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
 
-현재 구현된 역할 분리는 점진 적용 중입니다. `MarketAgent`와 `DecisionAgent`는 코드 레벨로 분리되었고, Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
+현재 공개 포트폴리오 버전은 agentic workflow, audit trail, risk guard, paper execution, journal, memory feedback loop를 중심으로 역할을 분리합니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 외부 뉴스 provider를 붙일 때 확장할 수 있도록 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
@@ -191,8 +191,8 @@ ADMIN_API_KEY=<set-on-server-only>
 `/agent/schedule`은 마지막 decision 기준 다음 실행 시각과 due 여부를 반환합니다.
 `/agent/run-scheduled`는 schedule이 due일 때만 `/agent/run-once`를 실행하고, due가 아니면 decision 없이 reason만 반환합니다.
 `AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`에서는 설정된 timezone/open/close 기준 평일 정규장 안에서만 scheduled run을 통과시킵니다.
-`AGENT_MARKET_CLOSED_DATES`에 `YYYY-MM-DD` CSV로 휴장일을 지정하면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
-내부 백그라운드 루프는 아직 켜지지 않았으며, 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
+`AGENT_MARKET_CLOSED_DATES`에 `YYYY-MM-DD` CSV로 휴장일을 지정하면 해당 날짜도 차단합니다. 공개 버전은 고정 휴장일 CSV를 사용하고, 조기폐장 캘린더 provider는 별도 확장 지점으로 둡니다.
+내부 백그라운드 루프 대신 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
 `/settings/llm-smoke-test`는 실제 OpenAI 키와 모델 연결만 작게 확인하고 `LLMUsage`에 `test` 목적의 usage row를 저장합니다. 이 endpoint는 trading decision이나 order를 만들지 않습니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
@@ -204,7 +204,7 @@ Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision
 
 ## Market Snapshots
 
-실전 운용 전에는 `/market/snapshots`로 active universe 종목의 최신 가격, 등락률, 거래량을 저장할 수 있습니다.
+데모/연구 실행 전에는 `/market/snapshots`로 active universe 종목의 최신 가격, 등락률, 거래량을 저장할 수 있습니다.
 
 ```bash
 curl http://localhost:8000/market/snapshots/status
@@ -215,8 +215,8 @@ curl -X POST http://localhost:8000/market/snapshots \
   -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
 ```
 
-`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 아직 외부 시세 provider를 호출하지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
-외부 시세 client는 현재 명시적인 `NOT_CONFIGURED` stub이며, 실제 provider 호출은 아직 연결하지 않았습니다.
+`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 공개 repo에 특정 유료/개인 시세 provider를 묶지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
+외부 시세 client는 명시적인 `NOT_CONFIGURED` stub으로 두어 provider 경계를 보여줍니다.
 `/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 

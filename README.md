@@ -98,7 +98,7 @@ Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 �
 - 공개 데모는 `USE_MOCK_DATA=true`로 실행합니다.
 - 운영 도메인에 노출할 때는 `REQUIRE_ADMIN_API_KEY=true`와 `ADMIN_API_KEY`를 실제 서버 `.env`에만 설정해 실행/변경성 API를 보호합니다.
 - 관리자 키는 `X-Admin-API-Key` 또는 `Authorization: Bearer ...` 헤더로 전달하며, 공개 `.env.example`에는 실제 값을 넣지 않습니다.
-- 실거래는 사용자가 명시적으로 설정을 바꾸고, 코드와 주문 동작을 검토한 뒤 자기 책임으로 활성화해야 합니다.
+- 공개 포트폴리오 빌드는 실주문 전송을 범위 밖으로 두며, live order path는 감사 가능한 차단 adapter로 남깁니다.
 
 ## Quick Start
 
