@@ -190,6 +190,58 @@ section h3 {
   gap: 6px;
 }
 
+.dashboard-status-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-status-panel {
+  background: #ffffff;
+  border: 1px solid #dce6f5;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.dashboard-status-panel h3 {
+  margin: 0;
+}
+
+.dashboard-status-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-status-list div {
+  align-items: start;
+  background: #f7f9fc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 110px minmax(86px, auto) minmax(0, 1fr);
+  padding: 10px;
+}
+
+.dashboard-status-list span,
+.dashboard-status-list small {
+  color: #6b7684;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dashboard-status-list strong {
+  color: #0b1f36;
+  font-size: 14px;
+}
+
+.dashboard-status-list small,
+.dashboard-status-list strong {
+  overflow-wrap: anywhere;
+}
+
 .stat-card span,
 .stat-card small,
 dt {
@@ -605,6 +657,7 @@ dd {
   }
 
   .stat-grid,
+  .dashboard-status-grid,
   .filter-row,
   .detail-grid,
   .evaluation-grid,
@@ -619,6 +672,10 @@ dd {
   .workflow-side-loop {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .dashboard-status-list div {
+    grid-template-columns: 1fr;
   }
 
   .page-header {

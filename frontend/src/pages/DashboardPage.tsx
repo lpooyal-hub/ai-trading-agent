@@ -17,6 +17,34 @@ function modeLabel(value: string | null | undefined) {
   return labels[value] ?? value;
 }
 
+function statusText(value: boolean | null | undefined, positive = "준비됨", negative = "확인 필요") {
+  if (value === null || value === undefined) return "알 수 없음";
+  return value ? positive : negative;
+}
+
+function DashboardStatusPanel({
+  title,
+  items,
+}: {
+  title: string;
+  items: { label: string; value: string; detail?: string }[];
+}) {
+  return (
+    <section className="dashboard-status-panel">
+      <h3>{title}</h3>
+      <div className="dashboard-status-list">
+        {items.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            {item.detail ? <small>{item.detail}</small> : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: number) => void }) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
@@ -136,6 +164,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
   };
 
   const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Mock 워크플로 실행" : "워크플로 실행";
+  const topSymbol = symbolPerformance[0];
 
   return (
     <section className="page-stack">
@@ -166,57 +195,54 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       </header>
       {error ? <div className="notice">{error}</div> : null}
       <div className="stat-grid">
-        <StatCard label="봇 운용 한도" value={`$${summary?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}`} />
         <StatCard label="사용 가능 예산" value={`$${summary?.available_budget_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="투입 금액" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />
         <StatCard label="전체 손익" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
-        <StatCard label="실현 손익" value={`$${performance?.realized_pnl_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="LLM 비용 반영 후" value={`$${costRecovery?.net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail={`월 LLM $${costRecovery?.monthly_llm_cost_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="LLM 비용 회수" value={costRecovery?.llm_cost_recovery_ratio === null || costRecovery?.llm_cost_recovery_ratio === undefined ? "-" : `${costRecovery.llm_cost_recovery_ratio.toFixed(2)}x`} detail={costRecovery?.llm_cost_covered === null || costRecovery?.llm_cost_covered === undefined ? "아직 LLM 비용 없음" : costRecovery.llm_cost_covered ? "모의 손익이 비용 상회" : "모의 손익이 비용 미달"} />
-        <StatCard label="실현 기준 순손익" value={`$${costRecovery?.realized_net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail={costRecovery?.realized_llm_cost_covered === null || costRecovery?.realized_llm_cost_covered === undefined ? "아직 LLM 비용 없음" : costRecovery.realized_llm_cost_covered ? "실현 손익이 비용 상회" : "실현 손익이 비용 미달"} />
         <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
-        <StatCard
-          label="상위 종목"
-          value={symbolPerformance[0]?.symbol ?? "-"}
-          detail={symbolPerformance[0] ? `$${symbolPerformance[0].realized_pnl_usd.toFixed(2)} 실현` : "실현 거래 없음"}
-        />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
-        <StatCard label="봇 포지션" value={`${summary?.bot_position_count ?? 0}`} />
-        <StatCard label="오늘 LLM 호출" value={`${llmSummary?.today_calls ?? 0}`} />
-        <StatCard label="남은 LLM 호출" value={`${llmBudget?.daily_calls_remaining ?? 0}`} detail={`한도 ${llmBudget?.daily_call_limit ?? 0} / 쿨다운 ${llmBudget?.cooldown_remaining_minutes ?? 0}분`} />
-        <StatCard label="오늘 토큰" value={`${llmSummary?.today_total_tokens ?? 0}`} />
-        <StatCard label="오늘 LLM 비용" value={`$${llmSummary?.today_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="월 LLM 비용" value={`$${llmSummary?.monthly_estimated_cost_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="남은 LLM 예산" value={`$${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="평균 지연" value={`${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`} />
-        <StatCard label="시장 준비" value={marketStatus?.ready_for_agent ? "준비됨" : "미준비"} detail={marketStatus?.message} />
-        <StatCard label="신선한 종목" value={`${marketStatus?.fresh_symbol_count ?? 0}`} detail={`${marketStatus?.missing_symbol_count ?? 0}개 누락`} />
-        <StatCard label="에이전트 점검" value={agentReadiness?.ready ? "준비됨" : "확인 필요"} detail={agentReadiness?.reason} />
+        <StatCard label="순손익" value={`$${costRecovery?.net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail="LLM 비용 반영" />
+        <StatCard label="워크플로 준비" value={statusText(agentReadiness?.ready)} detail={agentReadiness?.reason} />
         <StatCard label="최근 판단" value={agentOperations?.last_decision_symbol ?? "-"} detail={agentOperations?.last_decision_status ?? "없음"} />
         <StatCard label="대기 판단" value={`${agentOperations?.pending_decision_count ?? 0}`} detail={`${agentOperations?.executable_decision_count ?? 0}개 실행 가능`} />
-        <StatCard label="최근 주문" value={agentOperations?.last_order_symbol ?? "-"} detail={agentOperations?.last_order_status ?? "없음"} />
-        <StatCard label="AI 자동화" value={agentReadiness?.automation_ready ? "준비됨" : "차단됨"} detail={agentReadiness?.automation_reason} />
-        <StatCard label="Paper 자동매매" value={agentReadiness?.paper_auto_ready ? "준비됨" : "꺼짐"} detail={agentReadiness?.paper_auto_reason} />
-        <StatCard label="자동화 정책" value={modeLabel(automationPolicy?.automation_mode ?? "manual_approval")} detail={`최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}`} />
-        <StatCard label="스케줄" value={agentSchedule?.scheduler_enabled ? "켜짐" : "꺼짐"} detail={agentSchedule?.due ? "지금 실행 가능" : `${agentSchedule?.minutes_until_next_run ?? 0}분 후`} />
-        <StatCard label="장 상태" value={agentSchedule?.market_open_now ? "열림" : "닫힘"} detail={`${modeLabel(agentSchedule?.market_session)} · ${agentSchedule?.market_open_time ?? "09:30"}-${agentSchedule?.market_close_time ?? "16:00"}`} />
-        <StatCard label="스케줄 가드" value={(agentSchedule?.blockers ?? []).length ? "차단됨" : "준비됨"} detail={(agentSchedule?.blockers ?? []).join(" / ") || `${agentSchedule?.interval_minutes ?? 60}분 간격`} />
-        <StatCard label="LLM 모드" value={modeLabel(agentReadiness?.llm_mode)} detail={(agentReadiness?.llm_blockers ?? []).join(" / ") || "실제 LLM 준비됨"} />
-        <StatCard label="실주문" value={liveReadiness?.live_order_ready ? "준비됨" : "차단됨"} detail={modeLabel(liveReadiness?.execution_mode)} />
-        <StatCard label="후보 종목" value={`${agentReadiness?.candidate_symbols.length ?? 0}`} detail={`${agentReadiness?.candidate_symbols.join(", ") || "없음"} / 최대 ${agentReadiness?.max_candidates_per_run ?? 3}`} />
-        <StatCard
-          label="데모 모드"
-          value={demoStatus?.demo_enabled ? "켜짐" : "꺼짐"}
-          detail={demoStatus?.demo_reason}
-        />
-        <StatCard label="데모 데이터" value={`${demoStatus?.decisions ?? 0}`} detail={`${demoStatus?.orders ?? 0}개 주문`} />
       </div>
-      <section>
-        <h3>감시 종목</h3>
-        <div className="symbol-list">
-          {(summary?.active_universe ?? []).map((symbol) => <span key={symbol}>{symbol}</span>)}
-        </div>
-      </section>
+      <div className="dashboard-status-grid">
+        <DashboardStatusPanel
+          title="에이전트 상태"
+          items={[
+            { label: "시장 데이터", value: statusText(marketStatus?.ready_for_agent, "준비됨", "미준비"), detail: marketStatus?.message },
+            { label: "후보 종목", value: `${agentReadiness?.candidate_symbols.length ?? 0}`, detail: agentReadiness?.candidate_symbols.join(", ") || "없음" },
+            { label: "자동화", value: statusText(agentReadiness?.automation_ready, "준비됨", "차단됨"), detail: agentReadiness?.automation_reason },
+            { label: "Paper 자동", value: statusText(agentReadiness?.paper_auto_ready, "준비됨", "꺼짐"), detail: agentReadiness?.paper_auto_reason },
+          ]}
+        />
+        <DashboardStatusPanel
+          title="LLM / 비용"
+          items={[
+            { label: "LLM 모드", value: modeLabel(agentReadiness?.llm_mode), detail: (agentReadiness?.llm_blockers ?? []).join(" / ") || "사용 가능" },
+            { label: "오늘 호출", value: `${llmSummary?.today_calls ?? 0}`, detail: `잔여 ${llmBudget?.daily_calls_remaining ?? 0}회` },
+            { label: "오늘 비용", value: `$${llmSummary?.today_estimated_cost_usd.toFixed(4) ?? "0.0000"}`, detail: `잔여 $${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}` },
+            { label: "평균 지연", value: `${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`, detail: `${llmSummary?.today_total_tokens ?? 0} tokens today` },
+          ]}
+        />
+        <DashboardStatusPanel
+          title="실행 정책"
+          items={[
+            { label: "자동화 정책", value: modeLabel(automationPolicy?.automation_mode ?? "manual_approval"), detail: `최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}` },
+            { label: "스케줄", value: agentSchedule?.scheduler_enabled ? "켜짐" : "꺼짐", detail: agentSchedule?.due ? "지금 실행 가능" : `${agentSchedule?.minutes_until_next_run ?? 0}분 후` },
+            { label: "실주문", value: statusText(liveReadiness?.live_order_ready, "준비됨", "차단됨"), detail: modeLabel(liveReadiness?.execution_mode) },
+            { label: "상위 종목", value: topSymbol?.symbol ?? "-", detail: topSymbol ? `$${topSymbol.realized_pnl_usd.toFixed(2)} 실현` : "실현 거래 없음" },
+          ]}
+        />
+        <DashboardStatusPanel
+          title="데모 / 운영"
+          items={[
+            { label: "데모 모드", value: demoStatus?.demo_enabled ? "켜짐" : "꺼짐", detail: demoStatus?.demo_reason },
+            { label: "데모 데이터", value: `${demoStatus?.decisions ?? 0}`, detail: `${demoStatus?.orders ?? 0}개 주문` },
+            { label: "최근 주문", value: agentOperations?.last_order_symbol ?? "-", detail: agentOperations?.last_order_status ?? "없음" },
+            { label: "봇 포지션", value: `${summary?.bot_position_count ?? 0}`, detail: `운용 한도 $${summary?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}` },
+          ]}
+        />
+      </div>
       <section>
         <h3>후보 큐</h3>
         <div className="table-wrap">
@@ -243,36 +269,6 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
               {!(agentReadiness?.candidate_details ?? []).length ? (
                 <tr>
                   <td colSpan={5}>사전 필터를 통과한 후보가 없습니다.</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section>
-        <h3>상위 종목 성과</h3>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>종목</th>
-                <th>실현 손익</th>
-                <th>거래</th>
-                <th>승률</th>
-              </tr>
-            </thead>
-            <tbody>
-              {symbolPerformance.slice(0, 5).map((row) => (
-                <tr key={row.symbol}>
-                  <td>{row.symbol}</td>
-                  <td>${row.realized_pnl_usd.toFixed(2)}</td>
-                  <td>{row.realized_trade_count}</td>
-                  <td>{row.win_rate_percent.toFixed(2)}%</td>
-                </tr>
-              ))}
-              {!symbolPerformance.length ? (
-                <tr>
-                  <td colSpan={4}>아직 종목별 성과가 없습니다.</td>
                 </tr>
               ) : null}
             </tbody>
