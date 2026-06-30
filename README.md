@@ -96,6 +96,8 @@ Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 �
 - API 키는 환경변수로만 관리합니다.
 - 실계좌 데이터는 저장소에 포함하지 않습니다.
 - 공개 데모는 `USE_MOCK_DATA=true`로 실행합니다.
+- 운영 도메인에 노출할 때는 `REQUIRE_ADMIN_API_KEY=true`와 `ADMIN_API_KEY`를 실제 서버 `.env`에만 설정해 실행/변경성 API를 보호합니다.
+- 관리자 키는 `X-Admin-API-Key` 또는 `Authorization: Bearer ...` 헤더로 전달하며, 공개 `.env.example`에는 실제 값을 넣지 않습니다.
 - 실거래는 사용자가 명시적으로 설정을 바꾸고, 코드와 주문 동작을 검토한 뒤 자기 책임으로 활성화해야 합니다.
 
 ## Quick Start
@@ -214,6 +216,8 @@ DNS A 레코드가 서버 IP를 바라보고 있으면, 기존 Nginx reverse pro
 ```bash
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-trading-domain.example
 VITE_ALLOWED_HOSTS=your-trading-domain.example
+REQUIRE_ADMIN_API_KEY=true
+ADMIN_API_KEY=<set-on-server-only>
 ```
 
 2. 기존 Nginx 설정에 앱용 server block을 추가합니다.

@@ -18,6 +18,8 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://localhost:3000",
         validation_alias="CORS_ALLOWED_ORIGINS",
     )
+    require_admin_api_key: bool = False
+    admin_api_key: str | None = None
 
     broker_provider: str = "toss_securities"
     dry_run: bool = True
@@ -251,6 +253,14 @@ class Settings(BaseSettings):
             and self.toss_accounts_path
             and self.toss_positions_path
         )
+
+    @property
+    def admin_api_key_configured(self) -> bool:
+        return bool(self.admin_api_key and self.admin_api_key.strip())
+
+    @property
+    def admin_auth_enabled(self) -> bool:
+        return bool(self.require_admin_api_key and self.admin_api_key_configured)
 
 
 @lru_cache

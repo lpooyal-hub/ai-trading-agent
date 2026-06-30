@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.agents.journal_agent import JournalAgent
 from app.database import get_db
 from app.schemas import TradeJournalEntryCreate, TradeJournalEntryRead
+from app.security import require_admin_api_key
 
 
 router = APIRouter(prefix="/journal", tags=["journal"])
@@ -17,7 +18,7 @@ def list_journal_entries(
     return JournalAgent().list_entries(db, limit=limit)
 
 
-@router.post("", response_model=TradeJournalEntryRead)
+@router.post("", response_model=TradeJournalEntryRead, dependencies=[Depends(require_admin_api_key)])
 def create_journal_entry(
     payload: TradeJournalEntryCreate,
     db: Session = Depends(get_db),

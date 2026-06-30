@@ -10,12 +10,13 @@ from app.schemas import (
     EvaluationRunRequest,
     EvaluationRunResponse,
 )
+from app.security import require_admin_api_key
 
 
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
 
 
-@router.post("/run", response_model=EvaluationRunResponse)
+@router.post("/run", response_model=EvaluationRunResponse, dependencies=[Depends(require_admin_api_key)])
 def run_due_evaluations(
     payload: EvaluationRunRequest | None = None,
     db: Session = Depends(get_db),
@@ -34,7 +35,7 @@ def get_evaluation_status(db: Session = Depends(get_db)) -> EvaluationStatusRead
     return EvaluationStatusRead(**EvaluationAgent().get_status(db))
 
 
-@router.post("/{decision_id}", response_model=DecisionEvaluationRead)
+@router.post("/{decision_id}", response_model=DecisionEvaluationRead, dependencies=[Depends(require_admin_api_key)])
 def evaluate_decision(
     decision_id: int,
     payload: EvaluationRunRequest | None = None,

@@ -737,6 +737,8 @@ class SafetySettingsRead(BaseModel):
 
 class SecurityReadinessRead(BaseModel):
     safe_for_public_demo: bool
+    admin_api_key_required: bool
+    admin_api_key_configured: bool
     mock_data_enabled: bool
     dry_run_enabled: bool
     live_trading_enabled: bool

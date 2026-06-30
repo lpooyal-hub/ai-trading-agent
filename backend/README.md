@@ -94,6 +94,8 @@ uvicorn app.main:app --reload
 
 ```bash
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-trading-domain.example
+REQUIRE_ADMIN_API_KEY=true
+ADMIN_API_KEY=<set-on-server-only>
 ```
 
 ## 안전 원칙
@@ -125,7 +127,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-tr
 - `/broker/positions/normalized`는 Toss 잔고 응답을 내부 표준 포지션 형태로 변환해 보여줍니다.
 - `/portfolio/sync-legacy-from-broker`는 Toss 조회 잔고를 protected legacy position으로 가져오며, bot position이 이미 있으면 import를 차단합니다.
 - `/portfolio/sync-bot-from-market`는 freshness window 안의 최신 market snapshot으로 bot-only position의 현재가와 미실현 PnL을 갱신하며, legacy position은 건드리지 않습니다.
-- `/settings/security-readiness`는 secret 값을 노출하지 않고 demo 안전 상태, Toss/OpenAI 준비 여부, 경고와 다음 조치만 반환합니다.
+- `/settings/security-readiness`는 secret 값을 노출하지 않고 demo 안전 상태, Toss/OpenAI 준비 여부, 관리자 API key guard 상태, 경고와 다음 조치만 반환합니다.
+- `REQUIRE_ADMIN_API_KEY=true`일 때 agent run, workflow run, decision approve/reject, demo seed, market refresh, portfolio sync, journal/evaluation 생성, LLM smoke test 같은 실행/변경성 API는 `X-Admin-API-Key` 또는 `Authorization: Bearer ...` 헤더가 필요합니다.
 
 ## Universe
 

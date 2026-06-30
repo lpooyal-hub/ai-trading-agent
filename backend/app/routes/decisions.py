@@ -9,6 +9,7 @@ from app.schemas import (
     DecisionRejectRequest,
     TradeOrderRead,
 )
+from app.security import require_admin_api_key
 from app.services.trading_service import TradingService
 
 
@@ -43,14 +44,14 @@ def preview_decision(decision_id: int, db: Session = Depends(get_db)) -> Decisio
     return DecisionPreviewRead(**service.preview_decision(db, decision))
 
 
-@router.post("/{decision_id}/approve", response_model=TradeOrderRead)
+@router.post("/{decision_id}/approve", response_model=TradeOrderRead, dependencies=[Depends(require_admin_api_key)])
 def approve_decision(decision_id: int, db: Session = Depends(get_db)) -> TradeOrderRead:
     decision = _get_decision_or_404(db, decision_id)
     service = TradingService()
     return service.execute_approved_decision(db, decision)
 
 
-@router.post("/{decision_id}/reject", response_model=AgentDecisionRead)
+@router.post("/{decision_id}/reject", response_model=AgentDecisionRead, dependencies=[Depends(require_admin_api_key)])
 def reject_decision(
     decision_id: int,
     payload: DecisionRejectRequest,

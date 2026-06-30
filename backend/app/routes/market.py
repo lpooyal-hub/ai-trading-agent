@@ -9,6 +9,7 @@ from app.schemas import (
     MarketSnapshotRefreshResponse,
     MarketSnapshotStatusRead,
 )
+from app.security import require_admin_api_key
 from app.services.market_service import MarketService
 
 
@@ -31,7 +32,7 @@ def get_market_snapshot_status(db: Session = Depends(get_db)) -> MarketSnapshotS
     return MarketSnapshotStatusRead(**result)
 
 
-@router.post("/snapshots", response_model=MarketSnapshotBulkCreateResponse)
+@router.post("/snapshots", response_model=MarketSnapshotBulkCreateResponse, dependencies=[Depends(require_admin_api_key)])
 def create_market_snapshots(
     payload: MarketSnapshotBulkCreate,
     db: Session = Depends(get_db),
@@ -44,7 +45,7 @@ def create_market_snapshots(
     )
 
 
-@router.post("/snapshots/refresh", response_model=MarketSnapshotRefreshResponse)
+@router.post("/snapshots/refresh", response_model=MarketSnapshotRefreshResponse, dependencies=[Depends(require_admin_api_key)])
 def refresh_market_snapshots(db: Session = Depends(get_db)) -> MarketSnapshotRefreshResponse:
     result = MarketService().refresh_active_universe_snapshot_result(db)
     return MarketSnapshotRefreshResponse(**result)

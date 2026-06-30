@@ -16,13 +16,14 @@ from app.schemas import (
     PortfolioSummaryRead,
     PortfolioSymbolPerformanceRead,
 )
+from app.security import require_admin_api_key
 from app.services.portfolio_service import PortfolioService
 
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 
-@router.post("/initialize-legacy", response_model=LegacyPositionInitializeResponse)
+@router.post("/initialize-legacy", response_model=LegacyPositionInitializeResponse, dependencies=[Depends(require_admin_api_key)])
 def initialize_legacy_positions(
     payload: LegacyPositionInitializeRequest,
     db: Session = Depends(get_db),
@@ -36,7 +37,7 @@ def initialize_legacy_positions(
     )
 
 
-@router.post("/sync-legacy-from-broker", response_model=LegacyPositionBrokerSyncResponse)
+@router.post("/sync-legacy-from-broker", response_model=LegacyPositionBrokerSyncResponse, dependencies=[Depends(require_admin_api_key)])
 def sync_legacy_positions_from_broker(
     db: Session = Depends(get_db),
 ) -> LegacyPositionBrokerSyncResponse:
@@ -78,7 +79,7 @@ def list_bot_positions(db: Session = Depends(get_db)) -> list[BotPositionRead]:
     return service.list_bot_positions(db)
 
 
-@router.post("/sync-bot-from-market", response_model=BotPositionMarketSyncResponse)
+@router.post("/sync-bot-from-market", response_model=BotPositionMarketSyncResponse, dependencies=[Depends(require_admin_api_key)])
 def sync_bot_positions_from_market(
     db: Session = Depends(get_db),
 ) -> BotPositionMarketSyncResponse:

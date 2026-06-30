@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import get_settings
 from app.schemas import DemoSeedResponse, DemoStatusRead
+from app.security import require_admin_api_key
 from app.seed_demo_data import get_demo_status, seed_demo_data
 
 
@@ -18,7 +19,7 @@ def get_status() -> DemoStatusRead:
     )
 
 
-@router.post("/seed", response_model=DemoSeedResponse)
+@router.post("/seed", response_model=DemoSeedResponse, dependencies=[Depends(require_admin_api_key)])
 def seed_demo() -> DemoSeedResponse:
     settings = get_settings()
     if not settings.demo_mode_enabled:

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas import WorkflowDefinitionRead, WorkflowRunRead
+from app.security import require_admin_api_key
 from app.services.agent_service import AgentRunLockedError
 from app.services.workflow_execution_service import WorkflowExecutionService
 from app.services.workflow_service import WorkflowService
@@ -24,7 +25,7 @@ def list_workflow_runs(
     return WorkflowService().list_runs(db, limit=limit)
 
 
-@router.post("/run", response_model=WorkflowRunRead)
+@router.post("/run", response_model=WorkflowRunRead, dependencies=[Depends(require_admin_api_key)])
 def run_workflow_once(db: Session = Depends(get_db)) -> WorkflowRunRead:
     try:
         run = WorkflowExecutionService().run_once(db, trigger_source="workflow")

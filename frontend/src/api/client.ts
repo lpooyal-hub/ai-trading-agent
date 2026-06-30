@@ -610,6 +610,8 @@ export type SafetySettings = {
 
 export type SecurityReadiness = {
   safe_for_public_demo: boolean;
+  admin_api_key_required: boolean;
+  admin_api_key_configured: boolean;
   mock_data_enabled: boolean;
   dry_run_enabled: boolean;
   live_trading_enabled: boolean;

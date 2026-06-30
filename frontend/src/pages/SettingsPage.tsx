@@ -149,6 +149,8 @@ export function SettingsPage() {
         <div><dt>TOSS_HOLDINGS_PATH</dt><dd>{boolLabel(settings?.toss_positions_path_configured)}</dd></div>
         <div><dt>MARKET_SNAPSHOT_MAX_AGE_MINUTES</dt><dd>{settings?.market_snapshot_max_age_minutes ?? 30}</dd></div>
         <div><dt>공개 데모 안전 상태</dt><dd>{boolLabel(security?.safe_for_public_demo)}</dd></div>
+        <div><dt>관리자 API 키 요구</dt><dd>{boolLabel(security?.admin_api_key_required)}</dd></div>
+        <div><dt>관리자 API 키 설정</dt><dd>{boolLabel(security?.admin_api_key_configured)}</dd></div>
         <div><dt>실주문 준비</dt><dd>{boolLabel(liveReadiness?.live_order_ready)}</dd></div>
         <div><dt>실주문 실행 모드</dt><dd>{statusLabel(liveReadiness?.execution_mode)}</dd></div>
         <div><dt>실주문 구현 상태</dt><dd>{liveReadiness?.live_order_implementation ?? "-"}</dd></div>

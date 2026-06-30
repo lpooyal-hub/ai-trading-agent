@@ -14,6 +14,7 @@ from app.schemas import (
     SafetySettingsRead,
     SecurityReadinessRead,
 )
+from app.security import require_admin_api_key
 from app.services.llm_cost_service import LLMCostService
 from app.services.llm_usage_service import LLMUsageService
 
@@ -96,10 +97,21 @@ def get_security_readiness() -> SecurityReadinessRead:
         next_actions.append("Set USE_MOCK_DATA=false, OPENAI_API_KEY, and LLM_MODEL_DECISION to enable real LLM calls.")
     if settings.real_llm_enabled:
         next_actions.append("Run the agent with small DRY_RUN decisions first and review LLM usage cost logs.")
+    if settings.require_admin_api_key and not settings.admin_api_key_configured:
+        warnings.append("REQUIRE_ADMIN_API_KEY is true but ADMIN_API_KEY is not configured.")
+    if not settings.require_admin_api_key:
+        next_actions.append("Set REQUIRE_ADMIN_API_KEY=true and ADMIN_API_KEY before exposing mutating API endpoints.")
 
-    safe_for_public_demo = settings.use_mock_data and settings.dry_run and not settings.has_external_api_credentials
+    safe_for_public_demo = (
+        settings.use_mock_data
+        and settings.dry_run
+        and not settings.has_external_api_credentials
+        and (not settings.require_admin_api_key or settings.admin_api_key_configured)
+    )
     return SecurityReadinessRead(
         safe_for_public_demo=safe_for_public_demo,
+        admin_api_key_required=settings.require_admin_api_key,
+        admin_api_key_configured=settings.admin_api_key_configured,
         mock_data_enabled=settings.use_mock_data,
         dry_run_enabled=settings.dry_run,
         live_trading_enabled=settings.live_trading_enabled,
@@ -184,7 +196,7 @@ def get_llm_readiness() -> LLMReadinessRead:
     )
 
 
-@router.post("/llm-smoke-test", response_model=LLMSmokeTestRead)
+@router.post("/llm-smoke-test", response_model=LLMSmokeTestRead, dependencies=[Depends(require_admin_api_key)])
 def run_llm_smoke_test(db: Session = Depends(get_db)) -> LLMSmokeTestRead:
     settings = get_settings()
     budget = LLMBudgetManager(settings).check_budget(db)

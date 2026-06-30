@@ -13,6 +13,7 @@ from app.schemas import (
     AgentScheduledRunRead,
     AgentStatusRead,
 )
+from app.security import require_admin_api_key
 from app.services.agent_operations_service import AgentOperationsService
 from app.services.agent_service import AgentRunLockedError, AgentService
 from app.services.workflow_execution_service import WorkflowExecutionService
@@ -21,7 +22,7 @@ from app.services.workflow_execution_service import WorkflowExecutionService
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 
-@router.post("/run-once", response_model=AgentDecisionRead)
+@router.post("/run-once", response_model=AgentDecisionRead, dependencies=[Depends(require_admin_api_key)])
 def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
     try:
         run = WorkflowExecutionService().run_once(db, trigger_source="agent_legacy")
@@ -35,7 +36,7 @@ def run_agent_once(db: Session = Depends(get_db)) -> AgentDecisionRead:
     return decision
 
 
-@router.post("/run-scheduled", response_model=AgentScheduledRunRead)
+@router.post("/run-scheduled", response_model=AgentScheduledRunRead, dependencies=[Depends(require_admin_api_key)])
 def run_scheduled_agent(db: Session = Depends(get_db)) -> AgentScheduledRunRead:
     result = SchedulerAgent().run_if_due(db)
     if not result.triggered:
