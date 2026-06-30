@@ -9,6 +9,8 @@ from app.models import (
     EvaluationWindow,
     OrderSide,
     OrderStatus,
+    WorkflowRunStatus,
+    WorkflowStepStatus,
 )
 
 
@@ -290,6 +292,37 @@ class MemorySummaryRead(BaseModel):
     recent_lessons: list[MemoryLessonRead]
     memory_notes: list[str]
     data_gaps: list[str]
+
+
+class WorkflowStepRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    run_id: int
+    step_name: str
+    status: WorkflowStepStatus
+    started_at: datetime
+    finished_at: datetime | None
+    input_json: dict[str, Any]
+    output_json: dict[str, Any]
+    error_message: str | None
+    retry_count: int
+
+
+class WorkflowRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    workflow_name: str
+    status: WorkflowRunStatus
+    started_at: datetime
+    finished_at: datetime | None
+    trigger_source: str
+    decision_id: int | None
+    input_json: dict[str, Any]
+    output_json: dict[str, Any]
+    error_message: str | None
+    steps: list[WorkflowStepRead] = Field(default_factory=list)
 
 
 class DecisionPreviewRead(BaseModel):

@@ -17,6 +17,7 @@ from app.routes import (
     orders,
     portfolio,
     settings,
+    workflows,
 )
 from app.utils.logger import get_logger
 
@@ -59,3 +60,4 @@ app.include_router(llm_usage.router)
 app.include_router(journal.router)
 app.include_router(market.router)
 app.include_router(memory.router)
+app.include_router(workflows.router)

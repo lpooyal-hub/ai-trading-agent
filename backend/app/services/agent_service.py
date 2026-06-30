@@ -6,8 +6,16 @@ from app.agents.market_agent import MarketAgent
 from app.agents.news_agent import NewsAgent
 from app.agents.order_agent import OrderAgent
 from app.config import Settings, get_settings
-from app.models import AgentAction, AgentDecision, DecisionStatus, MarketSnapshot
+from app.models import (
+    AgentAction,
+    AgentDecision,
+    DecisionStatus,
+    MarketSnapshot,
+    WorkflowRunStatus,
+    WorkflowStepStatus,
+)
 from app.risk.llm_budget_manager import LLMBudgetManager
+from app.services.workflow_service import WorkflowService
 
 
 class AgentService:
@@ -21,75 +29,185 @@ class AgentService:
         self.logger_agent = LoggerAgent(self.decision_agent)
         self.order_agent = OrderAgent(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
+        self.workflow_service = WorkflowService()
 
     def run_once(self, db: Session) -> AgentDecision:
-        market_result = self.market_agent.run(db)
-        snapshots = market_result.snapshots
-        candidates = market_result.candidates
-        news_result = self.news_agent.run(snapshots)
-        news_context = self._news_context_snapshot(news_result)
-
-        if not candidates:
-            return self._save_skipped_decision(
-                db,
-                snapshots=snapshots,
-                news_context=news_context,
-                reason=self.no_candidate_reason,
-            )
-
-        budget = self.llm_budget_manager.check_budget(db)
-        if not budget["approved"]:
-            return self._save_skipped_decision(
-                db,
-                snapshots=snapshots,
-                news_context=news_context,
-                reason=f"LLM budget exceeded: {budget['reason']}",
-            )
-
-        candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
-        decision_result = self.decision_agent.run(candidate_payload, news_context=news_context)
-        response = decision_result.response
-        selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
-        usage = decision_result.usage
-        decision = AgentDecision(
-            symbol=response["symbol"],
-            sector=self.settings.allowed_sector,
-            action=AgentAction(response["action"]),
-            confidence=response["confidence"],
-            current_price=selected_snapshot.price,
-            recommended_order_amount=response["recommended_order_amount"],
-            thesis=response["thesis"],
-            risk_notes=response["risk_notes"],
-            llm_model=decision_result.model,
-            prompt_tokens=usage["prompt_tokens"],
-            completion_tokens=usage["completion_tokens"],
-            total_tokens=usage["total_tokens"],
-            estimated_llm_cost_usd=decision_result.estimated_cost_usd,
-            status=self._status_for_response(response, decision_result.success, decision_result.guard_blocked),
-            rejection_reason=self._rejection_reason(
-                response,
-                decision_result.success,
-                decision_result.error_message,
-                decision_result.guard_warnings,
-            ),
-            dry_run=True,
-        )
-        logged = self.logger_agent.save_decision_with_usage(
+        workflow = self.workflow_service.start_run(
             db,
-            decision=decision,
-            decision_result=decision_result,
-            market_source=market_result.market_source,
-            candidates=candidates,
-            candidate_details=market_result.candidate_details,
-            news_context=news_context,
-            active_universe=self.settings.active_universe,
-            llm_mode=self.settings.llm_mode,
-            max_candidates_per_run=self.settings.llm_max_candidates_per_run_safe,
-            real_llm_ready=self.settings.real_llm_enabled,
-            automation_policy=self._automation_policy_snapshot(),
+            workflow_name="agent.run_once",
+            trigger_source="manual",
+            input_json={
+                "active_universe": self.settings.active_universe,
+                "llm_mode": self.settings.llm_mode,
+                "automation_policy": self._automation_policy_snapshot(),
+            },
         )
-        self.order_agent.run_paper_auto(db, logged.decision)
-        return logged.decision
+        try:
+            market_result = self.market_agent.run(db)
+            snapshots = market_result.snapshots
+            candidates = market_result.candidates
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="market_agent",
+                status=WorkflowStepStatus.SUCCEEDED,
+                output_json={
+                    "market_source": market_result.market_source,
+                    "snapshot_count": len(snapshots),
+                    "candidate_count": len(candidates),
+                    "candidate_symbols": [item.symbol for item in candidates],
+                },
+            )
+
+            news_result = self.news_agent.run(snapshots)
+            news_context = self._news_context_snapshot(news_result)
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="news_agent",
+                status=WorkflowStepStatus.SUCCEEDED,
+                input_json={"snapshot_count": len(snapshots)},
+                output_json={
+                    "source": news_result.source,
+                    "item_count": len(news_result.items),
+                    "summary": news_result.summary,
+                },
+            )
+
+            if not candidates:
+                decision = self._save_skipped_decision(
+                    db,
+                    snapshots=snapshots,
+                    news_context=news_context,
+                    reason=self.no_candidate_reason,
+                )
+                self._record_skipped_workflow(db, workflow, decision, self.no_candidate_reason)
+                return decision
+
+            budget = self.llm_budget_manager.check_budget(db)
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="risk_agent",
+                status=WorkflowStepStatus.SUCCEEDED if budget["approved"] else WorkflowStepStatus.SKIPPED,
+                output_json={
+                    "approved": budget["approved"],
+                    "reason": budget["reason"],
+                },
+            )
+            if not budget["approved"]:
+                reason = f"LLM budget exceeded: {budget['reason']}"
+                decision = self._save_skipped_decision(
+                    db,
+                    snapshots=snapshots,
+                    news_context=news_context,
+                    reason=reason,
+                )
+                self._record_skipped_workflow(db, workflow, decision, reason)
+                return decision
+
+            candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
+            decision_result = self.decision_agent.run(candidate_payload, news_context=news_context)
+            response = decision_result.response
+            selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
+            usage = decision_result.usage
+            decision = AgentDecision(
+                symbol=response["symbol"],
+                sector=self.settings.allowed_sector,
+                action=AgentAction(response["action"]),
+                confidence=response["confidence"],
+                current_price=selected_snapshot.price,
+                recommended_order_amount=response["recommended_order_amount"],
+                thesis=response["thesis"],
+                risk_notes=response["risk_notes"],
+                llm_model=decision_result.model,
+                prompt_tokens=usage["prompt_tokens"],
+                completion_tokens=usage["completion_tokens"],
+                total_tokens=usage["total_tokens"],
+                estimated_llm_cost_usd=decision_result.estimated_cost_usd,
+                status=self._status_for_response(response, decision_result.success, decision_result.guard_blocked),
+                rejection_reason=self._rejection_reason(
+                    response,
+                    decision_result.success,
+                    decision_result.error_message,
+                    decision_result.guard_warnings,
+                ),
+                dry_run=True,
+            )
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="decision_agent",
+                status=WorkflowStepStatus.SUCCEEDED if decision_result.success else WorkflowStepStatus.FAILED,
+                input_json={"candidate_symbols": [item.symbol for item in candidates]},
+                output_json={
+                    "symbol": decision.symbol,
+                    "action": decision.action.value,
+                    "confidence": decision.confidence,
+                    "status": decision.status.value,
+                    "llm_model": decision.llm_model,
+                    "total_tokens": decision.total_tokens,
+                },
+                error_message=decision_result.error_message,
+            )
+
+            logged = self.logger_agent.save_decision_with_usage(
+                db,
+                decision=decision,
+                decision_result=decision_result,
+                market_source=market_result.market_source,
+                candidates=candidates,
+                candidate_details=market_result.candidate_details,
+                news_context=news_context,
+                active_universe=self.settings.active_universe,
+                llm_mode=self.settings.llm_mode,
+                max_candidates_per_run=self.settings.llm_max_candidates_per_run_safe,
+                real_llm_ready=self.settings.real_llm_enabled,
+                automation_policy=self._automation_policy_snapshot(),
+            )
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="logger_agent",
+                status=WorkflowStepStatus.SUCCEEDED,
+                output_json={
+                    "decision_id": logged.decision.id,
+                    "decision_status": logged.decision.status.value,
+                },
+            )
+
+            order_result = self.order_agent.run_paper_auto(db, logged.decision)
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="order_agent",
+                status=WorkflowStepStatus.SUCCEEDED if order_result.attempted else WorkflowStepStatus.SKIPPED,
+                output_json={
+                    "attempted": order_result.attempted,
+                    "order_id": order_result.order.id if order_result.order else None,
+                    "reason": order_result.reason,
+                },
+            )
+            self.workflow_service.finish_run(
+                db,
+                workflow,
+                status=WorkflowRunStatus.SUCCEEDED,
+                decision_id=logged.decision.id,
+                output_json={
+                    "decision_id": logged.decision.id,
+                    "decision_status": logged.decision.status.value,
+                    "order_attempted": order_result.attempted,
+                },
+            )
+            return logged.decision
+        except Exception as exc:
+            self.workflow_service.finish_run(
+                db,
+                workflow,
+                status=WorkflowRunStatus.FAILED,
+                error_message=str(exc),
+            )
+            raise
 
     def get_status(self, db: Session) -> dict:
         latest_decision = (
@@ -243,6 +361,36 @@ class AgentService:
             dry_run=True,
         )
         return self.logger_agent.save_skipped_decision(db, decision).decision
+
+    def _record_skipped_workflow(
+        self,
+        db: Session,
+        workflow,
+        decision: AgentDecision,
+        reason: str,
+    ) -> None:
+        self.workflow_service.record_step(
+            db,
+            workflow,
+            step_name="decision_agent",
+            status=WorkflowStepStatus.SKIPPED,
+            output_json={
+                "decision_id": decision.id,
+                "decision_status": decision.status.value,
+                "reason": reason,
+            },
+        )
+        self.workflow_service.finish_run(
+            db,
+            workflow,
+            status=WorkflowRunStatus.SKIPPED,
+            decision_id=decision.id,
+            output_json={
+                "decision_id": decision.id,
+                "decision_status": decision.status.value,
+                "reason": reason,
+            },
+        )
 
     @staticmethod
     def _snapshot_to_dict(snapshot: MarketSnapshot) -> dict:

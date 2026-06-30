@@ -48,6 +48,20 @@ class LLMPurpose(str, enum.Enum):
     TEST = "test"
 
 
+class WorkflowRunStatus(str, enum.Enum):
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
+class WorkflowStepStatus(str, enum.Enum):
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
 class LegacyPosition(Base):
     __tablename__ = "legacy_positions"
 
@@ -229,3 +243,52 @@ class LLMUsage(Base):
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     error_message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     raw_usage_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    workflow_name: Mapped[str] = mapped_column(String(100), index=True)
+    status: Mapped[WorkflowRunStatus] = mapped_column(
+        Enum(WorkflowRunStatus),
+        default=WorkflowRunStatus.RUNNING,
+        index=True,
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    trigger_source: Mapped[str] = mapped_column(String(100), default="manual")
+    decision_id: Mapped[int | None] = mapped_column(
+        ForeignKey("agent_decisions.id"),
+        nullable=True,
+    )
+    input_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    output_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    error_message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
+    steps: Mapped[list["WorkflowStep"]] = relationship(
+        back_populates="run",
+        cascade="all, delete-orphan",
+        order_by="WorkflowStep.id",
+    )
+
+
+class WorkflowStep(Base):
+    __tablename__ = "workflow_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("workflow_runs.id"), index=True)
+    step_name: Mapped[str] = mapped_column(String(100), index=True)
+    status: Mapped[WorkflowStepStatus] = mapped_column(
+        Enum(WorkflowStepStatus),
+        default=WorkflowStepStatus.RUNNING,
+        index=True,
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    input_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    output_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    error_message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    run: Mapped[WorkflowRun] = relationship(back_populates="steps")

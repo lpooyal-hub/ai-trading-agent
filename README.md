@@ -67,6 +67,12 @@ SchedulerAgent
 
 현재 `NewsAgent`는 “실제 뉴스 수집기”가 아니라 `DecisionAgent` 입력 계약을 먼저 만든 버전입니다. 실제 뉴스 API를 붙이면 `NewsAgent` 내부 수집 로직만 교체하고 downstream agent 흐름은 유지할 수 있습니다.
 
+### Workflow audit layer
+
+현재 구현은 Airflow/LangGraph 같은 범용 workflow engine이 아니라, agent 실행 결과를 추적하는 얇은 audit layer입니다. `/agent/run-once` 실행 시 `workflow_runs`, `workflow_steps`에 Market, News, Risk, Decision, Logger, Order 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
+
+이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조입니다. 이후 필요하면 retry, branching, schedule orchestration, frontend timeline view로 확장할 수 있습니다.
+
 ## 보안 원칙
 
 - `.env`는 절대 커밋하지 않습니다.
@@ -175,6 +181,13 @@ curl http://localhost:81/agent/schedule
 curl http://localhost:81/agent/operations
 curl -X POST http://localhost:81/agent/run-once
 curl -X POST http://localhost:81/agent/run-scheduled
+```
+
+Workflows:
+
+```bash
+curl http://localhost:81/workflows
+curl http://localhost:81/workflows/1
 ```
 
 LLM:
