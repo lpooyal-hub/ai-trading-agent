@@ -74,7 +74,7 @@ class LLMClient:
         payload = {
             "model": self.model,
             "input": "Reply with exactly: OK",
-            "max_output_tokens": 8,
+            "max_output_tokens": 16,
         }
         started = time.perf_counter()
         try:
@@ -182,6 +182,12 @@ class LLMClient:
 
     @staticmethod
     def _safe_error(exc: Exception) -> str:
+        if isinstance(exc, error.HTTPError):
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+                return f"HTTP Error {exc.code}: {body}".replace("\n", " ")[:500]
+            except Exception:
+                return str(exc).replace("\n", " ")[:500]
         return str(exc).replace("\n", " ")[:500]
 
     def _blocked_result(self, candidates: list[dict], reason: str) -> LLMCallResult:
