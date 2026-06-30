@@ -37,6 +37,7 @@ class LLMClient:
             )
 
         payload = self._build_payload(candidates, news_context, memory_context)
+        prompt_metadata = self.prompt_builder.decision_metadata()
         started = time.perf_counter()
         try:
             req = request.Request(
@@ -54,7 +55,10 @@ class LLMClient:
             usage = self._extract_usage(raw_response, payload, parsed_response)
             return LLMCallResult(
                 parsed_response=parsed_response,
-                raw_response=self._sanitize_raw_response(raw_response),
+                raw_response={
+                    **self._sanitize_raw_response(raw_response),
+                    "prompt_metadata": prompt_metadata,
+                },
                 usage=usage,
                 latency_ms=self._elapsed_ms(started),
                 success=True,
@@ -62,7 +66,11 @@ class LLMClient:
         except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError, ValueError) as exc:
             return LLMCallResult(
                 parsed_response=self._fallback_hold(candidates, f"LLM call failed: {self._safe_error(exc)}"),
-                raw_response={"error": self._safe_error(exc), "provider": "openai"},
+                raw_response={
+                    "error": self._safe_error(exc),
+                    "provider": "openai",
+                    "prompt_metadata": prompt_metadata,
+                },
                 usage=estimate_usage_from_payload(payload, str(exc)),
                 latency_ms=self._elapsed_ms(started),
                 success=False,
@@ -206,7 +214,12 @@ class LLMClient:
         parsed_response = self._fallback_hold(candidates, reason)
         return LLMCallResult(
             parsed_response=parsed_response,
-            raw_response={"blocked": True, "reason": reason, "provider": "openai"},
+            raw_response={
+                "blocked": True,
+                "reason": reason,
+                "provider": "openai",
+                "prompt_metadata": self.prompt_builder.decision_metadata(),
+            },
             usage=estimate_usage_from_payload(candidates, parsed_response),
             latency_ms=0,
             success=False,

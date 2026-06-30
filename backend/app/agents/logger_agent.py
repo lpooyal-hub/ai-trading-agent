@@ -38,6 +38,7 @@ class LoggerAgent:
         automation_policy: dict[str, Any],
     ) -> LoggerAgentResult:
         decision.input_snapshot_json = {
+            "prompt_metadata": decision_result.raw_response.get("prompt_metadata", {}),
             "candidate_symbols": [item.symbol for item in candidates],
             "candidate_details": candidate_details,
             "candidate_count": len(candidates),
@@ -76,6 +77,7 @@ class LoggerAgent:
             raw_usage_json={
                 **usage,
                 "source": decision_result.source,
+                "prompt_metadata": decision_result.raw_response.get("prompt_metadata", {}),
                 "pricing_configured": self.decision_agent.pricing_configured(),
                 "raw_response": decision_result.raw_response,
             },

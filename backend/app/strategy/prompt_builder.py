@@ -2,6 +2,16 @@ import json
 
 
 class PromptBuilder:
+    decision_prompt_version = "decision-v1"
+    decision_strategy_name = "guarded-paper-trading"
+
+    def decision_metadata(self) -> dict:
+        return {
+            "version": self.decision_prompt_version,
+            "strategy_name": self.decision_strategy_name,
+            "schema_name": "agent_decision",
+        }
+
     def build_decision_input(
         self,
         *,
@@ -33,6 +43,7 @@ class PromptBuilder:
                         "type": "input_text",
                         "text": json.dumps(
                             {
+                                "prompt_metadata": self.decision_metadata(),
                                 "settings": settings_snapshot,
                                 "candidates": candidates,
                                 "news_context": news_context or {

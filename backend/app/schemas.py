@@ -288,6 +288,7 @@ class MemorySummaryRead(BaseModel):
     action_stats: list[MemoryGroupStatRead]
     symbol_stats: list[MemoryGroupStatRead]
     model_stats: list[MemoryGroupStatRead]
+    prompt_stats: list[MemoryGroupStatRead]
     common_mistakes: list[MemoryMistakeRead]
     recent_lessons: list[MemoryLessonRead]
     memory_notes: list[str]

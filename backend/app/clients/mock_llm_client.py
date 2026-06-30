@@ -1,10 +1,14 @@
 from app.clients.llm_client import LLMCallResult, estimate_usage_from_payload
+from app.strategy.prompt_builder import PromptBuilder
 
 
 class MockLLMClient:
     """Public-safe LLM mock. It returns deterministic fake decisions."""
 
     model = "mock-llm"
+
+    def __init__(self):
+        self.prompt_builder = PromptBuilder()
 
     def create_decision(
         self,
@@ -47,6 +51,7 @@ class MockLLMClient:
     ) -> LLMCallResult:
         usage = estimate_usage_from_payload(
             {
+                "prompt_metadata": self.prompt_builder.decision_metadata(),
                 "candidates": candidates,
                 "news_context": news_context,
                 "memory_context": memory_context,
@@ -58,6 +63,7 @@ class MockLLMClient:
             raw_response={
                 "provider": "mock",
                 "model": self.model,
+                "prompt_metadata": self.prompt_builder.decision_metadata(),
                 "response": parsed_response,
                 "news_context": news_context or {},
                 "memory_context": memory_context or {},

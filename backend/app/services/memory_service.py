@@ -29,6 +29,7 @@ class MemoryService:
             "action_stats": self._action_stats(journal_entries),
             "symbol_stats": self._symbol_stats(journal_entries),
             "model_stats": self._model_stats(journal_entries, decisions),
+            "prompt_stats": self._prompt_stats(journal_entries, decisions),
             "common_mistakes": self._common_mistakes(evaluations),
             "recent_lessons": self._recent_lessons(journal_entries),
             "memory_notes": self._memory_notes(journal_entries, evaluations),
@@ -105,6 +106,21 @@ class MemoryService:
             for model, model_entries in sorted(grouped.items())
         ]
 
+    def _prompt_stats(
+        self,
+        entries: list[TradeJournalEntry],
+        decisions: dict[int, AgentDecision],
+    ) -> list[dict[str, Any]]:
+        grouped: dict[str, list[TradeJournalEntry]] = defaultdict(list)
+        for entry in entries:
+            decision = decisions.get(entry.decision_id)
+            prompt_key = self._prompt_key(decision)
+            grouped[prompt_key].append(entry)
+        return [
+            self._entry_group_stats(prompt_key, prompt_entries)
+            for prompt_key, prompt_entries in sorted(grouped.items())
+        ]
+
     def _entry_group_stats(self, key: str, entries: list[TradeJournalEntry]) -> dict[str, Any]:
         return {
             "key": key,
@@ -168,6 +184,20 @@ class MemoryService:
         gaps = []
         if entries and not any(decision.llm_model for decision in decisions.values()):
             gaps.append("LLM model coverage is missing for recent journaled decisions.")
-        gaps.append("Prompt version is not tracked yet, so prompt-level win rate is unavailable.")
+        if entries and not any(MemoryService._prompt_key(decision) != "unknown" for decision in decisions.values()):
+            gaps.append("Prompt version is not tracked yet, so prompt-level win rate is unavailable.")
         gaps.append("News source/type is not tracked yet, so news-pattern success rate is unavailable.")
         return gaps
+
+    @staticmethod
+    def _prompt_key(decision: AgentDecision | None) -> str:
+        if not decision:
+            return "unknown"
+        prompt_metadata = decision.agent_response_json.get("prompt_metadata") or decision.input_snapshot_json.get("prompt_metadata") or {}
+        version = prompt_metadata.get("version")
+        strategy_name = prompt_metadata.get("strategy_name")
+        if version and strategy_name:
+            return f"{strategy_name}:{version}"
+        if version:
+            return str(version)
+        return "unknown"

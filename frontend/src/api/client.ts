@@ -129,6 +129,7 @@ export type MemorySummary = {
   action_stats: MemoryGroupStat[];
   symbol_stats: MemoryGroupStat[];
   model_stats: MemoryGroupStat[];
+  prompt_stats: MemoryGroupStat[];
   common_mistakes: MemoryMistake[];
   recent_lessons: MemoryLesson[];
   memory_notes: string[];

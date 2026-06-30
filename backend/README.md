@@ -162,7 +162,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-tr
 14. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
 15. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
 16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. guard로 스킵된 run도 `SKIPPED_GUARD` 저널로 남겨 반복적인 데이터/예산/후보 부족 패턴을 추적할 수 있습니다.
-17. `/memory/summary`는 최근 journal 100건 기준 action/symbol/model별 win rate, reward, 반복 mistake, lesson, data gap을 요약합니다.
+17. `/memory/summary`는 최근 journal 100건 기준 action/symbol/model/prompt version별 win rate, reward, 반복 mistake, lesson, data gap을 요약합니다.
 18. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
 
 ## Agent Roles
@@ -179,7 +179,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-tr
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
 9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
 
-현재 구현된 역할 분리는 점진 적용 중입니다. `MarketAgent`와 `DecisionAgent`는 코드 레벨로 분리되었고, Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률과 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
+현재 구현된 역할 분리는 점진 적용 중입니다. `MarketAgent`와 `DecisionAgent`는 코드 레벨로 분리되었고, Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.

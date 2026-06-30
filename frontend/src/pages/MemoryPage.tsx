@@ -87,6 +87,7 @@ export function MemoryPage() {
         <MemoryStatsTable title="판단별 메모리" rows={summary?.action_stats ?? []} formatKey={actionLabel} />
         <MemoryStatsTable title="모델별 메모리" rows={summary?.model_stats ?? []} />
       </div>
+      <MemoryStatsTable title="프롬프트별 메모리" rows={summary?.prompt_stats ?? []} />
       <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} />
       <div className="detail-grid">
         <section>
