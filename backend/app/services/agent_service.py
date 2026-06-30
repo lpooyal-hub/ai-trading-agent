@@ -339,13 +339,13 @@ class AgentService:
                 workflow,
                 status=WorkflowRunStatus.SUCCEEDED,
                 decision_id=logged.decision.id,
-                output_json={
-                    "decision_id": logged.decision.id,
-                    "decision_status": logged.decision.status.value,
-                    "order_attempted": order_result.attempted,
-                    "evaluation_created_count": evaluation_result.created_count,
-                    "journal_id": journal_entry.id if journal_entry else None,
-                },
+                output_json=self._workflow_success_output(
+                    decision=logged.decision,
+                    execution_risk_result=execution_risk_result,
+                    order_result=order_result,
+                    evaluation_result=evaluation_result,
+                    journal_entry=journal_entry,
+                ),
             )
             return logged.decision
         except Exception as exc:
@@ -543,12 +543,115 @@ class AgentService:
             workflow,
             status=WorkflowRunStatus.SKIPPED,
             decision_id=decision.id,
-            output_json={
-                "decision_id": decision.id,
-                "decision_status": decision.status.value,
-                "reason": reason,
-            },
+            output_json=self._workflow_skipped_output(decision, reason),
         )
+
+    @staticmethod
+    def _workflow_success_output(
+        *,
+        decision: AgentDecision,
+        execution_risk_result,
+        order_result,
+        evaluation_result,
+        journal_entry,
+    ) -> dict:
+        execution_risk_approved = (
+            execution_risk_result.approved if execution_risk_result is not None else False
+        )
+        execution_risk_reason = (
+            execution_risk_result.reason
+            if execution_risk_result is not None
+            else "Decision did not require execution risk validation."
+        )
+        journal_id = journal_entry.id if journal_entry else None
+        return {
+            "summary_label": "Agentic workflow completed with auditable decision, risk, order, evaluation, and journal stages.",
+            "agentic_path": [
+                "runtime_lock",
+                "market_agent",
+                "news_agent",
+                "risk_agent",
+                "memory_agent",
+                "decision_agent",
+                "execution_risk_agent",
+                "logger_agent",
+                "order_agent",
+                "evaluation_agent",
+                "journal_agent",
+            ],
+            "decision_id": decision.id,
+            "decision_status": decision.status.value,
+            "decision": {
+                "id": decision.id,
+                "symbol": decision.symbol,
+                "action": decision.action.value,
+                "confidence": decision.confidence,
+                "status": decision.status.value,
+                "rejection_reason": decision.rejection_reason,
+            },
+            "execution_risk": {
+                "approved": execution_risk_approved,
+                "reason": execution_risk_reason,
+            },
+            "order": {
+                "attempted": order_result.attempted,
+                "order_id": order_result.order.id if order_result.order else None,
+                "reason": order_result.reason,
+            },
+            "evaluation": {
+                "created_count": evaluation_result.created_count,
+                "evaluation_ids": [item.id for item in evaluation_result.evaluations],
+            },
+            "journal": {
+                "journal_id": journal_id,
+                "outcome_label": journal_entry.outcome_label if journal_entry else None,
+            },
+            "memory_feedback_loop": "Evaluation and journal records become MemoryAgent context for later DecisionAgent prompts.",
+            "order_attempted": order_result.attempted,
+            "evaluation_created_count": evaluation_result.created_count,
+            "journal_id": journal_id,
+        }
+
+    @staticmethod
+    def _workflow_skipped_output(decision: AgentDecision, reason: str) -> dict:
+        return {
+            "summary_label": "Agentic workflow stopped before an executable decision.",
+            "agentic_path": [
+                "runtime_lock",
+                "market_agent",
+                "news_agent",
+                "decision_agent",
+            ],
+            "decision_id": decision.id,
+            "decision_status": decision.status.value,
+            "reason": reason,
+            "decision": {
+                "id": decision.id,
+                "symbol": decision.symbol,
+                "action": decision.action.value,
+                "confidence": decision.confidence,
+                "status": decision.status.value,
+                "rejection_reason": decision.rejection_reason,
+            },
+            "execution_risk": {
+                "approved": False,
+                "reason": "Skipped before execution risk validation.",
+            },
+            "order": {
+                "attempted": False,
+                "order_id": None,
+                "reason": "Skipped before order stage.",
+            },
+            "evaluation": {
+                "created_count": 0,
+                "evaluation_ids": [],
+            },
+            "journal": {
+                "journal_id": None,
+                "outcome_label": None,
+            },
+            "memory_feedback_loop": "Skipped decisions are persisted so later runs can show data gaps in MemoryAgent context.",
+        }
 
     @staticmethod
     def _snapshot_to_dict(snapshot: MarketSnapshot) -> dict:

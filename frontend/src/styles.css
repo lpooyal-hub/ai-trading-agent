@@ -454,6 +454,59 @@ pre {
   padding: 10px;
 }
 
+.workflow-summary-panel {
+  background: #f8fbff;
+  border: 1px solid #dce6f5;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.workflow-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.workflow-summary-grid article {
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.workflow-summary-grid span,
+.workflow-summary-grid small,
+.workflow-path-line span {
+  color: #5f7187;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workflow-summary-grid strong {
+  color: #0b1f36;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.workflow-path-line {
+  align-items: flex-start;
+  background: #eef6ff;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.workflow-path-line strong {
+  color: #0b1f36;
+  font-size: 13px;
+}
+
 .workflow-timeline {
   display: grid;
   gap: 10px;
@@ -558,6 +611,7 @@ dd {
   .journal-grid,
   .workflow-layout,
   .workflow-meta,
+  .workflow-summary-grid,
   .workflow-node-grid {
     grid-template-columns: 1fr;
   }

@@ -48,6 +48,62 @@ function compactJson(value: Record<string, unknown>) {
     .join(" · ");
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function textValue(value: unknown, fallback = "-") {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "boolean") return value ? "예" : "아니오";
+  return String(value);
+}
+
+function pathValue(value: unknown) {
+  return Array.isArray(value) ? value.map(String).map(stepLabel).join(" -> ") : "-";
+}
+
+function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
+  const output = run.output_json ?? {};
+  const decision = asRecord(output.decision);
+  const executionRisk = asRecord(output.execution_risk);
+  const order = asRecord(output.order);
+  const evaluation = asRecord(output.evaluation);
+  const journal = asRecord(output.journal);
+
+  return (
+    <section className="workflow-summary-panel">
+      <p className="helper-text">{textValue(output.summary_label, "워크플로 실행 요약이 아직 없습니다.")}</p>
+      <div className="workflow-summary-grid">
+        <article>
+          <span>판단</span>
+          <strong>{textValue(decision.symbol)} · {textValue(decision.action)}</strong>
+          <small>{textValue(decision.status)} · 신뢰도 {textValue(decision.confidence)}</small>
+        </article>
+        <article>
+          <span>실행 리스크</span>
+          <strong>{textValue(executionRisk.approved)}</strong>
+          <small>{textValue(executionRisk.reason)}</small>
+        </article>
+        <article>
+          <span>주문</span>
+          <strong>{textValue(order.attempted)}</strong>
+          <small>{order.order_id ? `Order #${order.order_id}` : textValue(order.reason)}</small>
+        </article>
+        <article>
+          <span>평가 / 저널</span>
+          <strong>{textValue(evaluation.created_count)}건 평가</strong>
+          <small>{journal.journal_id ? `Journal #${journal.journal_id}` : textValue(journal.outcome_label, "저널 없음")}</small>
+        </article>
+      </div>
+      <div className="workflow-path-line">
+        <strong>실행 경로</strong>
+        <span>{pathValue(output.agentic_path)}</span>
+      </div>
+      <p className="helper-text">{textValue(output.memory_feedback_loop)}</p>
+    </section>
+  );
+}
+
 function WorkflowStepTimeline({ steps }: { steps: WorkflowStep[] }) {
   return (
     <div className="workflow-timeline">
@@ -270,6 +326,7 @@ export function WorkflowsPage() {
                   <dd>{visibleRun.decision_id ? `#${visibleRun.decision_id}` : "-"}</dd>
                 </div>
               </dl>
+              <WorkflowRunSummary run={visibleRun} />
               {visibleRun.error_message ? <div className="warning-panel">{visibleRun.error_message}</div> : null}
               <WorkflowStepTimeline steps={visibleRun.steps} />
             </>
