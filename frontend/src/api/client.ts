@@ -166,6 +166,34 @@ export type WorkflowRun = {
   steps: WorkflowStep[];
 };
 
+export type WorkflowNode = {
+  id: string;
+  label: string;
+  agent_type: string;
+  uses_llm: boolean;
+  runtime: string;
+  responsibility: string;
+};
+
+export type WorkflowEdge = {
+  from: string;
+  to: string;
+};
+
+export type WorkflowSideLoop = {
+  name: string;
+  description: string;
+  nodes: string[];
+};
+
+export type WorkflowDefinition = {
+  workflow_name: string;
+  description: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  side_loops: WorkflowSideLoop[];
+};
+
 export type DecisionFilters = {
   status?: string;
   symbol?: string;
@@ -739,6 +767,7 @@ export const api = {
   getJournalEntries: () => request<TradeJournalEntry[]>("/journal"),
   getJournalEntriesForDecision: (decisionId: number) => request<TradeJournalEntry[]>(`/journal/decision/${decisionId}`),
   getMemorySummary: () => request<MemorySummary>("/memory/summary"),
+  getWorkflowDefinition: () => request<WorkflowDefinition>("/workflows/definition"),
   getWorkflowRuns: (limit = 50) => request<WorkflowRun[]>(`/workflows?limit=${limit}`),
   getWorkflowRun: (id: number) => request<WorkflowRun>(`/workflows/${id}`),
   createJournalEntry: (payload: TradeJournalEntryCreate) => request<TradeJournalEntry>("/journal", {

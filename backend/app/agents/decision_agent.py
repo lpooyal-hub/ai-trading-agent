@@ -37,8 +37,17 @@ class DecisionAgent:
             max_order_amount_usd=self.settings.max_order_amount_usd,
         )
 
-    def run(self, candidates: list[dict], news_context: dict | None = None) -> DecisionAgentResult:
-        llm_result = self.llm_client.create_decision(candidates, news_context=news_context)
+    def run(
+        self,
+        candidates: list[dict],
+        news_context: dict | None = None,
+        memory_context: dict | None = None,
+    ) -> DecisionAgentResult:
+        llm_result = self.llm_client.create_decision(
+            candidates,
+            news_context=news_context,
+            memory_context=memory_context,
+        )
         guarded_response = self.response_guard.normalize(
             llm_result.parsed_response,
             candidates,

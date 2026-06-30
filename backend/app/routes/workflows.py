@@ -2,11 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import WorkflowRunRead
+from app.schemas import WorkflowDefinitionRead, WorkflowRunRead
 from app.services.workflow_service import WorkflowService
 
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
+
+
+@router.get("/definition", response_model=WorkflowDefinitionRead)
+def get_workflow_definition() -> WorkflowDefinitionRead:
+    return WorkflowService().get_definition()
 
 
 @router.get("", response_model=list[WorkflowRunRead])

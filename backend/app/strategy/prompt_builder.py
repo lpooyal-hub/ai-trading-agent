@@ -7,6 +7,7 @@ class PromptBuilder:
         *,
         candidates: list[dict],
         news_context: dict | None = None,
+        memory_context: dict | None = None,
         settings_snapshot: dict,
     ) -> list[dict]:
         return [
@@ -37,6 +38,11 @@ class PromptBuilder:
                                 "news_context": news_context or {
                                     "summary": "No news context provided.",
                                     "items": [],
+                                },
+                                "memory_context": memory_context or {
+                                    "summary": "No memory context provided.",
+                                    "recent_lessons": [],
+                                    "common_mistakes": [],
                                 },
                                 "required_json_shape": {
                                     "symbol": "NVDA",

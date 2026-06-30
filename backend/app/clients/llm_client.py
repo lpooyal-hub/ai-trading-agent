@@ -24,14 +24,19 @@ class LLMClient:
         self.prompt_builder = PromptBuilder()
         self.model = self.settings.llm_model_decision or "unconfigured"
 
-    def create_decision(self, candidates: list[dict], news_context: dict | None = None) -> LLMCallResult:
+    def create_decision(
+        self,
+        candidates: list[dict],
+        news_context: dict | None = None,
+        memory_context: dict | None = None,
+    ) -> LLMCallResult:
         if not self.settings.real_llm_enabled:
             return self._blocked_result(
                 candidates,
                 "Real LLM is disabled. Set USE_MOCK_DATA=false, OPENAI_API_KEY, and LLM_MODEL_DECISION.",
             )
 
-        payload = self._build_payload(candidates, news_context)
+        payload = self._build_payload(candidates, news_context, memory_context)
         started = time.perf_counter()
         try:
             req = request.Request(
@@ -109,12 +114,18 @@ class LLMClient:
                 error_message=self._safe_error(exc),
             )
 
-    def _build_payload(self, candidates: list[dict], news_context: dict | None = None) -> dict:
+    def _build_payload(
+        self,
+        candidates: list[dict],
+        news_context: dict | None = None,
+        memory_context: dict | None = None,
+    ) -> dict:
         return {
             "model": self.model,
             "input": self.prompt_builder.build_decision_input(
                 candidates=candidates,
                 news_context=news_context,
+                memory_context=memory_context,
                 settings_snapshot={
                     "bot_capital_limit_usd": self.settings.bot_capital_limit_usd,
                     "max_order_amount_usd": self.settings.max_order_amount_usd,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, WorkflowRun, WorkflowStep } from "../api/client";
+import { api, WorkflowDefinition, WorkflowRun, WorkflowStep } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { statusLabel } from "../utils/labels";
 
@@ -8,6 +8,7 @@ const STEP_LABELS: Record<string, string> = {
   market_agent: "시장 에이전트",
   news_agent: "뉴스 에이전트",
   risk_agent: "리스크 에이전트",
+  memory_agent: "메모리 에이전트",
   decision_agent: "판단 에이전트",
   logger_agent: "로거 에이전트",
   order_agent: "주문 에이전트",
@@ -70,6 +71,7 @@ function WorkflowStepTimeline({ steps }: { steps: WorkflowStep[] }) {
 
 export function WorkflowsPage() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [definition, setDefinition] = useState<WorkflowDefinition | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -90,8 +92,9 @@ export function WorkflowsPage() {
     if (isRefreshing) return;
     setIsRefreshing(true);
     setMessage(null);
-    api.getWorkflowRuns()
-      .then((rows) => {
+    Promise.all([api.getWorkflowDefinition(), api.getWorkflowRuns()])
+      .then(([workflowDefinition, rows]) => {
+        setDefinition(workflowDefinition);
         setRuns(rows);
         const targetId = selectedRunId ?? rows[0]?.id ?? null;
         if (!targetId) {
@@ -102,6 +105,7 @@ export function WorkflowsPage() {
         return api.getWorkflowRun(targetId).then(setSelectedRun);
       })
       .catch((error) => {
+        setDefinition(null);
         setRuns([]);
         setSelectedRun(null);
         setMessage(error instanceof Error ? error.message : "워크플로 기록을 불러올 수 없습니다.");
@@ -139,6 +143,34 @@ export function WorkflowsPage() {
         <StatCard label="스킵" value={`${stats.skipped}`} />
         <StatCard label="실패" value={`${stats.failed}`} detail={`${stats.running}개 진행 중`} />
       </div>
+      <section className="workflow-definition">
+        <div className="workflow-detail-header">
+          <div>
+            <p className="eyebrow">{definition?.workflow_name ?? "agent.run_once"}</p>
+            <h3>정의된 Agent Graph</h3>
+          </div>
+          <span className="status-pill neutral">{definition?.nodes.length ?? 0} nodes</span>
+        </div>
+        <p className="helper-text">{definition?.description ?? "Workflow definition is not loaded yet."}</p>
+        <div className="workflow-node-grid">
+          {(definition?.nodes ?? []).map((node) => (
+            <article className="workflow-node-card" key={node.id}>
+              <div className="workflow-step-header">
+                <h3>{stepLabel(node.id)}</h3>
+                <span className="status-pill neutral">{node.uses_llm ? "LLM" : node.runtime}</span>
+              </div>
+              <p className="helper-text">{node.agent_type}</p>
+              <p>{node.responsibility}</p>
+            </article>
+          ))}
+        </div>
+        {(definition?.side_loops ?? []).map((loop) => (
+          <div className="workflow-side-loop" key={loop.name}>
+            <strong>{loop.name}</strong>
+            <span>{loop.description}</span>
+          </div>
+        ))}
+      </section>
       <div className="workflow-layout">
         <section className="workflow-run-list">
           <h3>최근 Run</h3>

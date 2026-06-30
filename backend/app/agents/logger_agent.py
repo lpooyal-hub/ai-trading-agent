@@ -30,6 +30,7 @@ class LoggerAgent:
         candidates: list[MarketSnapshot],
         candidate_details: list[dict[str, Any]],
         news_context: dict[str, Any],
+        memory_context: dict[str, Any],
         active_universe: list[str],
         llm_mode: str,
         max_candidates_per_run: int,
@@ -44,6 +45,7 @@ class LoggerAgent:
             "active_universe": active_universe,
             "market_source": market_source,
             "news_context": news_context,
+            "memory_context": memory_context,
             "llm_mode": llm_mode,
         }
         decision.agent_response_json = {

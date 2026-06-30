@@ -37,7 +37,7 @@ class SchedulerAgent:
             )
 
         try:
-            decision = AgentService(self.settings).run_once(db)
+            decision = AgentService(self.settings).run_once(db, trigger_source="scheduler")
         except AgentRunLockedError as exc:
             return SchedulerAgentResult(
                 triggered=False,

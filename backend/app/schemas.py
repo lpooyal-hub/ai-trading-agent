@@ -325,6 +325,34 @@ class WorkflowRunRead(BaseModel):
     steps: list[WorkflowStepRead] = Field(default_factory=list)
 
 
+class WorkflowNodeRead(BaseModel):
+    id: str
+    label: str
+    agent_type: str
+    uses_llm: bool
+    runtime: str
+    responsibility: str
+
+
+class WorkflowEdgeRead(BaseModel):
+    from_: str = Field(alias="from")
+    to: str
+
+
+class WorkflowSideLoopRead(BaseModel):
+    name: str
+    description: str
+    nodes: list[str]
+
+
+class WorkflowDefinitionRead(BaseModel):
+    workflow_name: str
+    description: str
+    nodes: list[WorkflowNodeRead]
+    edges: list[WorkflowEdgeRead]
+    side_loops: list[WorkflowSideLoopRead]
+
+
 class DecisionPreviewRead(BaseModel):
     decision_id: int
     approved: bool

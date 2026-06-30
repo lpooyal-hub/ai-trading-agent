@@ -361,7 +361,8 @@ pre {
 }
 
 .workflow-run-list,
-.workflow-detail {
+.workflow-detail,
+.workflow-definition {
   background: #ffffff;
   border: 1px solid #dce6f5;
   border-radius: 8px;
@@ -387,6 +388,43 @@ pre {
 .workflow-detail {
   display: grid;
   gap: 14px;
+}
+
+.workflow-definition {
+  display: grid;
+  gap: 12px;
+}
+
+.workflow-node-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workflow-node-card {
+  background: #f7f9fc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 148px;
+  padding: 12px;
+}
+
+.workflow-node-card p {
+  margin: 0;
+}
+
+.workflow-side-loop {
+  align-items: center;
+  background: #e8f3ff;
+  border: 1px solid #9fc8ff;
+  border-radius: 8px;
+  color: #0b3a75;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px;
 }
 
 .workflow-detail-header,
@@ -519,8 +557,14 @@ dd {
   .evaluation-grid,
   .journal-grid,
   .workflow-layout,
-  .workflow-meta {
+  .workflow-meta,
+  .workflow-node-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workflow-side-loop {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .page-header {

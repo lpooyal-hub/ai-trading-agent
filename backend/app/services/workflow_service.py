@@ -7,6 +7,96 @@ from app.models import WorkflowRun, WorkflowRunStatus, WorkflowStep, WorkflowSte
 
 
 class WorkflowService:
+    agent_workflow_definition = {
+        "workflow_name": "agent.run_once",
+        "description": "Agentic trading research workflow with deterministic guards and LLM decision support.",
+        "nodes": [
+            {
+                "id": "runtime_lock",
+                "label": "Runtime Lock",
+                "agent_type": "system",
+                "uses_llm": False,
+                "runtime": "Redis",
+                "responsibility": "Prevent overlapping agent runs.",
+            },
+            {
+                "id": "market_agent",
+                "label": "Market Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "Python",
+                "responsibility": "Prepare market snapshots and candidate symbols.",
+            },
+            {
+                "id": "news_agent",
+                "label": "News Agent",
+                "agent_type": "hybrid_ready",
+                "uses_llm": False,
+                "runtime": "Python",
+                "responsibility": "Build current news/event context for decision input.",
+            },
+            {
+                "id": "risk_agent",
+                "label": "Risk Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "Python",
+                "responsibility": "Check LLM budget and deterministic execution constraints.",
+            },
+            {
+                "id": "memory_agent",
+                "label": "Memory Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "Python",
+                "responsibility": "Summarize journaled outcomes, mistakes, and lessons for the next decision.",
+            },
+            {
+                "id": "decision_agent",
+                "label": "Decision Agent",
+                "agent_type": "llm",
+                "uses_llm": True,
+                "runtime": "OpenAI or mock LLM",
+                "responsibility": "Generate BUY/SELL/HOLD decision and rationale.",
+            },
+            {
+                "id": "logger_agent",
+                "label": "Logger Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "SQLAlchemy",
+                "responsibility": "Persist decision, LLM usage, context, and audit payloads.",
+            },
+            {
+                "id": "order_agent",
+                "label": "Order Agent",
+                "agent_type": "python",
+                "uses_llm": False,
+                "runtime": "Paper execution adapter",
+                "responsibility": "Attempt policy-approved paper execution while live orders stay blocked.",
+            },
+        ],
+        "edges": [
+            {"from": "runtime_lock", "to": "market_agent"},
+            {"from": "market_agent", "to": "news_agent"},
+            {"from": "news_agent", "to": "risk_agent"},
+            {"from": "risk_agent", "to": "memory_agent"},
+            {"from": "memory_agent", "to": "decision_agent"},
+            {"from": "decision_agent", "to": "logger_agent"},
+            {"from": "logger_agent", "to": "order_agent"},
+        ],
+        "side_loops": [
+            {
+                "name": "evaluation_memory_loop",
+                "description": "Decision and order outcomes feed Evaluation, Journal, and Memory for future prompt context.",
+                "nodes": ["evaluation_agent", "journal_agent", "memory_agent"],
+            }
+        ],
+    }
+
+    def get_definition(self) -> dict[str, Any]:
+        return self.agent_workflow_definition
+
     def start_run(
         self,
         db: Session,

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.agents.decision_agent import DecisionAgent
 from app.agents.logger_agent import LoggerAgent
 from app.agents.market_agent import MarketAgent
+from app.agents.memory_agent import MemoryAgent
 from app.agents.news_agent import NewsAgent
 from app.agents.order_agent import OrderAgent
 from app.config import Settings, get_settings
@@ -32,12 +33,13 @@ class AgentService:
         self.news_agent = NewsAgent(self.settings)
         self.decision_agent = DecisionAgent(self.settings)
         self.logger_agent = LoggerAgent(self.decision_agent)
+        self.memory_agent = MemoryAgent()
         self.order_agent = OrderAgent(self.settings)
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.workflow_service = WorkflowService()
         self.redis_runtime = RedisRuntimeService(self.settings)
 
-    def run_once(self, db: Session) -> AgentDecision:
+    def run_once(self, db: Session, trigger_source: str = "manual") -> AgentDecision:
         lock = self.redis_runtime.acquire_agent_run_lock()
         if not lock.acquired:
             raise AgentRunLockedError(lock.reason)
@@ -47,7 +49,7 @@ class AgentService:
             workflow = self.workflow_service.start_run(
                 db,
                 workflow_name="agent.run_once",
-                trigger_source="manual",
+                trigger_source=trigger_source,
                 input_json={
                     "active_universe": self.settings.active_universe,
                     "llm_mode": self.settings.llm_mode,
@@ -134,8 +136,28 @@ class AgentService:
                 self._record_skipped_workflow(db, workflow, decision, reason)
                 return decision
 
+            memory_context = self.memory_agent.get_summary(db, limit=100)
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="memory_agent",
+                status=WorkflowStepStatus.SUCCEEDED,
+                output_json={
+                    "lookback_journal_entries": memory_context["lookback_journal_entries"],
+                    "evaluated_entry_count": memory_context["evaluated_entry_count"],
+                    "win_rate_percent": memory_context["win_rate_percent"],
+                    "common_mistake_count": len(memory_context["common_mistakes"]),
+                    "recent_lesson_count": len(memory_context["recent_lessons"]),
+                    "data_gap_count": len(memory_context["data_gaps"]),
+                },
+            )
+
             candidate_payload = [self._snapshot_to_dict(item) for item in candidates]
-            decision_result = self.decision_agent.run(candidate_payload, news_context=news_context)
+            decision_result = self.decision_agent.run(
+                candidate_payload,
+                news_context=news_context,
+                memory_context=memory_context,
+            )
             response = decision_result.response
             selected_snapshot = self._find_snapshot(candidates, response["symbol"]) or candidates[0]
             usage = decision_result.usage
@@ -175,6 +197,7 @@ class AgentService:
                     "status": decision.status.value,
                     "llm_model": decision.llm_model,
                     "total_tokens": decision.total_tokens,
+                    "memory_lookback_journal_entries": memory_context["lookback_journal_entries"],
                 },
                 error_message=decision_result.error_message,
             )
@@ -187,6 +210,7 @@ class AgentService:
                 candidates=candidates,
                 candidate_details=market_result.candidate_details,
                 news_context=news_context,
+                memory_context=memory_context,
                 active_universe=self.settings.active_universe,
                 llm_mode=self.settings.llm_mode,
                 max_candidates_per_run=self.settings.llm_max_candidates_per_run_safe,
@@ -376,6 +400,12 @@ class AgentService:
                 "snapshot_symbols": [item.symbol for item in snapshots],
                 "snapshot_count": len(snapshots),
                 "news_context": news_context,
+                "memory_context": {
+                    "lookback_journal_entries": 0,
+                    "recent_lessons": [],
+                    "common_mistakes": [],
+                    "data_gaps": ["Decision was skipped before MemoryAgent context was loaded."],
+                },
                 "max_candidates_per_run": self.settings.llm_max_candidates_per_run_safe,
                 "active_universe": self.settings.active_universe,
                 "llm_mode": self.settings.llm_mode,
