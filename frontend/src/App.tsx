@@ -8,6 +8,7 @@ import { EvaluationsPage } from "./pages/EvaluationsPage";
 import { JournalPage } from "./pages/JournalPage";
 import { LLMUsagePage } from "./pages/LLMUsagePage";
 import { MarketPage } from "./pages/MarketPage";
+import { MemoryPage } from "./pages/MemoryPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -22,6 +23,7 @@ const navItems = [
   { id: "market", label: "Market" },
   { id: "evaluations", label: "Evaluations" },
   { id: "journal", label: "Journal" },
+  { id: "memory", label: "Memory" },
   { id: "llm-usage", label: "LLM Usage" },
   { id: "settings", label: "Settings" },
 ];
@@ -46,6 +48,7 @@ export default function App() {
       {activePage === "market" ? <MarketPage /> : null}
       {activePage === "evaluations" ? <EvaluationsPage /> : null}
       {activePage === "journal" ? <JournalPage /> : null}
+      {activePage === "memory" ? <MemoryPage /> : null}
       {activePage === "llm-usage" ? <LLMUsagePage /> : null}
       {activePage === "settings" ? <SettingsPage /> : null}
     </Layout>

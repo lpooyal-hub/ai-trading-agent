@@ -13,6 +13,7 @@ from app.routes import (
     journal,
     llm_usage,
     market,
+    memory,
     orders,
     portfolio,
     settings,
@@ -57,3 +58,4 @@ app.include_router(evaluations.router)
 app.include_router(llm_usage.router)
 app.include_router(journal.router)
 app.include_router(market.router)
+app.include_router(memory.router)

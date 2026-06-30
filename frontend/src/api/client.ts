@@ -101,6 +101,40 @@ export type TradeJournalEntryCreate = {
   journal_json?: Record<string, unknown>;
 };
 
+export type MemoryGroupStat = {
+  key: string;
+  count: number;
+  win_rate_percent: number;
+  average_reward_score: number;
+};
+
+export type MemoryMistake = {
+  mistake_type: string;
+  count: number;
+};
+
+export type MemoryLesson = {
+  journal_id: number;
+  symbol: string;
+  action: string;
+  reward_score: number;
+  lesson: string;
+};
+
+export type MemorySummary = {
+  lookback_journal_entries: number;
+  evaluated_entry_count: number;
+  average_reward_score: number;
+  win_rate_percent: number;
+  action_stats: MemoryGroupStat[];
+  symbol_stats: MemoryGroupStat[];
+  model_stats: MemoryGroupStat[];
+  common_mistakes: MemoryMistake[];
+  recent_lessons: MemoryLesson[];
+  memory_notes: string[];
+  data_gaps: string[];
+};
+
 export type DecisionFilters = {
   status?: string;
   symbol?: string;
@@ -673,6 +707,7 @@ export const api = {
   runEvaluations: () => request<{ created_count: number; evaluations: DecisionEvaluation[] }>("/evaluations/run", { method: "POST" }),
   getJournalEntries: () => request<TradeJournalEntry[]>("/journal"),
   getJournalEntriesForDecision: (decisionId: number) => request<TradeJournalEntry[]>(`/journal/decision/${decisionId}`),
+  getMemorySummary: () => request<MemorySummary>("/memory/summary"),
   createJournalEntry: (payload: TradeJournalEntryCreate) => request<TradeJournalEntry>("/journal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

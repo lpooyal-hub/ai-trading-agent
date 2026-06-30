@@ -61,6 +61,7 @@
 - `/journal`
 - `/journal/decision/{decision_id}`
 - `/journal/{entry_id}`
+- `/memory/summary`
 - `/llm-usage`
 - `/llm-usage/summary`
 - `/llm-usage/{usage_id}`
@@ -117,6 +118,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 - 차단된 live order에는 order intent와 idempotency key가 raw payload에 남으며, 이는 실제 주문 전송이 아니라 향후 broker adapter 구현 검토용입니다.
 - `/decisions/{decision_id}/preview`는 승인 전 예상 주문 수량, 금액, 예산 영향, legacy 보호 여부, RiskManager 결과를 보여줍니다.
 - decision evaluation은 최신 snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.
+- Memory Agent는 journal/evaluation/decision 이력을 요약해 최근 성과, 반복 실수, lesson, 모델별 성과를 확인하는 read-only 분석 레이어입니다.
 - `/broker/status`는 Toss API key/secret 준비 상태, 계좌 목록 조회 준비 상태, `TOSS_ACCOUNT_ID` 설정 여부, live readiness를 마스킹된 상태값으로만 보여줍니다.
 - `/broker/accounts`, `/broker/positions`는 Toss read-only endpoint path가 `.env`에 설정된 경우에만 호출됩니다.
 - `/broker/accounts/normalized`는 Toss 계좌 응답을 마스킹된 내부 표준 계좌 형태로 변환해 보여줍니다.
@@ -160,7 +162,24 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://<SERVER_
 14. `/evaluations` API로 decision별 사후 평가를 저장하고 조회합니다. Evaluation window 기간이 지난 decision만 due 평가 대상으로 잡습니다.
 15. Decision의 input snapshot에는 candidate symbols와 candidate score/reason이 저장되어, 이후 evaluation/journal에서 당시 후보 선정 근거를 추적할 수 있습니다.
 16. `/journal` API와 Dashboard Journal 화면으로 decision/order/evaluation을 묶은 self feedback, lesson, reward score를 저장합니다. 이 기록은 이후 strategy weight learning 또는 lightweight reinforcement learning의 입력으로 사용할 수 있습니다.
-17. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
+17. `/memory/summary`는 최근 journal 100건 기준 action/symbol/model별 win rate, reward, 반복 mistake, lesson, data gap을 요약합니다.
+18. `LiveTossExecutionAdapter`는 live order 연결 지점입니다. 현재는 실제 주문을 보내지 않고 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단된 order intent만 저장합니다.
+
+## Agent Roles
+
+목표 구조는 아래 역할 분리를 기준으로 확장합니다.
+
+1. Scheduler: 정해진 주기와 market-hours guard에 따라 agent run을 트리거합니다.
+2. News Agent: 뉴스 수집과 요약을 담당합니다. 아직 구현 전이며 LLM 사용 후보입니다.
+3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재는 market snapshot 저장/조회와 후보 pre-filter가 일부 역할을 맡고 있습니다.
+4. Decision Agent: LLM으로 매수/매도/HOLD 판단과 이유를 생성합니다.
+5. Risk Agent: 투자 비중, 손절/익절, protected legacy position, budget guard를 검증합니다.
+6. Order Agent: paper/live execution adapter를 통해 주문 intent, simulated fill, 향후 Toss 주문/체결 조회를 담당합니다.
+7. Logger Agent: decision, order, usage, journal을 DB에 저장합니다.
+8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
+9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
+
+현재 구현된 Memory Agent는 read-only 요약 단계입니다. 프롬프트 버전별 승률과 뉴스 유형별 성공률은 아직 원천 필드가 없어 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.

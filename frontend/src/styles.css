@@ -223,6 +223,10 @@ table {
   min-width: 980px;
 }
 
+.compact-table table {
+  min-width: 520px;
+}
+
 th,
 td {
   border-bottom: 1px solid #e8eee6;

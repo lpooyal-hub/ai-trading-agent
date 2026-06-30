@@ -258,6 +258,40 @@ class TradeJournalEntryRead(BaseModel):
     journal_json: dict[str, Any]
 
 
+class MemoryGroupStatRead(BaseModel):
+    key: str
+    count: int
+    win_rate_percent: float
+    average_reward_score: float
+
+
+class MemoryMistakeRead(BaseModel):
+    mistake_type: str
+    count: int
+
+
+class MemoryLessonRead(BaseModel):
+    journal_id: int
+    symbol: str
+    action: str
+    reward_score: float
+    lesson: str
+
+
+class MemorySummaryRead(BaseModel):
+    lookback_journal_entries: int
+    evaluated_entry_count: int
+    average_reward_score: float
+    win_rate_percent: float
+    action_stats: list[MemoryGroupStatRead]
+    symbol_stats: list[MemoryGroupStatRead]
+    model_stats: list[MemoryGroupStatRead]
+    common_mistakes: list[MemoryMistakeRead]
+    recent_lessons: list[MemoryLessonRead]
+    memory_notes: list[str]
+    data_gaps: list[str]
+
+
 class DecisionPreviewRead(BaseModel):
     decision_id: int
     approved: bool
