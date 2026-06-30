@@ -1,6 +1,15 @@
 import { TradeOrder } from "../api/client";
 import { actionLabel, statusLabel } from "../utils/labels";
 
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function fillSummary(order: TradeOrder) {
   if (order.raw_response_json.live_order_blocked) {
     const intent = order.raw_response_json.order_intent;
@@ -19,6 +28,13 @@ function fillSummary(order: TradeOrder) {
   const after = typeof payload.position_quantity_after === "number" ? payload.position_quantity_after : null;
   if (before === null || after === null) return "-";
   return `${before.toFixed(4)} -> ${after.toFixed(4)}`;
+}
+
+function statusTone(value: string) {
+  const normalized = value.toUpperCase();
+  if (["SIMULATED", "SIMULATED_FILLED", "EXECUTED", "SUCCEEDED"].includes(normalized)) return "positive";
+  if (["FAILED", "REJECTED"].includes(normalized)) return "negative";
+  return "neutral";
 }
 
 export function OrderTable({ orders }: { orders: TradeOrder[] }) {
@@ -41,15 +57,17 @@ export function OrderTable({ orders }: { orders: TradeOrder[] }) {
         <tbody>
           {orders.map((order) => (
             <tr key={order.id}>
-              <td>{new Date(order.created_at).toLocaleString()}</td>
-              <td>{order.symbol}</td>
+              <td className="muted-cell">{formatDateTime(order.created_at)}</td>
+              <td className="symbol-cell">{order.symbol}</td>
               <td>{actionLabel(order.side)}</td>
               <td>{order.quantity.toFixed(4)}</td>
               <td>${order.price.toFixed(2)}</td>
               <td>${order.order_amount.toFixed(2)}</td>
               <td>{fillSummary(order)}</td>
-              <td>{statusLabel(order.status)}</td>
-              <td>{order.reason}</td>
+              <td>
+                <span className={`status-pill ${statusTone(order.status)}`}>{statusLabel(order.status)}</span>
+              </td>
+              <td className="reason-cell">{order.reason}</td>
             </tr>
           ))}
           {!orders.length ? (

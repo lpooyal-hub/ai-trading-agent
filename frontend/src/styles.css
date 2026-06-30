@@ -11,6 +11,7 @@
 }
 
 body {
+  background: #f7f9fc;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
@@ -18,6 +19,13 @@ body {
 
 button {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(78, 143, 255, 0.32);
+  outline-offset: 2px;
 }
 
 .app-shell {
@@ -30,6 +38,10 @@ button {
   background: #0b3a75;
   color: #f7fbff;
   padding: 28px 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
 }
 
 .sidebar h1 {
@@ -60,6 +72,7 @@ button {
   padding: 10px 12px;
   text-align: left;
   border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-item.active,
@@ -74,13 +87,27 @@ button {
 }
 
 .dry-run-banner {
+  align-items: center;
   background: #e8f3ff;
   border: 1px solid #9fc8ff;
   border-radius: 6px;
   color: #0b3a75;
-  font-weight: 700;
+  display: flex;
+  gap: 10px;
   margin-bottom: 20px;
   padding: 12px 14px;
+}
+
+.dry-run-banner strong {
+  background: #ffffff;
+  border: 1px solid #9fc8ff;
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.dry-run-banner span {
+  font-weight: 700;
 }
 
 .page-stack {
@@ -107,6 +134,8 @@ section h3 {
   color: #ffffff;
   cursor: pointer;
   border-radius: 6px;
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .primary-button:disabled,
@@ -120,8 +149,21 @@ section h3 {
   background: #1b64da;
 }
 
+.primary-button:hover:not(:disabled) {
+  background: #1554bd;
+}
+
 .secondary-button {
   background: #4f6f9f;
+  border-color: #4f6f9f;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #405d86;
+}
+
+.small-button:hover:not(:disabled) {
+  background: #1554bd;
 }
 
 .button-row {
@@ -168,6 +210,7 @@ section h3 {
   background: #ffffff;
   border: 1px solid #dce6f5;
   border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(25, 31, 40, 0.04);
   padding: 14px;
 }
 
@@ -188,6 +231,7 @@ section h3 {
 .stat-card {
   display: grid;
   gap: 6px;
+  min-height: 102px;
 }
 
 .dashboard-status-grid {
@@ -257,6 +301,8 @@ dt {
 
 .stat-card strong {
   font-size: 26px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .symbol-list {
@@ -277,6 +323,7 @@ dt {
   border: 1px solid #dce6f5;
   border-radius: 8px;
   overflow: auto;
+  box-shadow: 0 1px 2px rgba(25, 31, 40, 0.04);
 }
 
 table {
@@ -305,10 +352,41 @@ td {
 th {
   background: #f2f6fb;
   color: #4e5968;
+  font-size: 12px;
+  font-weight: 800;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+tbody tr {
+  transition: background 0.12s ease;
+}
+
+tbody tr:hover {
+  background: #f8fbff;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.symbol-cell {
+  color: #0b3a75;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.muted-cell {
+  color: #6b7684;
+  white-space: nowrap;
 }
 
 .reason-cell {
-  max-width: 260px;
+  color: #4e5968;
+  line-height: 1.5;
+  max-width: 300px;
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
@@ -649,7 +727,9 @@ dd {
   }
 
   .sidebar {
+    height: auto;
     padding: 18px;
+    position: static;
   }
 
   .nav-list {
@@ -691,5 +771,10 @@ dd {
   .button-row select,
   .button-row button {
     flex: 1 1 160px;
+  }
+
+  .dry-run-banner {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

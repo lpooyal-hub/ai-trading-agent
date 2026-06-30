@@ -2,6 +2,22 @@ import { AgentDecision } from "../api/client";
 import { decisionBlockReason, decisionGuardWarnings } from "../utils/decisionSafety";
 import { actionLabel, statusLabel } from "../utils/labels";
 
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function statusTone(value: string) {
+  const normalized = value.toUpperCase();
+  if (["APPROVED", "EXECUTED", "SUCCEEDED", "SIMULATED", "SIMULATED_FILLED"].includes(normalized)) return "positive";
+  if (["REJECTED", "FAILED"].includes(normalized)) return "negative";
+  return "neutral";
+}
+
 type DecisionTableProps = {
   decisions: AgentDecision[];
   onSelect?: (id: number) => void;
@@ -31,13 +47,19 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
             const blockReason = decisionBlockReason(decision);
             return (
               <tr key={decision.id}>
-                <td>{new Date(decision.created_at).toLocaleString()}</td>
-                <td>{decision.symbol}</td>
+                <td className="muted-cell">{formatDateTime(decision.created_at)}</td>
+                <td className="symbol-cell">{decision.symbol}</td>
                 <td>{actionLabel(decision.action)}</td>
                 <td>{Math.round(decision.confidence * 100)}%</td>
                 <td>${decision.recommended_order_amount.toFixed(2)}</td>
-                <td>{statusLabel(decision.status)}</td>
-                <td>{guardWarnings.length ? `경고 ${guardWarnings.length}개` : "정상"}</td>
+                <td>
+                  <span className={`status-pill ${statusTone(decision.status)}`}>{statusLabel(decision.status)}</span>
+                </td>
+                <td>
+                  <span className={`status-pill ${guardWarnings.length ? "negative" : "positive"}`}>
+                    {guardWarnings.length ? `경고 ${guardWarnings.length}개` : "정상"}
+                  </span>
+                </td>
                 <td className="reason-cell">{blockReason || "-"}</td>
                 <td>{decision.dry_run ? "예" : "아니오"}</td>
                 <td>
