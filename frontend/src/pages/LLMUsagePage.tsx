@@ -38,41 +38,41 @@ export function LLMUsagePage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Cost Guardrails</p>
-          <h2>LLM Usage</h2>
+          <p className="eyebrow">비용 가드레일</p>
+          <h2>LLM 사용량</h2>
         </div>
         <button className="secondary-button" disabled={isRefreshing} onClick={refreshUsage} type="button">
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+          {isRefreshing ? "새로고침 중..." : "새로고침"}
         </button>
       </header>
       <div className="stat-grid">
-        <StatCard label="Today's Calls" value={`${budget?.today_calls ?? 0}`} />
-        <StatCard label="Today's Tokens" value={`${budget?.today_total_tokens ?? 0}`} />
-        <StatCard label="Daily Cost Left" value={`$${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="Monthly Cost Left" value={`$${budget?.monthly_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
+        <StatCard label="오늘 호출" value={`${budget?.today_calls ?? 0}`} />
+        <StatCard label="오늘 토큰" value={`${budget?.today_total_tokens ?? 0}`} />
+        <StatCard label="일일 비용 잔여" value={`$${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
+        <StatCard label="월 비용 잔여" value={`$${budget?.monthly_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
       </div>
       <div className="filter-row">
         <label>
-          Purpose
+          목적
           <select value={purposeFilter} onChange={(event) => setPurposeFilter(event.target.value)}>
-            <option value="">All</option>
-            <option value="decision">Decision</option>
-            <option value="evaluation">Evaluation</option>
-            <option value="reflection">Reflection</option>
-            <option value="summary">Summary</option>
-            <option value="test">Test</option>
+            <option value="">전체</option>
+            <option value="decision">판단</option>
+            <option value="evaluation">평가</option>
+            <option value="reflection">회고</option>
+            <option value="summary">요약</option>
+            <option value="test">테스트</option>
           </select>
         </label>
         <label>
-          Symbol
+          종목
           <input value={symbolFilter} onChange={(event) => setSymbolFilter(event.target.value)} placeholder="NVDA" />
         </label>
         <label>
-          Status
+          상태
           <select value={successFilter} onChange={(event) => setSuccessFilter(event.target.value)}>
-            <option value="all">All</option>
-            <option value="success">Success</option>
-            <option value="failed">Failed</option>
+            <option value="all">전체</option>
+            <option value="success">성공</option>
+            <option value="failed">실패</option>
           </select>
         </label>
       </div>
@@ -80,16 +80,16 @@ export function LLMUsagePage() {
         <table>
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Purpose</th>
-              <th>Model</th>
-              <th>Symbol</th>
-              <th>Prompt</th>
-              <th>Completion</th>
-              <th>Total</th>
-              <th>Cost</th>
-              <th>Latency</th>
-              <th>Success</th>
+              <th>시각</th>
+              <th>목적</th>
+              <th>모델</th>
+              <th>종목</th>
+              <th>프롬프트</th>
+              <th>응답</th>
+              <th>합계</th>
+              <th>비용</th>
+              <th>지연</th>
+              <th>성공</th>
             </tr>
           </thead>
           <tbody>
@@ -104,12 +104,12 @@ export function LLMUsagePage() {
                 <td>{row.total_tokens}</td>
                 <td>${row.estimated_cost_usd.toFixed(4)}</td>
                 <td>{row.latency_ms}ms</td>
-                <td>{row.success ? "Yes" : "No"}</td>
+                <td>{row.success ? "예" : "아니오"}</td>
               </tr>
             ))}
             {!filteredUsage.length ? (
               <tr>
-                <td colSpan={10}>No LLM usage rows match the current filters.</td>
+                <td colSpan={10}>현재 필터와 일치하는 LLM 사용 기록이 없습니다.</td>
               </tr>
             ) : null}
           </tbody>

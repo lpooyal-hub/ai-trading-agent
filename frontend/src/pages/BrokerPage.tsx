@@ -7,7 +7,7 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 function booleanStatus(value: boolean | undefined, trueLabel: string, falseLabel: string) {
-  if (value === undefined) return "Unknown";
+  if (value === undefined) return "알 수 없음";
   return value ? trueLabel : falseLabel;
 }
 
@@ -18,12 +18,12 @@ function formatOptionalNumber(value: number) {
 function brokerResponseMessage(label: string, response: { status: string; http_status_code?: number | null; message?: string }) {
   const statusCode = response.http_status_code ? `HTTP ${response.http_status_code}` : response.status;
   if (response.http_status_code === 401) {
-    return `${label} failed: ${statusCode} - Check Toss credentials and read-only account permissions.`;
+    return `${label} 실패: ${statusCode} - 토스 인증 정보와 조회 권한을 확인하세요.`;
   }
   if (response.http_status_code === 429) {
-    return `${label} failed: ${statusCode} - Toss rate limit reached. Wait briefly before retrying.`;
+    return `${label} 실패: ${statusCode} - 토스 호출 한도에 도달했습니다. 잠시 후 다시 시도하세요.`;
   }
-  return `${label} failed: ${statusCode}${response.message ? ` - ${response.message}` : ""}`;
+  return `${label} 실패: ${statusCode}${response.message ? ` - ${response.message}` : ""}`;
 }
 
 export function BrokerPage() {
@@ -64,7 +64,7 @@ export function BrokerPage() {
         setAccounts(accountResponse.accounts ?? []);
         setAccountsCacheHit(accountResponse.cache_hit);
         if (!accountResponse.success) {
-          appendMessage(brokerResponseMessage("Accounts lookup", accountResponse));
+          appendMessage(brokerResponseMessage("계좌 조회", accountResponse));
           if (accountResponse.http_status_code === 429) {
             startCooldown(setIsAccountCooldown);
           }
@@ -73,7 +73,7 @@ export function BrokerPage() {
       .catch((error) => {
         setAccounts([]);
         setAccountsCacheHit(null);
-        appendMessage(`Broker accounts are not available: ${errorMessage(error, "Request failed")}`);
+        appendMessage(`브로커 계좌를 불러올 수 없습니다: ${errorMessage(error, "요청 실패")}`);
       })
       .finally(() => setIsLoadingAccounts(false));
   };
@@ -88,20 +88,20 @@ export function BrokerPage() {
         .then((health) => setBackendHealth(health))
         .catch((error) => {
           setBackendHealth(null);
-          appendMessage(`Backend health is not available: ${errorMessage(error, "Request failed")}`);
+          appendMessage(`백엔드 상태를 확인할 수 없습니다: ${errorMessage(error, "요청 실패")}`);
         }),
       api.getBrokerStatus()
         .then((brokerStatus) => setStatus(brokerStatus))
         .catch((error) => {
           setStatus(null);
-          appendMessage(`Broker status is not available: ${errorMessage(error, "Request failed")}`);
+          appendMessage(`브로커 상태를 확인할 수 없습니다: ${errorMessage(error, "요청 실패")}`);
         }),
       api.getBrokerPositions()
         .then((positionResponse) => {
           setPositions(positionResponse.positions ?? []);
           setPositionsCacheHit(positionResponse.cache_hit);
           if (!positionResponse.success) {
-            appendMessage(brokerResponseMessage("Holdings lookup", positionResponse));
+            appendMessage(brokerResponseMessage("잔고 조회", positionResponse));
             if (positionResponse.http_status_code === 429) {
               startCooldown(setIsRefreshCooldown);
             }
@@ -110,7 +110,7 @@ export function BrokerPage() {
         .catch((error) => {
           setPositions([]);
           setPositionsCacheHit(null);
-          appendMessage(`Broker holdings are not available: ${errorMessage(error, "Request failed")}`);
+          appendMessage(`브로커 잔고를 불러올 수 없습니다: ${errorMessage(error, "요청 실패")}`);
         }),
     ]).finally(() => setIsRefreshing(false));
   };
@@ -130,8 +130,8 @@ export function BrokerPage() {
     setIsSyncingLegacy(true);
     setMessage(null);
     api.syncLegacyFromBroker()
-      .then((result) => setMessage(result.message ?? `${result.imported_count} imported, ${result.skipped_count} skipped.`))
-      .catch(() => setMessage("Broker legacy sync failed."))
+      .then((result) => setMessage(result.message ?? `${result.imported_count}개 가져옴, ${result.skipped_count}개 건너뜀.`))
+      .catch(() => setMessage("브로커 기존 보유분 동기화에 실패했습니다."))
       .finally(() => setIsSyncingLegacy(false));
   };
 
@@ -139,47 +139,47 @@ export function BrokerPage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Toss Securities</p>
-          <h2>Broker Account</h2>
-          <p className="helper-text">API base: {API_BASE_URL}</p>
+          <p className="eyebrow">토스증권</p>
+          <h2>브로커 계좌</h2>
+          <p className="helper-text">API 기준 주소: {API_BASE_URL}</p>
         </div>
         <button className="secondary-button" disabled={isRefreshing || isRefreshCooldown} onClick={refresh} type="button">
-          {isRefreshing ? "Refreshing..." : isRefreshCooldown ? "Wait..." : "Refresh"}
+          {isRefreshing ? "새로고침 중..." : isRefreshCooldown ? "대기..." : "새로고침"}
         </button>
         <button className="secondary-button" disabled={isLoadingAccounts || isAccountCooldown} onClick={refreshAccounts} type="button">
-          {isLoadingAccounts ? "Loading..." : isAccountCooldown ? "Wait..." : "Load Accounts"}
+          {isLoadingAccounts ? "불러오는 중..." : isAccountCooldown ? "대기..." : "계좌 불러오기"}
         </button>
         <button className="primary-button" disabled={isSyncingLegacy} onClick={syncLegacy} type="button">
-          {isSyncingLegacy ? "Syncing..." : "Sync Legacy"}
+          {isSyncingLegacy ? "동기화 중..." : "기존 보유분 동기화"}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Backend API" value={backendHealth?.status === "ok" ? "Online" : "Unknown"} detail={backendHealth?.dry_run ? "DRY_RUN backend" : undefined} />
-        <StatCard label="API Credentials" value={booleanStatus(status?.api_credentials_ready, "Ready", "Incomplete")} />
+        <StatCard label="백엔드 API" value={backendHealth?.status === "ok" ? "온라인" : "알 수 없음"} detail={backendHealth?.dry_run ? "DRY_RUN 백엔드" : undefined} />
+        <StatCard label="API 인증 정보" value={booleanStatus(status?.api_credentials_ready, "준비됨", "미완료")} />
         <StatCard
-          label="Account Lookup"
-          value={booleanStatus(status?.account_lookup_ready, "Ready", "Not Ready")}
-          detail={accountsCacheHit === null ? undefined : accountsCacheHit ? "cached response" : "fresh response"}
+          label="계좌 조회"
+          value={booleanStatus(status?.account_lookup_ready, "준비됨", "미준비")}
+          detail={accountsCacheHit === null ? undefined : accountsCacheHit ? "캐시 응답" : "최신 응답"}
         />
-        <StatCard label="Account ID" value={booleanStatus(status?.has_account_id, "Set", "Missing")} />
+        <StatCard label="계좌 ID" value={booleanStatus(status?.has_account_id, "설정됨", "누락")} />
         <StatCard
-          label="Holdings Lookup"
-          value={booleanStatus(status?.read_only_ready, "Ready", "Not Ready")}
-          detail={positionsCacheHit === null ? undefined : positionsCacheHit ? "cached response" : "fresh response"}
+          label="잔고 조회"
+          value={booleanStatus(status?.read_only_ready, "준비됨", "미준비")}
+          detail={positionsCacheHit === null ? undefined : positionsCacheHit ? "캐시 응답" : "최신 응답"}
         />
-        <StatCard label="Mock Data" value={booleanStatus(status?.use_mock_data, "On", "Off")} />
-        <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "On", "Off")} />
+        <StatCard label="Mock 데이터" value={booleanStatus(status?.use_mock_data, "켜짐", "꺼짐")} />
+        <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "켜짐", "꺼짐")} />
       </div>
       <section>
-        <h3>Accounts</h3>
+        <h3>계좌</h3>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Account</th>
-                <th>Account Seq</th>
-                <th>Type</th>
+                <th>계좌</th>
+                <th>계좌 순번</th>
+                <th>유형</th>
               </tr>
             </thead>
             <tbody>
@@ -192,7 +192,7 @@ export function BrokerPage() {
               ))}
               {!accounts.length ? (
                 <tr>
-                  <td colSpan={3}>Accounts are loaded on demand to avoid Toss rate limits.</td>
+                  <td colSpan={3}>토스 호출 한도를 피하기 위해 계좌는 필요할 때만 불러옵니다.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -200,17 +200,17 @@ export function BrokerPage() {
         </div>
       </section>
       <section>
-        <h3>Holdings</h3>
+        <h3>잔고</h3>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Symbol</th>
-                <th>Name</th>
-                <th>Quantity</th>
-                <th>Avg Price</th>
-                <th>Current Price</th>
-                <th>Source</th>
+                <th>종목</th>
+                <th>이름</th>
+                <th>수량</th>
+                <th>평균가</th>
+                <th>현재가</th>
+                <th>소스</th>
               </tr>
             </thead>
             <tbody>
@@ -226,7 +226,7 @@ export function BrokerPage() {
               ))}
               {!positions.length ? (
                 <tr>
-                  <td colSpan={6}>No holdings loaded.</td>
+                  <td colSpan={6}>불러온 잔고가 없습니다.</td>
                 </tr>
               ) : null}
             </tbody>

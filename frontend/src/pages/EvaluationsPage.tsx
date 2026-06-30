@@ -27,10 +27,10 @@ export function EvaluationsPage() {
     setMessage(null);
     api.runEvaluations()
       .then(() => {
-        setMessage("Evaluations refreshed.");
+        setMessage("평가를 새로고침했습니다.");
         return refresh();
       })
-      .catch(() => setMessage("Evaluation run failed."))
+      .catch(() => setMessage("평가 실행에 실패했습니다."))
       .finally(() => setIsRunning(false));
   };
 
@@ -42,22 +42,22 @@ export function EvaluationsPage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Hindsight</p>
-          <h2>Decision Evaluations</h2>
+          <p className="eyebrow">사후 평가</p>
+          <h2>판단 성과 평가</h2>
         </div>
         <button className="primary-button" disabled={isRunning} onClick={runEvaluations} type="button">
-          {isRunning ? "Running..." : "Run Evaluations"}
+          {isRunning ? "실행 중..." : "평가 실행"}
         </button>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="Decisions" value={`${status?.total_decisions ?? 0}`} />
-        <StatCard label="Evaluations" value={`${status?.total_evaluations ?? 0}`} detail={status?.latest_evaluated_at ? `latest ${new Date(status.latest_evaluated_at).toLocaleString()}` : "None"} />
+        <StatCard label="판단 수" value={`${status?.total_decisions ?? 0}`} />
+        <StatCard label="평가 수" value={`${status?.total_evaluations ?? 0}`} detail={status?.latest_evaluated_at ? `최근 ${new Date(status.latest_evaluated_at).toLocaleString()}` : "없음"} />
         {(status?.windows ?? []).map((window) => (
           <StatCard
-            detail={`${window.pending_count} pending / ${window.not_due_count} not due`}
+            detail={`${window.pending_count}개 대기 / ${window.not_due_count}개 기한 전`}
             key={window.window}
-            label={`${window.window} Coverage`}
+            label={`${window.window} 커버리지`}
             value={`${window.coverage_percent.toFixed(0)}%`}
           />
         ))}
@@ -65,7 +65,7 @@ export function EvaluationsPage() {
       <div className="evaluation-grid">
         {evaluations.map((evaluation) => <EvaluationCard evaluation={evaluation} key={evaluation.id} />)}
       </div>
-      {!evaluations.length ? <div className="notice">No evaluations yet.</div> : null}
+      {!evaluations.length ? <div className="notice">아직 평가 기록이 없습니다.</div> : null}
     </section>
   );
 }
