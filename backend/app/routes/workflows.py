@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas import WorkflowDefinitionRead, WorkflowRunRead
+from app.services.agent_service import AgentRunLockedError, AgentService
 from app.services.workflow_service import WorkflowService
 
 
@@ -20,6 +21,20 @@ def list_workflow_runs(
     db: Session = Depends(get_db),
 ) -> list[WorkflowRunRead]:
     return WorkflowService().list_runs(db, limit=limit)
+
+
+@router.post("/run", response_model=WorkflowRunRead)
+def run_workflow_once(db: Session = Depends(get_db)) -> WorkflowRunRead:
+    workflow_service = WorkflowService()
+    try:
+        decision = AgentService().run_once(db, trigger_source="workflow")
+    except AgentRunLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    run = workflow_service.get_latest_run_for_decision(db, decision.id)
+    if run is None:
+        raise HTTPException(status_code=500, detail="Workflow run was not recorded.")
+    return run
 
 
 @router.get("/{run_id}", response_model=WorkflowRunRead)

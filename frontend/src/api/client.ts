@@ -770,6 +770,7 @@ export const api = {
   getWorkflowDefinition: () => request<WorkflowDefinition>("/workflows/definition"),
   getWorkflowRuns: (limit = 50) => request<WorkflowRun[]>(`/workflows?limit=${limit}`),
   getWorkflowRun: (id: number) => request<WorkflowRun>(`/workflows/${id}`),
+  runWorkflow: () => request<WorkflowRun>("/workflows/run", { method: "POST" }),
   createJournalEntry: (payload: TradeJournalEntryCreate) => request<TradeJournalEntry>("/journal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

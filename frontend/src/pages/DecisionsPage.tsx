@@ -34,9 +34,16 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
   const runAgentOnce = () => {
     if (isRunningAgent) return;
     setIsRunningAgent(true);
-    api.runAgentOnce()
-      .then((decision) => onSelectDecision(decision.id))
-      .catch(() => undefined)
+    setMessage(null);
+    api.runWorkflow()
+      .then((run) => {
+        if (run.decision_id) {
+          onSelectDecision(run.decision_id);
+          return;
+        }
+        return refreshDecisions();
+      })
+      .catch(() => setMessage("워크플로 실행에 실패했습니다."))
       .finally(() => setIsRunningAgent(false));
   };
 
@@ -58,7 +65,7 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
             {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
-            {isRunningAgent ? "실행 중..." : "에이전트 실행"}
+            {isRunningAgent ? "실행 중..." : "워크플로 실행"}
           </button>
         </div>
       </header>

@@ -78,6 +78,7 @@ export function WorkflowsPage() {
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRunningWorkflow, setIsRunningWorkflow] = useState(false);
 
   const latestRun = runs[0] ?? null;
   const visibleRun = selectedRun ?? latestRun;
@@ -123,6 +124,21 @@ export function WorkflowsPage() {
       .catch((error) => setMessage(error instanceof Error ? error.message : "워크플로 상세를 불러올 수 없습니다."));
   };
 
+  const runWorkflow = () => {
+    if (isRunningWorkflow) return;
+    setIsRunningWorkflow(true);
+    setMessage(null);
+    api.runWorkflow()
+      .then((run) => {
+        setSelectedRunId(run.id);
+        setSelectedRun(run);
+        return api.getWorkflowRuns();
+      })
+      .then(setRuns)
+      .catch((error) => setMessage(error instanceof Error ? error.message : "워크플로 실행에 실패했습니다."))
+      .finally(() => setIsRunningWorkflow(false));
+  };
+
   useEffect(() => {
     refresh();
   }, []);
@@ -134,9 +150,14 @@ export function WorkflowsPage() {
           <p className="eyebrow">Agentic Workflow</p>
           <h2>실행 흐름</h2>
         </div>
-        <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
-          {isRefreshing ? "새로고침 중..." : "새로고침"}
-        </button>
+        <div className="button-row">
+          <button className="primary-button" disabled={isRunningWorkflow} onClick={runWorkflow} type="button">
+            {isRunningWorkflow ? "실행 중..." : "워크플로 실행"}
+          </button>
+          <button className="secondary-button" disabled={isRefreshing} onClick={refresh} type="button">
+            {isRefreshing ? "새로고침 중..." : "새로고침"}
+          </button>
+        </div>
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">

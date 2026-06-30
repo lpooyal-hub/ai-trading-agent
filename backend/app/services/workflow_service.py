@@ -198,3 +198,12 @@ class WorkflowService:
             .filter(WorkflowRun.id == run_id)
             .first()
         )
+
+    def get_latest_run_for_decision(self, db: Session, decision_id: int) -> WorkflowRun | None:
+        return (
+            db.query(WorkflowRun)
+            .options(selectinload(WorkflowRun.steps))
+            .filter(WorkflowRun.decision_id == decision_id)
+            .order_by(WorkflowRun.started_at.desc())
+            .first()
+        )

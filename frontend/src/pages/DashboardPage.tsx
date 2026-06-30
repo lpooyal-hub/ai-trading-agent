@@ -106,8 +106,14 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
     if (isRunningAgent) return;
     setError(null);
     setIsRunningAgent(true);
-    api.runAgentOnce()
-      .then((decision) => onSelectDecision(decision.id))
+    api.runWorkflow()
+      .then((run) => {
+        if (run.decision_id) {
+          onSelectDecision(run.decision_id);
+          return;
+        }
+        return loadDashboardData();
+      })
       .catch(() => setError("에이전트 실행에 실패했습니다."))
       .finally(() => setIsRunningAgent(false));
   };
@@ -129,7 +135,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .finally(() => setIsRunningScheduledAgent(false));
   };
 
-  const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Mock 에이전트 실행" : "에이전트 실행";
+  const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Mock 워크플로 실행" : "워크플로 실행";
 
   return (
     <section className="page-stack">
