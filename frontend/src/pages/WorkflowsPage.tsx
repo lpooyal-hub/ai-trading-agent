@@ -10,6 +10,7 @@ const STEP_LABELS: Record<string, string> = {
   risk_agent: "리스크 에이전트",
   memory_agent: "메모리 에이전트",
   decision_agent: "판단 에이전트",
+  execution_risk_agent: "실행 리스크 에이전트",
   logger_agent: "로거 에이전트",
   order_agent: "주문 에이전트",
   evaluation_agent: "평가 에이전트",

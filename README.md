@@ -59,6 +59,7 @@ SchedulerAgent
   -> RiskAgent
   -> MemoryAgent
   -> DecisionAgent
+  -> ExecutionRiskAgent
   -> LoggerAgent
   -> OrderAgent
   -> EvaluationAgent
@@ -71,9 +72,10 @@ SchedulerAgent
 - `RuntimeLock`: Redis가 설정되어 있으면 `agent:run_once:lock`으로 중복 실행을 막습니다.
 - `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
 - `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
-- `RiskAgent`: 포지션, 예산, 종목별 최대 노출, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
+- `RiskAgent`: LLM 예산과 실행 전제 조건을 확인하고, LLM 호출 전에 비용/쿨다운 가드를 적용합니다.
 - `MemoryAgent`: 최근 저널/평가를 요약해 승률, 반복 실수, 모델/종목/프롬프트 개선 힌트를 `DecisionAgent` 입력에 포함합니다.
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
+- `ExecutionRiskAgent`: 포지션, 예산, 종목별 최대 노출, 보호 종목, 금지 키워드, 일일 거래 수, 손실 제한 같은 deterministic risk rule을 검증합니다.
 - `LoggerAgent`: 판단 입력, LLM 응답, 사용량, 비용, latency, news context를 DB에 기록합니다.
 - `OrderAgent`: 승인된 판단을 paper auto 정책에 따라 주문 실행 경로로 넘깁니다. 실주문은 아직 차단되어 있습니다.
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
@@ -83,7 +85,7 @@ SchedulerAgent
 
 ### Workflow audit layer
 
-현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
+현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다.
 
 이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 workflow recording 경로를 통과합니다.
 

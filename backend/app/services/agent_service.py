@@ -8,6 +8,7 @@ from app.agents.market_agent import MarketAgent
 from app.agents.memory_agent import MemoryAgent
 from app.agents.news_agent import NewsAgent
 from app.agents.order_agent import OrderAgent
+from app.agents.risk_agent import RiskAgent
 from app.config import Settings, get_settings
 from app.models import (
     AgentAction,
@@ -39,6 +40,7 @@ class AgentService:
         self.logger_agent = LoggerAgent(self.decision_agent)
         self.memory_agent = MemoryAgent()
         self.order_agent = OrderAgent(self.settings)
+        self.execution_risk_agent = RiskAgent(self.settings)
         self.evaluation_agent = EvaluationAgent()
         self.journal_agent = JournalAgent()
         self.llm_budget_manager = LLMBudgetManager(self.settings)
@@ -206,6 +208,39 @@ class AgentService:
                     "memory_lookback_journal_entries": memory_context["lookback_journal_entries"],
                 },
                 error_message=decision_result.error_message,
+            )
+
+            execution_risk_result = None
+            if decision.status == DecisionStatus.PENDING:
+                execution_risk_result = self.execution_risk_agent.validate_decision(decision, db)
+                if not execution_risk_result.approved:
+                    decision.status = DecisionStatus.REJECTED
+                    decision.rejection_reason = execution_risk_result.reason
+
+            self.workflow_service.record_step(
+                db,
+                workflow,
+                step_name="execution_risk_agent",
+                status=(
+                    WorkflowStepStatus.SUCCEEDED
+                    if execution_risk_result
+                    else WorkflowStepStatus.SKIPPED
+                ),
+                input_json={
+                    "symbol": decision.symbol,
+                    "action": decision.action.value,
+                    "decision_status_before_order": decision.status.value,
+                },
+                output_json={
+                    "approved": execution_risk_result.approved if execution_risk_result else False,
+                    "reason": (
+                        execution_risk_result.reason
+                        if execution_risk_result
+                        else "Decision is not pending execution."
+                    ),
+                    "decision_status": decision.status.value,
+                    "rejection_reason": decision.rejection_reason,
+                },
             )
 
             logged = self.logger_agent.save_decision_with_usage(

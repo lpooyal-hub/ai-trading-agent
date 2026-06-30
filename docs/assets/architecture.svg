@@ -56,37 +56,42 @@
   <text class="label" x="1060" y="265">Memory</text>
   <text class="small" x="1058" y="294">lessons</text>
 
-  <rect class="llm" x="112" y="385" width="170" height="100" rx="18"/>
-  <text class="label" x="152" y="425">Decision</text>
-  <text class="small" x="148" y="455">LLM / mock</text>
+  <rect class="llm" x="92" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="115" y="425">Decision</text>
+  <text class="small" x="116" y="455">LLM / mock</text>
 
-  <rect class="node" x="352" y="385" width="170" height="100" rx="18"/>
-  <text class="label" x="394" y="425">Logger</text>
-  <text class="small" x="383" y="455">audit rows</text>
+  <rect class="node" x="292" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="322" y="425">Exec Risk</text>
+  <text class="small" x="318" y="455">guardrails</text>
 
-  <rect class="node" x="592" y="385" width="170" height="100" rx="18"/>
-  <text class="label" x="637" y="425">Order</text>
-  <text class="small" x="619" y="455">paper only</text>
+  <rect class="node" x="492" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="534" y="425">Logger</text>
+  <text class="small" x="523" y="455">audit rows</text>
 
-  <rect class="storage" x="832" y="385" width="180" height="100" rx="18"/>
-  <text class="label" x="884" y="425">Journal</text>
-  <text class="small" x="874" y="455">feedback</text>
+  <rect class="node" x="692" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="737" y="425">Order</text>
+  <text class="small" x="719" y="455">paper only</text>
 
-  <rect class="storage" x="1082" y="385" width="180" height="100" rx="18"/>
-  <text class="label" x="1124" y="425">Evaluate</text>
-  <text class="small" x="1120" y="455">outcomes</text>
+  <rect class="storage" x="892" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="916" y="425">Journal</text>
+  <text class="small" x="914" y="455">feedback</text>
+
+  <rect class="storage" x="1092" y="385" width="150" height="100" rx="18"/>
+  <text class="label" x="1113" y="425">Evaluate</text>
+  <text class="small" x="1115" y="455">outcomes</text>
 
   <path class="arrow" d="M237 272 H280"/>
   <path class="arrow" d="M425 272 H468"/>
   <path class="arrow" d="M613 272 H656"/>
   <path class="arrow" d="M801 272 H844"/>
   <path class="arrow" d="M989 272 H1032"/>
-  <path class="arrow" d="M1105 320 C1105 355 197 345 197 385"/>
-  <path class="arrow" d="M282 435 H352"/>
-  <path class="arrow" d="M522 435 H592"/>
-  <path class="arrow" d="M762 435 H832"/>
-  <path class="arrow" d="M1012 435 H1082"/>
-  <path class="loop" d="M1172 385 C1218 342 1215 325 1178 300"/>
+  <path class="arrow" d="M1105 320 C1105 355 167 345 167 385"/>
+  <path class="arrow" d="M242 435 H292"/>
+  <path class="arrow" d="M442 435 H492"/>
+  <path class="arrow" d="M642 435 H692"/>
+  <path class="arrow" d="M842 435 H892"/>
+  <path class="arrow" d="M1042 435 H1092"/>
+  <path class="loop" d="M1167 385 C1218 342 1215 325 1178 300"/>
 
   <rect class="panel" x="60" y="590" width="390" height="120" rx="22"/>
   <text class="section" x="92" y="634">React Dashboard</text>
