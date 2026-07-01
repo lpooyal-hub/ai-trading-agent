@@ -110,6 +110,12 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
+Compose 포트나 Postgres 비밀번호를 기본값에서 바꾸려면 루트 예시 파일을 복사해 수정합니다.
+
+```bash
+cp .env.example .env
+```
+
 이미 `backend/.env`가 있으면 아래만 실행하면 됩니다.
 
 ```bash
@@ -122,6 +128,19 @@ docker compose up --build
 ```bash
 docker compose ps
 ```
+
+Docker Compose 실행 시 backend는 전용 `postgres` 서비스에 연결됩니다. Postgres 데이터는 named volume인 `postgres_data`에 저장되고, backend의 `/app/data`는 SQLite fallback이나 파일성 데이터를 위해 `backend_data`로 유지합니다.
+
+기본 개발용 DB 값:
+
+```text
+POSTGRES_DB=ai_trading_agent
+POSTGRES_USER=ai_trading_agent
+POSTGRES_PASSWORD=ai_trading_agent_dev_password
+DATABASE_URL=postgresql+psycopg://ai_trading_agent:ai_trading_agent_dev_password@postgres:5432/ai_trading_agent
+```
+
+운영/서버에서는 루트 `.env`나 shell environment에서 `POSTGRES_PASSWORD`와 `DATABASE_URL`을 함께 바꿔 사용합니다. `backend/.env.example`의 `DATABASE_URL=sqlite:///./data/trading_agent.db`는 Docker 없이 backend를 단독 실행할 때의 가벼운 fallback 예시입니다.
 
 기본 접속 주소:
 

@@ -11,7 +11,7 @@
 - FastAPI 앱 엔트리
 - dotenv 기반 설정
 - Toss Securities Open API 기준 브로커 설정
-- SQLite / SQLAlchemy 연결
+- SQLAlchemy 기반 DB 연결(SQLite local fallback, Docker Compose PostgreSQL)
 - 핵심 ORM 모델
 - Pydantic 스키마
 - 에이전트 판단별 LLM 토큰/예상 비용 기록 필드
@@ -78,6 +78,14 @@ docker compose up --build
 ```
 
 Docker Compose backend는 `backend/.env`를 읽습니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
+
+Docker Compose 기본 DB는 프로젝트 전용 `postgres` 서비스입니다. 데이터는 Docker named volume `postgres_data`에 저장됩니다. 로컬에서 backend만 단독 실행할 때는 `.env.example`의 SQLite `DATABASE_URL`을 그대로 사용할 수 있습니다.
+
+```text
+DATABASE_URL=postgresql+psycopg://ai_trading_agent:ai_trading_agent_dev_password@postgres:5432/ai_trading_agent
+```
+
+운영 서버에서 Postgres 비밀번호를 바꾸는 경우 루트 `.env`나 shell environment에서 `POSTGRES_PASSWORD`와 `DATABASE_URL`을 함께 맞춰야 합니다.
 
 로컬에서 backend만 따로 개발할 때만 아래 명령을 사용합니다.
 
