@@ -61,7 +61,7 @@ export function DecisionsPage({ onSelectDecision }: { onSelectDecision: (id: num
           <h2>판단 기록</h2>
         </div>
         <div className="button-row">
-          <button className="secondary-button" disabled={isRefreshing} onClick={refreshDecisions} type="button">
+          <button className="secondary-button" disabled={isRefreshing} onClick={() => refreshDecisions()} type="button">
             {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
           <button className="primary-button" disabled={isRunningAgent} onClick={runAgentOnce} type="button">
