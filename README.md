@@ -457,6 +457,18 @@ Frontend API 주소는 `VITE_API_BASE_URL`이 있으면 그 값을 우선 사용
 
 Docker 실행 시에도 기본값은 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`입니다.
 
+## Verification
+
+핵심 guard 로직은 표준 `unittest` 기반 테스트로 검증합니다. 추가 패키지 없이 backend container 안에서 실행할 수 있습니다.
+
+```bash
+docker compose exec -T backend python -m unittest discover -s tests
+docker compose exec -T backend python -m compileall app
+docker compose exec -T frontend npm run build
+```
+
+현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`SectorCandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`)입니다. News Agent는 외부 provider 연결 전 보류 상태이므로 테스트 범위에 포함하지 않았습니다.
+
 ## Live Trading Readiness
 
 기본값은 paper trading이며 실제 주문은 전송하지 않습니다. `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, `USE_MOCK_DATA=false`, Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key가 모두 준비되면 `TossLiveExecutionAdapter`가 broker order endpoint를 호출합니다. readiness가 부족하면 `BlockedLiveExecutionAdapter`가 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` 상태로 order intent만 저장합니다.

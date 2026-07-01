@@ -112,6 +112,17 @@ ADMIN_API_KEY=<set-on-server-only>
 TOSS_ORDER_PATH=<official-toss-order-path>
 ```
 
+## 테스트
+
+핵심 guard 로직은 추가 패키지 없이 표준 `unittest`로 검증합니다.
+
+```bash
+docker compose exec -T backend python -m unittest discover -s tests
+docker compose exec -T backend python -m compileall app
+```
+
+현재 테스트 범위는 `DecisionResponseGuard`, `SectorCandidateSelector`, `RiskManager`입니다. 외부 뉴스 provider는 아직 연결하지 않았기 때문에 News Agent는 테스트 범위에서 제외합니다.
+
 ## Execution Modes
 
 기본은 paper trading입니다.
