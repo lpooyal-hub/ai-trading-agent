@@ -142,7 +142,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, env에 따라 DRY_RUN simulated order 또는 Toss live order 제출로 분기합니다.
 - `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false`, `USE_MOCK_DATA=false`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 `TossLiveExecutionAdapter`가 live order를 제출합니다.
-- Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 제출 건수와 제출 금액으로 별도 표시하며, 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않습니다. `TOSS_ORDER_STATUS_PATH`가 있으면 `/orders/{order_id}/sync-live-status`로 broker 체결 상태를 조회하고, `LIVE_FILLED`로 정규화된 주문만 bot position에 한 번 반영합니다.
+- Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 제출 건수와 제출 금액으로 별도 표시하며, 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않습니다. `TOSS_ORDER_STATUS_PATH`가 있으면 `/orders/{order_id}/sync-live-status` 또는 `/orders/sync-live-status`로 broker 체결 상태를 조회하고, `LIVE_FILLED`로 정규화된 주문만 bot position에 한 번 반영합니다.
 - readiness가 부족한 live intent는 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단되며, order intent와 idempotency key가 raw payload에 남습니다.
 - `/decisions/{decision_id}/preview`는 승인 전 예상 주문 수량, 금액, 예산 영향, legacy 보호 여부, RiskManager 결과를 보여줍니다.
 - decision evaluation은 최신 snapshot 가격과 결정 당시 가격을 비교해 hindsight review를 저장합니다.

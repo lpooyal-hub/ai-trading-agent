@@ -301,6 +301,16 @@ export type TradeOrder = {
   raw_response_json: Record<string, unknown>;
 };
 
+export type LiveOrderBulkSync = {
+  scanned_count: number;
+  updated_count: number;
+  filled_count: number;
+  partial_count: number;
+  canceled_count: number;
+  failed_count: number;
+  orders: TradeOrder[];
+};
+
 export type OrderFilters = {
   status?: string;
   symbol?: string;
@@ -770,6 +780,7 @@ export const api = {
     const query = params.toString();
     return request<TradeOrder[]>(query ? `/orders?${query}` : "/orders");
   },
+  syncOpenLiveOrderStatuses: () => request<LiveOrderBulkSync>("/orders/sync-live-status", { method: "POST" }),
   syncLiveOrderStatus: (id: number) => request<TradeOrder>(`/orders/${id}/sync-live-status`, { method: "POST" }),
   getEvaluations: () => request<DecisionEvaluation[]>("/evaluations"),
   getEvaluationsForDecision: (decisionId: number) => request<DecisionEvaluation[]>(`/evaluations/${decisionId}`),

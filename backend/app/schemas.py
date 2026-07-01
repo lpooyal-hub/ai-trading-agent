@@ -491,6 +491,16 @@ class TradeOrderRead(BaseModel):
     raw_response_json: dict[str, Any]
 
 
+class LiveOrderBulkSyncRead(BaseModel):
+    scanned_count: int
+    updated_count: int
+    filled_count: int
+    partial_count: int
+    canceled_count: int
+    failed_count: int
+    orders: list[TradeOrderRead]
+
+
 class DecisionEvaluationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

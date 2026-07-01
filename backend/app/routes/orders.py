@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import OrderStatus, TradeOrder
-from app.schemas import TradeOrderRead
+from app.schemas import LiveOrderBulkSyncRead, TradeOrderRead
 from app.security import require_admin_api_key
 from app.services.trading_service import TradingService
 
@@ -32,6 +32,31 @@ def get_order(order_id: int, db: Session = Depends(get_db)) -> TradeOrderRead:
     if not order:
         raise HTTPException(status_code=404, detail="Order not found.")
     return order
+
+
+@router.post("/sync-live-status", response_model=LiveOrderBulkSyncRead, dependencies=[Depends(require_admin_api_key)])
+def sync_open_live_order_statuses(
+    limit: int = Query(default=25, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> LiveOrderBulkSyncRead:
+    orders = (
+        db.query(TradeOrder)
+        .filter(TradeOrder.status.in_([OrderStatus.LIVE_SUBMITTED, OrderStatus.LIVE_PARTIAL]))
+        .order_by(TradeOrder.created_at.asc(), TradeOrder.id.asc())
+        .limit(limit)
+        .all()
+    )
+    service = TradingService()
+    synced_orders = [service.sync_live_order_status(db, order) for order in orders]
+    return LiveOrderBulkSyncRead(
+        scanned_count=len(orders),
+        updated_count=len(synced_orders),
+        filled_count=len([order for order in synced_orders if order.status == OrderStatus.LIVE_FILLED]),
+        partial_count=len([order for order in synced_orders if order.status == OrderStatus.LIVE_PARTIAL]),
+        canceled_count=len([order for order in synced_orders if order.status == OrderStatus.LIVE_CANCELED]),
+        failed_count=len([order for order in synced_orders if order.status == OrderStatus.FAILED]),
+        orders=synced_orders,
+    )
 
 
 @router.post("/{order_id}/sync-live-status", response_model=TradeOrderRead, dependencies=[Depends(require_admin_api_key)])

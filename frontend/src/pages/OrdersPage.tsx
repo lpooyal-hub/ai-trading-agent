@@ -8,6 +8,7 @@ export function OrdersPage() {
   const [symbolFilter, setSymbolFilter] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [syncingOrderId, setSyncingOrderId] = useState<number | null>(null);
+  const [isSyncingOpenLiveOrders, setIsSyncingOpenLiveOrders] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const refresh = (filters = { status: statusFilter, symbol: symbolFilter }) => {
@@ -50,6 +51,22 @@ export function OrdersPage() {
       .finally(() => setSyncingOrderId(null));
   };
 
+  const syncOpenLiveStatuses = () => {
+    if (isSyncingOpenLiveOrders) return;
+    setIsSyncingOpenLiveOrders(true);
+    setMessage(null);
+    api.syncOpenLiveOrderStatuses()
+      .then((result) => {
+        const updatedById = new Map(result.orders.map((order) => [order.id, order]));
+        setOrders((current) => current.map((order) => updatedById.get(order.id) ?? order));
+        setMessage(
+          `실주문 ${result.scanned_count}건 확인 · 체결 ${result.filled_count} · 부분 ${result.partial_count} · 취소 ${result.canceled_count} · 실패 ${result.failed_count}`
+        );
+      })
+      .catch(() => setMessage("대기 실주문 상태 동기화에 실패했습니다."))
+      .finally(() => setIsSyncingOpenLiveOrders(false));
+  };
+
   return (
     <section className="page-stack">
       <header className="page-header">
@@ -58,6 +75,14 @@ export function OrdersPage() {
           <h2>모의 주문 기록</h2>
         </div>
         <div className="button-row">
+          <button
+            className="secondary-button"
+            disabled={isSyncingOpenLiveOrders}
+            onClick={syncOpenLiveStatuses}
+            type="button"
+          >
+            {isSyncingOpenLiveOrders ? "동기화 중..." : "대기 실주문 동기화"}
+          </button>
           <button className="secondary-button" disabled={isRefreshing} onClick={() => refresh()} type="button">
             {isRefreshing ? "새로고침 중..." : "새로고침"}
           </button>
