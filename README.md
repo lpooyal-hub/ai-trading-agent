@@ -130,8 +130,8 @@ Docker Compose 실행 시 backend는 전용 `postgres` 서비스에 연결됩니
 ```text
 POSTGRES_DB=ai_trading_agent
 POSTGRES_USER=ai_trading_agent
-POSTGRES_PASSWORD=ai_trading_agent_dev_password
-DATABASE_URL=postgresql+psycopg://ai_trading_agent:ai_trading_agent_dev_password@postgres:5432/ai_trading_agent
+POSTGRES_PASSWORD=change_this_postgres_password
+DATABASE_URL=postgresql+psycopg://ai_trading_agent:change_this_postgres_password@postgres:5432/ai_trading_agent
 ```
 
 운영/서버에서는 `backend/.env`에서 `POSTGRES_PASSWORD`와 `DATABASE_URL`을 함께 바꿔 사용합니다. Docker 없이 backend를 단독 실행할 때만 `DATABASE_URL=sqlite:///./data/trading_agent.db`를 fallback으로 사용할 수 있습니다.

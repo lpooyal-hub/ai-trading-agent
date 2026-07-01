@@ -82,7 +82,7 @@ Docker Compose의 `backend`, `frontend`, `postgres` 컨테이너는 모두 `back
 Docker Compose 기본 DB는 프로젝트 전용 `postgres` 서비스입니다. 데이터는 Docker named volume `postgres_data`에 저장됩니다. 로컬에서 backend만 단독 실행할 때만 SQLite `DATABASE_URL`을 fallback으로 사용할 수 있습니다.
 
 ```text
-DATABASE_URL=postgresql+psycopg://ai_trading_agent:ai_trading_agent_dev_password@postgres:5432/ai_trading_agent
+DATABASE_URL=postgresql+psycopg://ai_trading_agent:change_this_postgres_password@postgres:5432/ai_trading_agent
 ```
 
 운영 서버에서 Postgres 비밀번호를 바꾸는 경우 `backend/.env`에서 `POSTGRES_PASSWORD`와 `DATABASE_URL`을 함께 맞춰야 합니다.
