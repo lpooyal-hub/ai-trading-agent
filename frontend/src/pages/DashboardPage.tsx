@@ -8,8 +8,8 @@ function modeLabel(value: string | null | undefined) {
   if (!value) return "알 수 없음";
   const labels: Record<string, string> = {
     manual_approval: "수동 승인",
-    paper_auto: "Paper 자동",
-    mock: "Mock",
+    paper_auto: "모의 자동",
+    mock: "모의 응답",
     real_openai: "실제 OpenAI",
     unavailable: "사용 불가",
     unknown: "알 수 없음",
@@ -163,7 +163,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       .finally(() => setIsRunningScheduledAgent(false));
   };
 
-  const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "Mock 워크플로 실행" : "워크플로 실행";
+  const agentRunLabel = agentReadiness?.llm_mode === "mock" ? "모의 워크플로 실행" : "워크플로 실행";
   const topSymbol = symbolPerformance[0];
 
   return (
@@ -213,7 +213,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
             { label: "시장 데이터", value: statusText(marketStatus?.ready_for_agent, "준비됨", "미준비"), detail: marketStatus?.message },
             { label: "후보 종목", value: `${agentReadiness?.candidate_symbols.length ?? 0}`, detail: agentReadiness?.candidate_symbols.join(", ") || "없음" },
             { label: "자동화", value: statusText(agentReadiness?.automation_ready, "준비됨", "차단됨"), detail: agentReadiness?.automation_reason },
-            { label: "Paper 자동", value: statusText(agentReadiness?.paper_auto_ready, "준비됨", "꺼짐"), detail: agentReadiness?.paper_auto_reason },
+            { label: "모의 자동", value: statusText(agentReadiness?.paper_auto_ready, "준비됨", "꺼짐"), detail: agentReadiness?.paper_auto_reason },
           ]}
         />
         <DashboardStatusPanel
@@ -222,7 +222,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
             { label: "LLM 모드", value: modeLabel(agentReadiness?.llm_mode), detail: (agentReadiness?.llm_blockers ?? []).join(" / ") || "사용 가능" },
             { label: "오늘 호출", value: `${llmSummary?.today_calls ?? 0}`, detail: `잔여 ${llmBudget?.daily_calls_remaining ?? 0}회` },
             { label: "오늘 비용", value: `$${llmSummary?.today_estimated_cost_usd.toFixed(4) ?? "0.0000"}`, detail: `잔여 $${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}` },
-            { label: "평균 지연", value: `${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`, detail: `${llmSummary?.today_total_tokens ?? 0} tokens today` },
+            { label: "평균 지연", value: `${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`, detail: `오늘 ${llmSummary?.today_total_tokens ?? 0} 토큰` },
           ]}
         />
         <DashboardStatusPanel

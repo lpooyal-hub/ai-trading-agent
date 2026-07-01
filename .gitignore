@@ -10,6 +10,7 @@ logs/
 secrets/
 credentials/
 private/
+INTERVIEW_NOTES.md
 __pycache__/
 **/__pycache__/
 .pytest_cache/

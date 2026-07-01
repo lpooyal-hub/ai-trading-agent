@@ -71,7 +71,7 @@ export function OrdersPage() {
     <section className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">DRY_RUN</p>
+          <p className="eyebrow">모의 실행</p>
           <h2>모의 주문 기록</h2>
         </div>
         <div className="button-row">

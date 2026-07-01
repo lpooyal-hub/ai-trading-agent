@@ -62,7 +62,7 @@ SchedulerAgent
 ```
 
 - `SchedulerAgent`: `/agent/run-scheduled` 호출 시 실행 가능 시간, 장중 여부, 실행 간격을 확인합니다.
-- `RuntimeLock`: Redis가 설정되어 있으면 `agent:run_once:lock`으로 중복 실행을 막습니다.
+- `RuntimeLock`: Compose 기본 Redis 또는 설정된 Redis에서 `agent:run_once:lock`으로 중복 실행을 막습니다.
 - `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
 - `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
 - `RiskAgent`: LLM 예산과 실행 전제 조건을 확인하고, LLM 호출 전에 비용/쿨다운 가드를 적용합니다.
@@ -84,10 +84,10 @@ SchedulerAgent
 
 ### Redis runtime guard
 
-Redis는 영구 기록 저장소가 아니라 runtime guard로 선택적으로 사용합니다. `REDIS_ENABLED=true`와 `REDIS_URL`이 설정되어 있으면 `/workflows/run` 실행 시 `agent:run_once:lock` lock을 잡아 중복 실행을 막습니다.
+Redis는 영구 기록 저장소가 아니라 runtime guard로 사용합니다. Docker Compose 기본 구성에는 Redis 컨테이너가 포함되어 있고, `backend/.env.example`도 `REDIS_ENABLED=true`, `REDIS_URL=redis://redis:6379/0` 기준으로 맞춰져 있습니다. `/workflows/run` 실행 시 `agent:run_once:lock` lock을 잡아 중복 실행을 막습니다.
 
 - Redis 사용 가능: 같은 순간 두 번째 agent 실행은 `409 Conflict` 또는 scheduled run skip으로 처리됩니다.
-- Redis 미설정/미가용: 기존 DB 기반 실행 흐름을 유지하고, workflow에는 runtime lock 단계가 skipped로 남습니다.
+- Redis를 의도적으로 끄거나 일시적으로 사용할 수 없음: 기존 DB 기반 실행 흐름을 유지하고, workflow에는 runtime lock 단계가 skipped로 남습니다.
 - 기본 TTL은 `REDIS_AGENT_RUN_LOCK_TTL_SECONDS=300`입니다.
 
 ## 보안 원칙
@@ -171,6 +171,7 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `REDIS_URL`
 
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
+Compose 기본 실행에서는 `postgres`와 `redis` 서비스 이름을 그대로 사용합니다. 따라서 컨테이너 내부 연결값은 `DATABASE_URL=...@postgres:5432/...`, `REDIS_URL=redis://redis:6379/0` 형태를 유지합니다.
 OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` 버튼 또는 아래 endpoint로 작은 연결 테스트를 먼저 실행합니다. 이 테스트는 trading decision을 만들지 않고 LLM usage row만 기록합니다.
 
 ### Execution Modes

@@ -6,16 +6,21 @@
 
 ## 현재 단계
 
-현재는 backend 기본 골격, 포트폴리오 조회, mock agent decision 생성까지 구현되어 있습니다.
+현재 backend는 공개 포트폴리오용 agentic workflow 골격을 넘어서, paper trading, PostgreSQL 저장, Redis runtime guard, LLM 비용 추적, 사후 평가, 저널, memory feedback, Toss read-only/live adapter boundary까지 구현된 상태입니다. 기본 실행은 안전한 DRY_RUN / mock / paper trading이며, live order는 env opt-in 조건을 모두 만족할 때만 adapter가 선택됩니다.
 
 - FastAPI 앱 엔트리
 - dotenv 기반 설정
 - Toss Securities Open API 기준 브로커 설정
 - SQLAlchemy 기반 DB 연결(SQLite local fallback, Docker Compose PostgreSQL)
+- Redis runtime lock 기반 중복 workflow 실행 방지
 - 핵심 ORM 모델
 - Pydantic 스키마
+- agentic workflow run/step audit 기록
 - 에이전트 판단별 LLM 토큰/예상 비용 기록 필드
 - LLM client result wrapper: parsed response, raw response, usage, latency, success status
+- Market/News/Risk/Memory/Decision/Execution Risk/Logger/Order/Evaluation/Journal agent 분리
+- Paper execution adapter와 Toss live execution adapter boundary
+- Evaluation, Journal, Memory feedback loop
 - `/health`
 - `/settings/safety`
 - `/settings/llm-budget`
@@ -77,7 +82,7 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-Docker Compose의 `backend`, `frontend`, `postgres` 컨테이너는 모두 `backend/.env`를 읽습니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
+Docker Compose의 `backend`, `frontend`, `postgres` 컨테이너는 모두 `backend/.env`를 읽습니다. Redis는 runtime lock 전용 서비스로 함께 실행됩니다. 실제 API 키와 운용 설정은 이 파일에 넣고 저장소에는 커밋하지 않습니다.
 
 Docker Compose 기본 DB는 프로젝트 전용 `postgres` 서비스입니다. 데이터는 Docker named volume `postgres_data`에 저장됩니다. 로컬에서 backend만 단독 실행할 때만 SQLite `DATABASE_URL`을 fallback으로 사용할 수 있습니다.
 
