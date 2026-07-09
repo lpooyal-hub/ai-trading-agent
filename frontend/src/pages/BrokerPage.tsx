@@ -155,7 +155,7 @@ export function BrokerPage() {
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="백엔드 API" value={backendHealth?.status === "ok" ? "온라인" : "알 수 없음"} detail={backendHealth?.dry_run ? "DRY_RUN 백엔드" : undefined} />
+        <StatCard label="백엔드 API" value={backendHealth?.status === "ok" ? "온라인" : "알 수 없음"} detail={backendHealth?.dry_run ? "모의 실행 백엔드" : undefined} />
         <StatCard label="API 인증 정보" value={booleanStatus(status?.api_credentials_ready, "준비됨", "미완료")} />
         <StatCard
           label="계좌 조회"
@@ -168,8 +168,8 @@ export function BrokerPage() {
           value={booleanStatus(status?.read_only_ready, "준비됨", "미준비")}
           detail={positionsCacheHit === null ? undefined : positionsCacheHit ? "캐시 응답" : "최신 응답"}
         />
-        <StatCard label="Mock 데이터" value={booleanStatus(status?.use_mock_data, "켜짐", "꺼짐")} />
-        <StatCard label="DRY_RUN" value={booleanStatus(status?.dry_run, "켜짐", "꺼짐")} />
+        <StatCard label="모의 데이터" value={booleanStatus(status?.use_mock_data, "켜짐", "꺼짐")} />
+        <StatCard label="모의 실행" value={booleanStatus(status?.dry_run, "켜짐", "꺼짐")} />
       </div>
       <section>
         <h3>계좌</h3>

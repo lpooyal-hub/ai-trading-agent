@@ -109,9 +109,9 @@ export function SettingsPage() {
         <div><dt>LLM 차단 사유</dt><dd>{listOrNone(llmReadiness?.blockers)}</dd></div>
         <div><dt>LLM 다음 조치</dt><dd>{listOrNone(llmReadiness?.next_actions)}</dd></div>
         <div><dt>실거래 준비</dt><dd>{boolLabel(broker?.live_ready)}</dd></div>
-        <div><dt>DRY_RUN</dt><dd>{boolLabel(settings?.dry_run, true)}</dd></div>
-        <div><dt>LIVE_TRADING_ENABLED</dt><dd>{boolLabel(settings?.live_trading_enabled)}</dd></div>
-        <div><dt>USE_MOCK_DATA</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
+        <div><dt>모의 실행 (DRY_RUN)</dt><dd>{boolLabel(settings?.dry_run, true)}</dd></div>
+        <div><dt>실거래 활성화 (LIVE_TRADING_ENABLED)</dt><dd>{boolLabel(settings?.live_trading_enabled)}</dd></div>
+        <div><dt>모의 데이터 (USE_MOCK_DATA)</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
         <div><dt>BOT_CAPITAL_LIMIT_USD</dt><dd>${settings?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}</dd></div>
         <div><dt>MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.max_order_amount_usd.toFixed(2) ?? "100.00"}</dd></div>
         <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent.toFixed(1) ?? "40.0"}%</dd></div>
