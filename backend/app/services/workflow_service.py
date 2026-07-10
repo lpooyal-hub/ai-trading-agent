@@ -9,7 +9,8 @@ from app.models import WorkflowRun, WorkflowRunStatus, WorkflowStep, WorkflowSte
 class WorkflowService:
     agent_workflow_definition = {
         "workflow_name": "agent.run_once",
-        "description": "Agentic trading research workflow with deterministic guards and LLM decision support.",
+        "description": "LangGraph-backed agentic trading research workflow with deterministic guards and LLM decision support.",
+        "engine": "LangGraph StateGraph",
         "nodes": [
             {
                 "id": "runtime_lock",
@@ -42,6 +43,14 @@ class WorkflowService:
                 "uses_llm": False,
                 "runtime": "Python",
                 "responsibility": "Check LLM budget and deterministic execution constraints.",
+            },
+            {
+                "id": "skipped_decision",
+                "label": "Skipped Decision Guard",
+                "agent_type": "system",
+                "uses_llm": False,
+                "runtime": "LangGraph conditional edge",
+                "responsibility": "Persist skipped decision and journal when a guard stops the workflow.",
             },
             {
                 "id": "memory_agent",
@@ -111,6 +120,20 @@ class WorkflowService:
             {"from": "logger_agent", "to": "order_agent"},
             {"from": "order_agent", "to": "evaluation_agent"},
             {"from": "evaluation_agent", "to": "journal_agent"},
+        ],
+        "conditional_edges": [
+            {
+                "from": "news_agent",
+                "condition": "candidate_count > 0",
+                "true": "risk_agent",
+                "false": "skipped_decision",
+            },
+            {
+                "from": "risk_agent",
+                "condition": "llm_budget_approved == true",
+                "true": "memory_agent",
+                "false": "skipped_decision",
+            },
         ],
         "side_loops": [
             {

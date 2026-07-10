@@ -181,6 +181,13 @@ export type WorkflowEdge = {
   to: string;
 };
 
+export type WorkflowConditionalEdge = {
+  from: string;
+  condition: string;
+  true: string;
+  false: string;
+};
+
 export type WorkflowSideLoop = {
   name: string;
   description: string;
@@ -190,8 +197,10 @@ export type WorkflowSideLoop = {
 export type WorkflowDefinition = {
   workflow_name: string;
   description: string;
+  engine?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
+  conditional_edges?: WorkflowConditionalEdge[];
   side_loops: WorkflowSideLoop[];
 };
 

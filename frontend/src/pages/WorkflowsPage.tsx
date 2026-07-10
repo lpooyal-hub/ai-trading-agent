@@ -242,7 +242,7 @@ export function WorkflowsPage() {
       <section className="workflow-definition">
         <div className="workflow-detail-header">
           <div>
-            <p className="eyebrow">{definition?.workflow_name ?? "agent.run_once"}</p>
+            <p className="eyebrow">{definition?.engine ?? "LangGraph StateGraph"}</p>
             <h3>정의된 Agent Graph</h3>
           </div>
           <span className="status-pill neutral">{definition?.nodes.length ?? 0} nodes</span>

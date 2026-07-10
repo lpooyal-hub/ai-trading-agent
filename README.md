@@ -31,7 +31,7 @@
 
 ## 핵심 기능
 
-- Agentic workflow: Market, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계 기록
+- LangGraph agentic workflow: Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal node 실행 및 단계 기록
 - Runtime guard: Redis lock으로 중복 실행 방지
 - Decision audit: 판단 근거, 신뢰도, LLM 사용량, 비용, latency 저장
 - Paper execution: DRY_RUN 기반 금액 주문 시뮬레이션과 bot-only position 갱신
@@ -78,9 +78,9 @@ SchedulerAgent
 
 ### Workflow audit layer
 
-현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다. 실행 전 guard에서 멈춘 경우에도 스킵 사유와 저널 ID가 함께 남습니다.
+현재 구현은 LangGraph `StateGraph` 기반 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 각 agent를 node로 실행하고, node가 공유 state를 업데이트한 뒤 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다. 실행 전 guard에서 멈춘 경우에도 스킵 사유와 저널 ID가 함께 남습니다.
 
-이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 workflow recording 경로를 통과합니다.
+이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어떤 state를 다음 node로 넘겼으며 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 LangGraph workflow recording 경로를 통과합니다.
 
 ### Redis runtime guard
 

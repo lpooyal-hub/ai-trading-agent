@@ -6,7 +6,7 @@
 
 ## 현재 단계
 
-현재 backend는 공개 포트폴리오용 agentic workflow 골격을 넘어서, paper trading, PostgreSQL 저장, Redis runtime guard, LLM 비용 추적, 사후 평가, 저널, memory feedback, Toss read-only/live adapter boundary까지 구현된 상태입니다. 기본 실행은 안전한 DRY_RUN / mock / paper trading이며, live order는 env opt-in 조건을 모두 만족할 때만 adapter가 선택됩니다.
+현재 backend는 공개 포트폴리오용 LangGraph agentic workflow 골격을 넘어서, paper trading, PostgreSQL 저장, Redis runtime guard, LLM 비용 추적, 사후 평가, 저널, memory feedback, Toss read-only/live adapter boundary까지 구현된 상태입니다. 기본 실행은 안전한 DRY_RUN / mock / paper trading이며, live order는 env opt-in 조건을 모두 만족할 때만 adapter가 선택됩니다.
 
 - FastAPI 앱 엔트리
 - dotenv 기반 설정
@@ -15,7 +15,7 @@
 - Redis runtime lock 기반 중복 workflow 실행 방지
 - 핵심 ORM 모델
 - Pydantic 스키마
-- agentic workflow run/step audit 기록
+- LangGraph agent node 기반 workflow run/step audit 기록
 - 에이전트 판단별 LLM 토큰/예상 비용 기록 필드
 - LLM client result wrapper: parsed response, raw response, usage, latency, success status
 - Market/News/Risk/Memory/Decision/Execution Risk/Logger/Order/Evaluation/Journal agent 분리
@@ -232,7 +232,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
 9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
 
-현재 공개 포트폴리오 버전은 agentic workflow, audit trail, risk guard, paper execution, journal, memory feedback loop를 중심으로 역할을 분리합니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 외부 뉴스 provider를 붙일 때 확장할 수 있도록 `/memory/summary`의 `data_gaps`에 명시됩니다.
+현재 공개 포트폴리오 버전은 LangGraph node 기반 agentic workflow, audit trail, risk guard, paper execution, journal, memory feedback loop를 중심으로 역할을 분리합니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 외부 뉴스 provider를 붙일 때 확장할 수 있도록 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
