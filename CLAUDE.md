@@ -4,6 +4,7 @@
 
 ## 진행 중인 작업
 
-- `docs/plans/continuous-session-loop.md`: LangGraph 그래프를 선형 DAG에서 연속 다회차 세션 루프로 재설계하는 계획. Claude와 Codex의 파일 소유권 경계가 표로 정리되어 있다.
-  - **Phase 0(Claude 담당 계약 파일)은 완료됨** — `models.py`, `config.py`, `agent_graph_service.py`(`run_session()`/`session_graph`), `redis_runtime_service.py`, `workflow_service.py`, `utils/market_hours.py`. 검증까지 끝났다 (문서 §0.1 참고).
-  - 다음은 Codex 담당 파일(§2의 표) 진행 여부 확인, 끝나면 "통합 단계" 절 진행.
+- `docs/plans/continuous-session-loop.md`: LangGraph 그래프를 선형 DAG에서 연속 다회차 세션 루프로 재설계하는 계획. **완료됨.** 워커는 하이브리드(외부 host cron이 하루 1번 트리거하는 1회성 프로세스)로 확정, `backend/app/worker.py` 구현·검증 끝. 남은 건 실제 host crontab 등록(§1.4) — 아직 아무도 등록 안 함, 자동매매 루프를 실제로 주기적으로 켜는 행위라 등록 전에 사용자에게 알릴 것.
+- `docs/plans/domestic-krw-conversion.md`: 해외장(USD) → 국내장 KRX(KRW) 전환 + 멀티섹터 화이트리스트. **완료됨** (커밋 `3c78451`, `6102bd2`, `761e9a8`). 유닛테스트/컴파일/프론트 빌드/스모크 테스트까지 검증됨.
+- 두 계획 모두 Claude(안전/계약 파일)와 Codex CLI(기계적 대량 작업)가 나눠 작업하는 패턴을 썼다 — 앞으로도 대규모 변경은 이 패턴(계획 문서 → Claude 계약 → Codex 실행 → Claude 리뷰/커밋)을 우선 고려한다.
+- 남은 오픈 아이템은 각 계획 문서의 "아직 열려있는 부분" 절 참고 (세션 상한값 실측, host crontab 등록, `usd_to_krw_display_rate` 실환율 연동, Toss 국내 주문 경로 확인, 운영 DB 마이그레이션 방식 등) — 전부 사용자 판단이 필요하거나 사용자 확인 후 진행할 항목들이다.
