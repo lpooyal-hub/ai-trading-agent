@@ -242,7 +242,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 `/agent/run-scheduled`는 schedule이 due일 때만 `/agent/run-once`를 실행하고, due가 아니면 decision 없이 reason만 반환합니다.
 `AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`에서는 `Asia/Seoul`, `09:00`~`15:30` KRX 평일 정규장 안에서만 scheduled run을 통과시킵니다.
 `AGENT_MARKET_CLOSED_DATES`에 `YYYY-MM-DD` CSV로 휴장일을 지정하면 해당 날짜도 차단합니다. 공개 버전은 고정 휴장일 CSV를 사용하고, 조기폐장 캘린더 provider는 별도 확장 지점으로 둡니다.
-내부 백그라운드 루프 대신 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
+`/agent/run-once`/`/agent/run-scheduled`는 여전히 "1회 실행" 엔드포인트로 남아 있고, 대시보드의 "지금 실행" 버튼이 씁니다 (아래 Continuous Session Loop와는 별도 경로).
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
 `/settings/llm-smoke-test`는 실제 OpenAI 키와 모델 연결만 작게 확인하고 `LLMUsage`에 `test` 목적의 usage row를 저장합니다. 이 endpoint는 trading decision이나 order를 만들지 않습니다.
 Frontend Dashboard는 이 preflight 결과를 Run Agent 버튼 근처의 상태 카드로 보여줍니다.
@@ -251,6 +251,23 @@ Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision
 `/orders`도 `status`, `symbol`, `limit` query parameter로 simulated/live-blocked order log를 좁혀 볼 수 있습니다.
 
 현재 mock 설정에서는 실제 OpenAI API와 Toss API를 호출하지 않습니다. 실제 OpenAI 호출은 Responses API의 `model`, `input`, `text.format` 구조를 사용하며, API 키는 로그나 DB에 저장하지 않습니다.
+
+## Continuous Session Loop
+
+`/agent/run-once`가 "tick 1회 = decision 1회"인 것과 별도로, `AgentGraphService.run_session()`은 하나의 그래프 실행 안에서 여러 decision 사이클이 순환하는 **세션**을 돈다 (설계 문서: `docs/plans/continuous-session-loop.md`).
+
+- 그래프: `market_agent → news_agent → risk_agent → memory_agent → decision_agent → execution_risk_agent → logger_agent → order_agent → evaluation_agent → journal_agent → loop_gate`, `loop_gate`가 계속할지(`market_agent`로 back-edge) 멈출지(`session_finish`) 판단한다.
+- `loop_gate`가 매 사이클 확인하는 정지 조건(하나라도 걸리면 세션 종료): `AgentSession.stop_requested`(관리자 kill switch), `cycle_count >= max_cycles`, 경과 시간 `>= agent_session_max_minutes`, 장 마감(`Asia/Seoul` KRX 정규장 09:00~15:30 기준), LLM budget 초과, 일일 거래 한도 도달, Redis 락 갱신 실패.
+- 세션/사이클은 `AgentSession`(세션 1개)과 `WorkflowRun.session_id`/`cycle_index`(사이클마다 1개)로 저장된다. 대시보드의 "에이전트 세션" 화면(`/agent/sessions`, `/agent/sessions/{id}`)에서 세션 목록과 사이클별 실행 요약을 볼 수 있고, `POST /agent/sessions/{id}/stop`(admin key 필요)으로 중지시킬 수 있다.
+- **워커는 상시 가동 데몬이 아니라 1회성 프로세스다.** `backend/app/worker.py`의 `run_worker_once()`가 (1) `AGENT_SCHEDULER_ENABLED=false`면 즉시 종료, (2) 오늘 정규장이 아직 안 열렸으면 열릴 때까지만 대기(주말/휴장일/이미 장마감이면 기다리지 않고 바로 종료), (3) 장이 열리면 세션 1개를 끝까지 실행하고 종료한다. `docker-compose.yml`의 `worker` 서비스는 `profiles: ["worker"]`로 빠져 있어 `docker compose up`에는 포함되지 않는다.
+- 실제로 매일 자동 실행되게 하려면 **호스트 cron이 하루 1번** 아래처럼 트리거해야 한다 (아직 등록되어 있지 않다 — 명시적으로 설정해야 함):
+
+  ```cron
+  # 매일 08:55 KST에 워커를 트리거 (정규장 09:00 개장 몇 분 전)
+  55 8 * * 1-5 cd /home/ubuntu/ai-trading-agent && docker compose run --rm worker >> /var/log/ai-trading-agent-worker.log 2>&1
+  ```
+
+  `AGENT_SCHEDULER_ENABLED=false`가 기본값이므로, 이 cron을 등록해도 `.env`에서 명시적으로 `true`로 켜기 전까지는 세션이 시작되지 않는다 (이중 안전장치).
 
 ## Market Snapshots
 
