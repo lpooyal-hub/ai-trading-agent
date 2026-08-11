@@ -259,15 +259,8 @@ Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision
 - 그래프: `market_agent → news_agent → risk_agent → memory_agent → decision_agent → execution_risk_agent → logger_agent → order_agent → evaluation_agent → journal_agent → loop_gate`, `loop_gate`가 계속할지(`market_agent`로 back-edge) 멈출지(`session_finish`) 판단한다.
 - `loop_gate`가 매 사이클 확인하는 정지 조건(하나라도 걸리면 세션 종료): `AgentSession.stop_requested`(관리자 kill switch), `cycle_count >= max_cycles`, 경과 시간 `>= agent_session_max_minutes`, 장 마감(`Asia/Seoul` KRX 정규장 09:00~15:30 기준), LLM budget 초과, 일일 거래 한도 도달, Redis 락 갱신 실패.
 - 세션/사이클은 `AgentSession`(세션 1개)과 `WorkflowRun.session_id`/`cycle_index`(사이클마다 1개)로 저장된다. 대시보드의 "에이전트 세션" 화면(`/agent/sessions`, `/agent/sessions/{id}`)에서 세션 목록과 사이클별 실행 요약을 볼 수 있고, `POST /agent/sessions/{id}/stop`(admin key 필요)으로 중지시킬 수 있다.
-- **워커는 상시 가동 데몬이 아니라 1회성 프로세스다.** `backend/app/worker.py`의 `run_worker_once()`가 (1) `AGENT_SCHEDULER_ENABLED=false`면 즉시 종료, (2) 오늘 정규장이 아직 안 열렸으면 열릴 때까지만 대기(주말/휴장일/이미 장마감이면 기다리지 않고 바로 종료), (3) 장이 열리면 세션 1개를 끝까지 실행하고 종료한다. `docker-compose.yml`의 `worker` 서비스는 `profiles: ["worker"]`로 빠져 있어 `docker compose up`에는 포함되지 않는다.
-- 실제로 매일 자동 실행되게 하려면 **호스트 cron이 하루 1번** 아래처럼 트리거해야 한다 (아직 등록되어 있지 않다 — 명시적으로 설정해야 함):
-
-  ```cron
-  # 매일 08:55 KST에 워커를 트리거 (정규장 09:00 개장 몇 분 전)
-  55 8 * * 1-5 cd /home/ubuntu/ai-trading-agent && docker compose run --rm worker >> /var/log/ai-trading-agent-worker.log 2>&1
-  ```
-
-  `AGENT_SCHEDULER_ENABLED=false`가 기본값이므로, 이 cron을 등록해도 `.env`에서 명시적으로 `true`로 켜기 전까지는 세션이 시작되지 않는다 (이중 안전장치).
+- **워커는 24/7 상시 데몬이다.** `backend/app/worker.py`의 `run_worker()`는 컨테이너가 사는 동안 "장 열릴 때까지 대기 → 세션 1개 실행 → 장 닫힐 때까지 대기"를 계속 반복한다. `docker-compose.yml`의 `worker` 서비스는 `restart: unless-stopped`가 붙은 일반 서비스라 `docker compose up`(또는 `-d`)에 backend/frontend/postgres/redis와 함께 포함된다. 별도 cron 설정은 필요 없다.
+- `AGENT_SCHEDULER_ENABLED=false`가 기본값이라, 워커 컨테이너를 띄워도 5분 간격 idle-poll만 하고 세션을 시작하지 않는다 — `.env`에서 명시적으로 `true`로 바꿔야 실제로 세션이 돈다. **이 서버처럼 `USE_MOCK_DATA=false`에 실제 `OPENAI_API_KEY`가 설정된 환경에서 켜면, 세션이 돌 때마다 진짜 OpenAI API 호출 비용이 발생한다** (`LLM_DAILY_CALL_LIMIT`/`LLM_DAILY_COST_LIMIT_USD`/`LLM_MONTHLY_COST_LIMIT_USD` 가드는 있음). `DRY_RUN=true`인 한 실제 주문은 나가지 않는다.
 
 ## Market Snapshots
 

@@ -23,15 +23,14 @@ services:
       retries: 3
       start_period: 10s
 
-  # One-shot session runner, not a daemon: an external scheduler (host cron)
-  # is expected to invoke `docker compose run --rm worker` once per day
-  # shortly before market open. It waits for today's open (if needed), runs
-  # a single continuous session, then exits. The `worker` profile keeps it
-  # out of a plain `docker compose up`. See docs/plans/continuous-session-loop.md.
+  # Standing daemon: waits for market open, runs one continuous session,
+  # waits for market close, repeats -- forever, for as long as the container
+  # runs. Stays inert (no sessions) while AGENT_SCHEDULER_ENABLED=false.
+  # See docs/plans/continuous-session-loop.md.
   worker:
     build:
       context: ./backend
-    profiles: ["worker"]
+    restart: unless-stopped
     command: ["python", "-m", "app.worker"]
     env_file:
       - ./backend/.env

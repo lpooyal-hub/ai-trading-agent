@@ -396,7 +396,7 @@ AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=65000
 
 `paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. live order는 별도 approval endpoint와 관리자 API key guard를 통과한 경우에만 실행됩니다.
 
-"지금 실행" 버튼/`/agent/run-scheduled`는 여전히 1회 실행이고, 그 반복 트리거는 아래 값으로 준비합니다. 이와 별도로, 하나의 세션 안에서 여러 decision 사이클이 도는 **연속 세션 루프**도 있습니다 (`backend/app/worker.py`, 대시보드 "에이전트 세션" 화면, 자세한 내용은 `backend/README.md`의 "Continuous Session Loop" 절과 `docs/plans/continuous-session-loop.md` 참고). 이 워커는 상시 데몬이 아니라 host cron이 하루 1번 트리거하는 1회성 프로세스이며, `AGENT_SCHEDULER_ENABLED=false`가 기본값이라 cron을 등록해도 명시적으로 켜기 전에는 세션이 시작되지 않습니다.
+"지금 실행" 버튼/`/agent/run-scheduled`는 여전히 1회 실행이고, 그 반복 트리거는 아래 값으로 준비합니다. 이와 별도로, 하나의 세션 안에서 여러 decision 사이클이 도는 **연속 세션 루프**도 있습니다 (`backend/app/worker.py`, 대시보드 "에이전트 세션" 화면, 자세한 내용은 `backend/README.md`의 "Continuous Session Loop" 절과 `docs/plans/continuous-session-loop.md` 참고). 이 워커는 `docker compose up`에 포함되는 24/7 상시 데몬이며, `AGENT_SCHEDULER_ENABLED=false`가 기본값이라 컨테이너가 떠 있어도 명시적으로 켜기 전에는 세션이 시작되지 않습니다.
 
 ```bash
 AGENT_SCHEDULER_ENABLED=false
