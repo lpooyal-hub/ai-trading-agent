@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, LLMBudget, LLMUsage } from "../api/client";
 import { StatCard } from "../components/StatCard";
+import { symbolLabel } from "../utils/labels";
 
 export function LLMUsagePage() {
   const [usage, setUsage] = useState<LLMUsage[]>([]);
@@ -98,7 +99,7 @@ export function LLMUsagePage() {
                 <td>{new Date(row.created_at).toLocaleString()}</td>
                 <td>{row.purpose}</td>
                 <td>{row.model}</td>
-                <td>{row.symbol ?? "-"}</td>
+                <td>{row.symbol ? symbolLabel(row.symbol) : "-"}</td>
                 <td>{row.prompt_tokens}</td>
                 <td>{row.completion_tokens}</td>
                 <td>{row.total_tokens}</td>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus, HealthResponse } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { formatKRW } from "../utils/currency";
+import { symbolLabel } from "../utils/labels";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -221,7 +222,7 @@ export function BrokerPage() {
             <tbody>
               {positions.map((position) => (
                 <tr key={position.symbol}>
-                  <td>{position.symbol}</td>
+                  <td>{symbolLabel(position.symbol)}</td>
                   <td>{position.name}</td>
                   <td>{formatOptionalNumber(position.quantity)}</td>
                   <td>{formatOptionalKRW(position.avg_price)}</td>

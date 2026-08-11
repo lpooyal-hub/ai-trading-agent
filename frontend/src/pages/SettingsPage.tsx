@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, LLMSmokeTest, SafetySettings, SecurityReadiness } from "../api/client";
 import { formatKRW } from "../utils/currency";
-import { statusLabel } from "../utils/labels";
+import { statusLabel, symbolLabel } from "../utils/labels";
 
 function boolLabel(value: boolean | undefined, fallback = false) {
   return (value ?? fallback) ? "예" : "아니오";
@@ -122,9 +122,9 @@ export function SettingsPage() {
         <div><dt>MIN_ORDER_AMOUNT_KRW</dt><dd>{formatKRW(settings?.min_order_amount_krw ?? 5000)}</dd></div>
         <div><dt>QUANTITY_DECIMAL_PLACES</dt><dd>{settings?.quantity_decimal_places ?? 0}</dd></div>
         <div><dt>MAX_DAILY_TRADES</dt><dd>{settings?.max_daily_trades ?? 5}</dd></div>
-        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols?.join(", ") ?? "-"}</dd></div>
+        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols?.map(symbolLabel).join(", ") ?? "-"}</dd></div>
         <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords?.join(", ") ?? "-"}</dd></div>
-        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols?.join(", ") ?? "-"}</dd></div>
+        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols?.map(symbolLabel).join(", ") ?? "-"}</dd></div>
         <div><dt>일일 LLM 예산 잔여</dt><dd>${budget?.daily_cost_remaining_usd?.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>일일 LLM 호출 잔여</dt><dd>{budget?.daily_calls_remaining ?? 0} / {budget?.daily_call_limit ?? 0}</dd></div>
         <div><dt>일일 토큰 잔여</dt><dd>{budget?.daily_tokens_remaining ?? 0}</dd></div>

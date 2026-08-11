@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, WorkflowDefinition, WorkflowRun, WorkflowStep } from "../api/client";
 import { StatCard } from "../components/StatCard";
-import { statusLabel } from "../utils/labels";
+import { statusLabel, symbolLabel } from "../utils/labels";
 
 const STEP_LABELS: Record<string, string> = {
   runtime_lock: "런타임 락",
@@ -76,7 +76,7 @@ export function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
       <div className="workflow-summary-grid">
         <article>
           <span>판단</span>
-          <strong>{textValue(decision.symbol)} · {textValue(decision.action)}</strong>
+          <strong>{typeof decision.symbol === "string" ? symbolLabel(decision.symbol) : textValue(decision.symbol)} · {textValue(decision.action)}</strong>
           <small>{textValue(decision.status)} · 신뢰도 {textValue(decision.confidence)}</small>
         </article>
         <article>

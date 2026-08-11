@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, MemoryGroupStat, MemorySummary } from "../api/client";
 import { StatCard } from "../components/StatCard";
-import { actionLabel } from "../utils/labels";
+import { actionLabel, symbolLabel } from "../utils/labels";
 
 function formatReward(value: number) {
   const sign = value > 0 ? "+" : "";
@@ -88,7 +88,7 @@ export function MemoryPage() {
         <MemoryStatsTable title="모델별 메모리" rows={summary?.model_stats ?? []} />
       </div>
       <MemoryStatsTable title="프롬프트별 메모리" rows={summary?.prompt_stats ?? []} />
-      <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} />
+      <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} formatKey={symbolLabel} />
       <div className="detail-grid">
         <section>
           <h3>반복 실수</h3>
@@ -112,7 +112,7 @@ export function MemoryPage() {
           {(summary?.recent_lessons ?? []).map((lesson) => (
             <article className="journal-card" key={lesson.journal_id}>
               <p className="eyebrow">저널 #{lesson.journal_id}</p>
-              <h3>{lesson.symbol} {actionLabel(lesson.action)}</h3>
+              <h3>{symbolLabel(lesson.symbol)} {actionLabel(lesson.action)}</h3>
               <p className="helper-text">보상 {formatReward(lesson.reward_score)}</p>
               <p>{lesson.lesson}</p>
             </article>

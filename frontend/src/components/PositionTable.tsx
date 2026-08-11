@@ -1,6 +1,6 @@
 import { BotPosition, LegacyPosition } from "../api/client";
 import { formatKRW } from "../utils/currency";
-import { statusLabel } from "../utils/labels";
+import { statusLabel, symbolLabel } from "../utils/labels";
 
 type PositionTableProps = {
   botPositions?: BotPosition[];
@@ -28,7 +28,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
           <tbody>
             {legacyPositions.map((position) => (
               <tr key={position.id}>
-                <td>{position.symbol}</td>
+                <td>{symbolLabel(position.symbol)}</td>
                 <td>{position.name}</td>
                 <td>{position.quantity}</td>
                 <td>{formatOptionalCurrency(position.avg_price)}</td>
@@ -58,7 +58,7 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
         <tbody>
           {botPositions.map((position) => (
             <tr key={position.id}>
-              <td>{position.symbol}</td>
+              <td>{symbolLabel(position.symbol)}</td>
               <td>{position.quantity.toFixed(4)}</td>
               <td>{formatKRW(position.avg_buy_price)}</td>
               <td>{formatKRW(position.total_invested_amount)}</td>

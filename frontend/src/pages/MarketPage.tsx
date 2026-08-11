@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, MarketSnapshot, MarketSnapshotStatus } from "../api/client";
 import { StatCard } from "../components/StatCard";
 import { formatKRW } from "../utils/currency";
+import { symbolLabel } from "../utils/labels";
 
 export function MarketPage() {
   const [snapshots, setSnapshots] = useState<MarketSnapshot[]>([]);
@@ -121,7 +122,7 @@ export function MarketPage() {
       <div className="stat-grid">
         <StatCard label="에이전트 준비" value={status?.ready_for_agent ? "준비됨" : "미준비"} detail={status?.message} />
         <StatCard label="신선한 종목" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}분 freshness window`} />
-        <StatCard label="누락 종목" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols?.join(", ") || "없음"} />
+        <StatCard label="누락 종목" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols?.map(symbolLabel).join(", ") || "없음"} />
       </div>
       <div className="filter-row">
         <label>
@@ -164,7 +165,7 @@ export function MarketPage() {
             {snapshots.map((row) => (
               <tr key={row.id}>
                 <td>{new Date(row.created_at).toLocaleString()}</td>
-                <td>{row.symbol}</td>
+                <td>{symbolLabel(row.symbol)}</td>
                 <td>{formatKRW(row.price)}</td>
                 <td>{row.change_percent.toFixed(2)}%</td>
                 <td>{row.volume.toLocaleString()}</td>

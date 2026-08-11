@@ -3,6 +3,7 @@ import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioRealiz
 import { PositionTable } from "../components/PositionTable";
 import { StatCard } from "../components/StatCard";
 import { formatKRW } from "../utils/currency";
+import { symbolLabel } from "../utils/labels";
 
 export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
@@ -125,7 +126,7 @@ export function PortfolioPage() {
             <tbody>
               {symbolPerformance.map((row) => (
                 <tr key={row.symbol}>
-                  <td>{row.symbol}</td>
+                  <td>{symbolLabel(row.symbol)}</td>
                   <td>{row.realized_trade_count}</td>
                   <td>{formatKRW(row.sell_amount_krw)}</td>
                   <td>{formatKRW(row.realized_pnl_krw)}</td>
@@ -162,7 +163,7 @@ export function PortfolioPage() {
               {recentRealizedTrades.map((trade) => (
                 <tr key={trade.order_id}>
                   <td>{new Date(trade.created_at).toLocaleString()}</td>
-                  <td>{trade.symbol}</td>
+                  <td>{symbolLabel(trade.symbol)}</td>
                   <td>{trade.quantity.toFixed(4)}</td>
                   <td>{formatKRW(trade.sell_amount_krw)}</td>
                   <td>{formatKRW(trade.cost_basis_krw)}</td>
