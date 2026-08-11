@@ -56,7 +56,7 @@ class PromptBuilder:
                                     "common_mistakes": [],
                                 },
                                 "required_json_shape": {
-                                    "symbol": "NVDA",
+                                    "symbol": "005930",
                                     "action": "BUY|SELL|HOLD",
                                     "confidence": 0.0,
                                     "recommended_order_amount": 0,
