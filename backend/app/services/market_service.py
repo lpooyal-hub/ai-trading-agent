@@ -13,16 +13,57 @@ class MarketService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.mock_client = MockMarketDataClient()
-        self.market_data_client = MarketDataClient()
+        # Pass settings through explicitly -- previously this constructed
+        # MarketDataClient() with no settings, so it silently used the
+        # process-wide get_settings() instead of this MarketService's
+        # settings (harmless while MarketDataClient was a no-op placeholder,
+        # but wrong now that it makes real Toss API calls, and it broke test
+        # isolation for anyone constructing MarketService(custom_settings)).
+        self.market_data_client = MarketDataClient(self.settings)
 
     def refresh_active_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
-        latest_snapshots = self.get_latest_universe_snapshots(db)
-        if not self.settings.use_mock_data:
-            return latest_snapshots
+        return self.refresh_active_universe_snapshot_result(db)["snapshots"]
 
-        raw_snapshots = self.mock_client.get_demo_snapshots(
-            symbols=self.settings.active_universe,
-        )
+    def refresh_active_universe_snapshot_result(self, db: Session) -> dict:
+        if self.settings.use_mock_data:
+            return self._refresh_mock_snapshot_result(db)
+        return self._refresh_real_snapshot_result(db)
+
+    def _refresh_mock_snapshot_result(self, db: Session) -> dict:
+        raw_snapshots = self.mock_client.get_demo_snapshots(symbols=self.settings.active_universe)
+        snapshots = self._persist_snapshots(db, raw_snapshots)
+        return {
+            "created_count": len(snapshots),
+            "skipped_count": 0,
+            "source": "fictional_demo_data",
+            "message": "Demo market snapshots refreshed from mock data.",
+            "snapshots": snapshots,
+        }
+
+    def _refresh_real_snapshot_result(self, db: Session) -> dict:
+        fetch_result = self.market_data_client.get_market_snapshots(self.settings.active_universe)
+        if fetch_result.success and fetch_result.snapshots:
+            snapshots = self._persist_snapshots(db, fetch_result.snapshots)
+            return {
+                "created_count": len(snapshots),
+                "skipped_count": max(len(fetch_result.snapshots) - len(snapshots), 0),
+                "source": self.market_data_client.provider_name,
+                "message": fetch_result.message,
+                "snapshots": snapshots,
+            }
+        # Fetch failed, wasn't configured, or returned nothing usable --
+        # fall back to whatever is still within the freshness window
+        # (get_latest_universe_snapshots) rather than going completely
+        # blind for one bad cycle.
+        return {
+            "created_count": 0,
+            "skipped_count": 0,
+            "source": self.market_data_client.provider_name,
+            "message": fetch_result.message,
+            "snapshots": self.get_latest_universe_snapshots(db),
+        }
+
+    def _persist_snapshots(self, db: Session, raw_snapshots: list[dict]) -> list[MarketSnapshot]:
         allowed_symbols = set(self.settings.active_universe)
         snapshots: list[MarketSnapshot] = []
 
@@ -47,26 +88,6 @@ class MarketService:
             db.refresh(snapshot)
 
         return snapshots
-
-    def refresh_active_universe_snapshot_result(self, db: Session) -> dict:
-        if not self.settings.use_mock_data:
-            result = self.market_data_client.get_market_snapshots(self.settings.active_universe)
-            return {
-                "created_count": 0,
-                "skipped_count": 0,
-                "source": self.market_data_client.provider_name,
-                "message": result.message,
-                "snapshots": self.get_latest_universe_snapshots(db),
-            }
-
-        snapshots = self.refresh_active_universe_snapshots(db)
-        return {
-            "created_count": len(snapshots),
-            "skipped_count": 0,
-            "source": "fictional_demo_data",
-            "message": "Demo market snapshots refreshed from mock data.",
-            "snapshots": snapshots,
-        }
 
     def get_snapshot_status(self, db: Session) -> dict:
         latest_snapshots = self.get_latest_universe_snapshots(db)

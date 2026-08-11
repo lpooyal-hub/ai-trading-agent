@@ -74,6 +74,19 @@ class TossClient:
             return self._todo_read_only_response("Toss read-only positions endpoint is not configured.")
         return self._authenticated_get(self.settings.toss_positions_path)
 
+    def get_daily_candles(self, symbol: str, count: int = 2) -> dict:
+        """Latest daily candles (open/high/low/close/volume) for one symbol.
+        Account-independent (public market data), so require_account=False.
+        Used to derive price/change_percent/volume for MarketDataClient,
+        since Toss's current-price endpoint doesn't include those."""
+        if not self._read_only_endpoint_ready(self.settings.toss_candles_path, require_account=False):
+            return self._todo_read_only_response("Toss candles endpoint is not configured.")
+        path = (
+            f"{self.settings.toss_candles_path}"
+            f"?symbol={parse.quote(symbol)}&interval=1d&count={count}"
+        )
+        return self._authenticated_get(path, include_account_header=False)
+
     def preview_live_order(self, *args, **kwargs) -> dict:
         return self._todo_live_order_response(
             "Live Toss Securities order preview is not a broker-side preview call; use internal decision preview."

@@ -34,6 +34,12 @@ class MarketServiceTest(unittest.TestCase):
             use_mock_data=use_mock_data,
             ALLOWED_SYMBOLS=",".join(self.ACTIVE_UNIVERSE),
             market_snapshot_max_age_minutes=30,
+            # toss_app_key/toss_app_secret also have validation_alias, so the
+            # real TOSS_API_KEY/TOSS_SECRET_KEY docker-compose injects from
+            # backend/.env would otherwise leak in here too and make this
+            # test hit the real Toss API. Force them off explicitly.
+            TOSS_API_KEY="",
+            TOSS_SECRET_KEY="",
         )
 
     @staticmethod

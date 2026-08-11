@@ -119,6 +119,18 @@ class Settings(BaseSettings):
         default="/api/v1/holdings",
         validation_alias=AliasChoices("TOSS_HOLDINGS_PATH", "TOSS_POSITIONS_PATH"),
     )
+    # Read-only, account-independent daily candles (open/high/low/close/volume).
+    # There is no single "current price + change% + volume" endpoint -- Toss's
+    # /api/v1/prices only returns lastPrice (no change/volume), so we derive
+    # price/change_percent/volume from the latest 2 daily candles instead.
+    # Confirmed against the real canonical spec:
+    # https://openapi.tossinvest.com/openapi-docs/latest/openapi.json
+    # (the human-facing developers.tossinvest.com/docs site is a JS-rendered
+    # SPA this environment can't scrape directly).
+    toss_candles_path: str | None = Field(
+        default="/api/v1/candles",
+        validation_alias=AliasChoices("TOSS_CANDLES_PATH", "TOSS_CANDLE_PATH"),
+    )
     toss_order_path: str | None = Field(
         default=None,
         validation_alias=AliasChoices("TOSS_ORDER_PATH", "TOSS_ORDERS_PATH"),
@@ -298,6 +310,17 @@ class Settings(BaseSettings):
             and self.toss_token_path
             and self.toss_accounts_path
             and self.toss_positions_path
+        )
+
+    @property
+    def toss_market_data_ready(self) -> bool:
+        # Market data is account-independent (public quote data), so this only
+        # needs app key/secret + token path, not toss_account_id.
+        return bool(
+            not self.use_mock_data
+            and self.toss_api_credentials_ready
+            and self.toss_token_path
+            and self.toss_candles_path
         )
 
     @property
