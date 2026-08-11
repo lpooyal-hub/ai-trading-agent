@@ -434,7 +434,7 @@ class AgentGraphService:
         usage = decision_result.usage
         decision = AgentDecision(
             symbol=response["symbol"],
-            sector=self.agent.settings.allowed_sector,
+            sector=selected_snapshot.sector,
             action=AgentAction(response["action"]),
             confidence=response["confidence"],
             current_price=selected_snapshot.price,

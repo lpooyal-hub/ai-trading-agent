@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.models import MarketSnapshot
 from app.services.market_service import MarketService
-from app.strategy.sector_candidate_selector import SectorCandidateSelector
+from app.strategy.sector_candidate_selector import CandidateSelector
 
 
 @dataclass
@@ -24,9 +24,8 @@ class MarketAgent:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.market_service = MarketService(self.settings)
-        self.selector = SectorCandidateSelector(
+        self.selector = CandidateSelector(
             active_universe=self.settings.active_universe,
-            allowed_sector=self.settings.allowed_sector,
             max_candidates=self.settings.llm_max_candidates_per_run_safe,
         )
 
@@ -86,7 +85,6 @@ class MarketAgent:
         preview_snapshots: list[MarketSnapshot] = []
         for item in self.market_service.mock_client.get_demo_snapshots(
             symbols=self.settings.active_universe,
-            sector=self.settings.allowed_sector,
         ):
             symbol = item["symbol"].upper()
             if symbol not in allowed_symbols:

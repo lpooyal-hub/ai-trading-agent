@@ -171,7 +171,7 @@ class AgentService:
             usage = decision_result.usage
             decision = AgentDecision(
                 symbol=response["symbol"],
-                sector=self.settings.allowed_sector,
+                sector=selected_snapshot.sector,
                 action=AgentAction(response["action"]),
                 confidence=response["confidence"],
                 current_price=selected_snapshot.price,
@@ -485,7 +485,7 @@ class AgentService:
     ) -> AgentDecision:
         decision = AgentDecision(
             symbol="NONE",
-            sector=self.settings.allowed_sector,
+            sector="unknown",
             action=AgentAction.HOLD,
             confidence=0,
             current_price=0,

@@ -21,7 +21,6 @@ class RiskManager:
         sell_quantity: float | None = None,
     ) -> dict[str, bool | str]:
         symbol = self._read(decision, "symbol", "").upper()
-        sector = self._read(decision, "sector", "").lower()
         action = self._read(decision, "action", "")
         amount = float(self._read(decision, "recommended_order_amount", 0) or 0)
         price = float(self._read(decision, "current_price", 0) or 0)
@@ -36,9 +35,6 @@ class RiskManager:
         if symbol in self.settings.protected_symbols:
             return self._reject(f"Symbol {symbol} is protected and cannot be traded.")
 
-        if sector != self.settings.allowed_sector.lower():
-            return self._reject(f"Sector {sector} is not allowed.")
-
         if self._contains_forbidden_keyword(name):
             return self._reject("Product name contains a forbidden leveraged/inverse keyword.")
 
@@ -47,11 +43,11 @@ class RiskManager:
         if legacy_position and not bot_position:
             return self._reject(f"Symbol {symbol} exists only as a protected legacy position.")
 
-        if amount > self.settings.max_order_amount_usd:
-            return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_USD.")
+        if amount > self.settings.max_order_amount_krw:
+            return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_KRW.")
 
-        if action in {AgentAction.BUY, AgentAction.SELL} and amount < self.settings.min_order_amount_usd:
-            return self._reject("Recommended order amount is below MIN_ORDER_AMOUNT_USD.")
+        if action in {AgentAction.BUY, AgentAction.SELL} and amount < self.settings.min_order_amount_krw:
+            return self._reject("Recommended order amount is below MIN_ORDER_AMOUNT_KRW.")
 
         estimated_quantity = self._estimate_quantity(amount, price)
         if (
@@ -62,13 +58,13 @@ class RiskManager:
             return self._reject("Fractional trading is disabled and estimated quantity is below 1 share.")
 
         exposure = self.calculate_bot_exposure(db)
-        if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_usd:
-            return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_USD.")
+        if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_krw:
+            return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_KRW.")
 
         budget = (
             available_bot_budget
             if available_bot_budget is not None
-            else self.settings.bot_capital_limit_usd - exposure
+            else self.settings.bot_capital_limit_krw - exposure
         )
         if action == AgentAction.BUY and amount > budget:
             return self._reject("Available bot budget is insufficient.")
@@ -181,7 +177,7 @@ class RiskManager:
         if max_percent <= 0:
             return None
 
-        max_symbol_exposure = self.settings.bot_capital_limit_usd * (max_percent / 100)
+        max_symbol_exposure = self.settings.bot_capital_limit_krw * (max_percent / 100)
         current_symbol_exposure = bot_position.total_invested_amount if bot_position else 0
         projected_symbol_exposure = current_symbol_exposure + order_amount
         if projected_symbol_exposure > max_symbol_exposure:

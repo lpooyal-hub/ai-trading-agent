@@ -25,19 +25,24 @@ class Settings(BaseSettings):
     dry_run: bool = True
     live_trading_enabled: bool = False
     use_mock_data: bool = True
-    bot_capital_limit_usd: float = 250
-    max_order_amount_usd: float = 100
+    # Trading-money amounts are KRW (domestic KRX market). LLM cost tracking
+    # below stays in USD on purpose: OpenAI bills in USD regardless of which
+    # market the agent trades, so it is not part of this currency switch.
+    bot_capital_limit_krw: float = 300000
+    max_order_amount_krw: float = 130000
     max_positions: int = 3
     max_daily_trades: int = 5
     max_symbol_exposure_percent: float = 40
-    min_cash_reserve_usd: float = 25
-    fractional_trading_enabled: bool = True
-    min_order_amount_usd: float = 5
-    quantity_decimal_places: int = 6
+    min_cash_reserve_krw: float = 30000
+    fractional_trading_enabled: bool = False
+    min_order_amount_krw: float = 5000
+    quantity_decimal_places: int = 0
     order_sizing_mode: str = "notional"
-    allowed_sector: str = "semiconductor"
+    # No single-sector restriction: the agent picks freely across sectors
+    # within allowed_symbols_csv (the actual safety boundary, enforced by
+    # RiskManager). Defaults to a small multi-sector KRX large-cap set.
     allowed_symbols_csv: str = Field(
-        default="NVDA,AMD,TSM,AVGO,ASML,QCOM,MU,ARM,INTC,AMAT",
+        default="005930,000660,005380,000270,373220,207940,035420,035720,005490,068270",
         validation_alias="ALLOWED_SYMBOLS",
     )
     forbidden_keywords_csv: str = Field(
@@ -62,19 +67,26 @@ class Settings(BaseSettings):
     llm_model_reflection: str | None = None
     llm_input_cost_per_1m_tokens_usd: float = 0
     llm_output_cost_per_1m_tokens_usd: float = 0
+    # Rough, fixed display-only conversion rate (not a live FX feed). Trading
+    # PnL is KRW but OpenAI still bills in USD, so anything that combines the
+    # two (e.g. portfolio "net after LLM cost") must convert through this
+    # first -- never subtract/divide a USD amount against a KRW amount directly.
+    usd_to_krw_display_rate: float = 1300
     openai_responses_url: str = "https://api.openai.com/v1/responses"
     openai_timeout_seconds: int = 30
     market_snapshot_max_age_minutes: int = 30
     agent_automation_enabled: bool = False
     agent_automation_mode: str = "manual_approval"
     agent_auto_execute_min_confidence: float = 0.75
-    agent_auto_execute_max_order_amount_usd: float = 50
+    agent_auto_execute_max_order_amount_krw: float = 65000
     agent_scheduler_enabled: bool = False
     agent_scheduler_interval_minutes: int = 60
     agent_scheduler_market_hours_only: bool = True
-    agent_market_timezone: str = "America/New_York"
-    agent_market_open_time: str = "09:30"
-    agent_market_close_time: str = "16:00"
+    # Domestic KRX regular session (KOSPI/KOSDAQ), not the prior overseas
+    # (NYSE/NASDAQ) hours this project started with.
+    agent_market_timezone: str = "Asia/Seoul"
+    agent_market_open_time: str = "09:00"
+    agent_market_close_time: str = "15:30"
     agent_market_closed_dates_csv: str = Field(
         default="",
         validation_alias="AGENT_MARKET_CLOSED_DATES",

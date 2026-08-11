@@ -11,11 +11,11 @@ class MockTossClient:
                     "symbol": "SPACE_X",
                     "name": "Fictional Protected Legacy Position",
                     "quantity": 1,
-                    "avg_price": 100,
+                    "avg_price": 130000,
                     "is_protected": True,
                 }
             ],
-            "cash_usd": 250,
+            "cash_krw": 300000,
         }
 
     def place_live_order(self, *args, **kwargs) -> dict:

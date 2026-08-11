@@ -342,7 +342,7 @@ class TradingService:
         fill_amount: float,
     ) -> None:
         position = self._get_bot_position(db, order.symbol)
-        sector = order.decision.sector if order.decision else self.settings.allowed_sector
+        sector = order.decision.sector if order.decision else "unknown"
         if not position:
             position = BotPosition(
                 symbol=order.symbol,

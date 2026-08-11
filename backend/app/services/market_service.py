@@ -22,7 +22,6 @@ class MarketService:
 
         raw_snapshots = self.mock_client.get_demo_snapshots(
             symbols=self.settings.active_universe,
-            sector=self.settings.allowed_sector,
         )
         allowed_symbols = set(self.settings.active_universe)
         snapshots: list[MarketSnapshot] = []
@@ -103,9 +102,6 @@ class MarketService:
         for item in snapshot_payloads:
             symbol = item.symbol.upper()
             if symbol not in allowed_symbols:
-                skipped_count += 1
-                continue
-            if item.sector.lower() != self.settings.allowed_sector.lower():
                 skipped_count += 1
                 continue
 

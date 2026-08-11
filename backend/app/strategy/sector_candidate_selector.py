@@ -10,12 +10,14 @@ class CandidateSignal:
     volume: float
 
 
-class SectorCandidateSelector:
-    """Rule-based sector candidate selector before LLM review."""
+class CandidateSelector:
+    """Rule-based candidate selector before LLM review. Ranks symbols within
+    the active universe (the actual safety boundary, enforced separately by
+    RiskManager) with no sector filter — the agent picks freely across
+    sectors, not a single configured one."""
 
-    def __init__(self, active_universe: list[str], allowed_sector: str, max_candidates: int = 3):
+    def __init__(self, active_universe: list[str], max_candidates: int = 3):
         self.active_universe = {symbol.upper() for symbol in active_universe}
-        self.allowed_sector = allowed_sector.lower()
         self.max_candidates = max(max_candidates, 1)
 
     def select_candidates(self, snapshots: list) -> list:
@@ -32,7 +34,6 @@ class SectorCandidateSelector:
             item
             for item in snapshots
             if item.symbol.upper() in self.active_universe
-            and item.sector.lower() == self.allowed_sector
             and item.volume > 0
             and item.change_percent != 0
         ]
