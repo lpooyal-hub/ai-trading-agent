@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.agents.journal_agent import JournalAgent
 from app.database import get_db
-from app.schemas import TradeJournalEntryCreate, TradeJournalEntryRead
+from app.schemas import TradeJournalEntryCreate, TradeJournalEntryRead, TradeJournalEntryUpdate
 from app.security import require_admin_api_key
 
 
@@ -43,6 +43,26 @@ def get_journal_entry(
     db: Session = Depends(get_db),
 ) -> TradeJournalEntryRead:
     entry = JournalAgent().get_entry(db, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Journal entry was not found.")
+    return entry
+
+
+@router.patch(
+    "/{entry_id}",
+    response_model=TradeJournalEntryRead,
+    dependencies=[Depends(require_admin_api_key)],
+)
+def update_journal_entry(
+    entry_id: int,
+    payload: TradeJournalEntryUpdate,
+    db: Session = Depends(get_db),
+) -> TradeJournalEntryRead:
+    """Narrow write path for a reviewer (human or an external Claude
+    routine) to fill in agent_self_feedback/lesson after the fact --
+    outcome_label/reward_score stay owned by the deterministic evaluation
+    math and can't be touched here."""
+    entry = JournalAgent().update_entry(db, entry_id, payload)
     if not entry:
         raise HTTPException(status_code=404, detail="Journal entry was not found.")
     return entry

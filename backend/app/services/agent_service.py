@@ -97,7 +97,7 @@ class AgentService:
                 },
             )
 
-            news_result = self.news_agent.run(snapshots)
+            news_result = self.news_agent.run(candidates)
             news_context = self._news_context_snapshot(news_result)
             self.workflow_service.record_step(
                 db,

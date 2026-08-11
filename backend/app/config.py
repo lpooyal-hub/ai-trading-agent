@@ -75,6 +75,11 @@ class Settings(BaseSettings):
     openai_responses_url: str = "https://api.openai.com/v1/responses"
     openai_timeout_seconds: int = 30
     market_snapshot_max_age_minutes: int = 30
+    # Real per-symbol headlines via Naver's public mobile stock-news API (no
+    # auth). Only called for the already-filtered candidates (max
+    # llm_max_candidates_per_run), not the whole active universe.
+    news_max_items_per_symbol: int = 3
+    news_timeout_seconds: int = 8
     agent_automation_enabled: bool = False
     agent_automation_mode: str = "manual_approval"
     agent_auto_execute_min_confidence: float = 0.75

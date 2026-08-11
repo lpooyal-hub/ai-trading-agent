@@ -348,7 +348,7 @@ class AgentGraphService:
         }
 
     def _news_agent_node(self, state: AgentGraphState) -> dict[str, Any]:
-        news_result = self.agent.news_agent.run(state["snapshots"])
+        news_result = self.agent.news_agent.run(state["candidates"])
         news_context = self.agent._news_context_snapshot(news_result)
         updates = {
             "news_result": news_result,

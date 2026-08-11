@@ -244,6 +244,16 @@ class TradeJournalEntryCreate(BaseModel):
     journal_json: dict[str, Any] = Field(default_factory=dict)
 
 
+class TradeJournalEntryUpdate(BaseModel):
+    # Narrow, additive update surface: only the qualitative fields a
+    # reviewer (human or an external Claude routine) fills in after the
+    # fact. Does not allow touching outcome_label/reward_score -- those stay
+    # owned by the deterministic evaluation math in journal_service.py.
+    agent_self_feedback: str | None = None
+    lesson: str | None = None
+    strategy_tags: list[str] | None = None
+
+
 class TradeJournalEntryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
