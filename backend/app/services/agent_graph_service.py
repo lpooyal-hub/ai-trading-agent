@@ -1,3 +1,5 @@
+import time
+from datetime import datetime
 from typing import Any, TypedDict
 
 from sqlalchemy.orm import Session
@@ -5,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.models import (
     AgentAction,
     AgentDecision,
+    AgentSession,
+    AgentSessionStatus,
     DecisionStatus,
     EvaluationWindow,
     MarketSnapshot,
@@ -14,6 +18,7 @@ from app.models import (
 )
 from app.schemas import TradeJournalEntryCreate
 from app.services.agent_service import AgentRunLockedError, AgentService
+from app.utils.market_hours import is_market_open
 
 try:
     from langgraph.graph import END, StateGraph
@@ -24,12 +29,21 @@ except ImportError:
     StateGraph = None
     LANGGRAPH_AVAILABLE = False
 
+# Generous per-cycle node budget for LangGraph's recursion_limit. A full cycle
+# (runtime_lock is entry-only) walks market->news->risk->memory->decision->
+# execution_risk->logger->order->evaluation->journal->cycle_finish->loop_gate->
+# next_cycle, ~13 node-steps; 20 leaves headroom for the shorter skip path.
+_SESSION_NODE_STEPS_PER_CYCLE = 20
+
 
 class AgentGraphState(TypedDict, total=False):
     db: Session
     trigger_source: str
     workflow: WorkflowRun
     lock: Any
+    session: AgentSession
+    cycle_started_at: datetime
+    session_stop_reason: str
     market_result: Any
     snapshots: list[MarketSnapshot]
     candidates: list[MarketSnapshot]
@@ -58,6 +72,7 @@ class AgentGraphService:
     def __init__(self, settings=None):
         self.agent = AgentService(settings)
         self.graph = self._build_graph() if LANGGRAPH_AVAILABLE else None
+        self.session_graph = self._build_session_graph() if LANGGRAPH_AVAILABLE else None
 
     def run_once(self, db: Session, trigger_source: str = "workflow") -> AgentDecision:
         if self.graph is None:
@@ -110,6 +125,92 @@ class AgentGraphService:
         finally:
             self.agent.redis_runtime.release_lock(lock)
 
+    def run_session(
+        self,
+        db: Session,
+        trigger_source: str = "worker",
+        max_cycles: int | None = None,
+    ) -> AgentSession:
+        """Run a continuous multi-cycle session: repeat decision cycles inside a
+        single graph invocation until a stop condition trips (see _loop_gate_node).
+
+        See docs/plans/continuous-session-loop.md. This runs synchronously and
+        paces cycles in real time (time.sleep between cycles), so callers must run
+        it off the request thread (a background worker), never inside an HTTP
+        request handler.
+        """
+        if self.session_graph is None:
+            raise RuntimeError("LangGraph is not available; run_session() requires the langgraph package.")
+
+        settings = self.agent.settings
+        session_max_cycles = settings.agent_session_max_cycles_safe
+        if max_cycles is not None:
+            session_max_cycles = max(1, min(int(max_cycles), session_max_cycles))
+
+        lock = self.agent.redis_runtime.acquire_agent_run_lock()
+        if not lock.acquired:
+            raise AgentRunLockedError(lock.reason)
+
+        session = AgentSession(
+            status=AgentSessionStatus.RUNNING,
+            trigger_source=trigger_source,
+            max_cycles=session_max_cycles,
+            redis_lock_key=lock.key,
+            redis_lock_token=lock.token,
+        )
+        db.add(session)
+        db.commit()
+        db.refresh(session)
+
+        workflow = None
+        try:
+            workflow = self.agent.workflow_service.start_run(
+                db,
+                workflow_name="agent.run_once",
+                trigger_source=trigger_source,
+                input_json={
+                    "workflow_engine": "langgraph",
+                    "session_id": session.id,
+                    "cycle_index": 0,
+                    "session_max_cycles": session.max_cycles,
+                    "active_universe": settings.active_universe,
+                    "llm_mode": settings.llm_mode,
+                    "automation_policy": self.agent._automation_policy_snapshot(),
+                    "redis_lock": {
+                        "enabled": lock.enabled,
+                        "key": lock.key,
+                        "reason": lock.reason,
+                    },
+                },
+                session_id=session.id,
+                cycle_index=0,
+            )
+            self.session_graph.invoke(
+                {
+                    "db": db,
+                    "trigger_source": trigger_source,
+                    "workflow": workflow,
+                    "lock": lock,
+                    "session": session,
+                    "cycle_started_at": datetime.utcnow(),
+                    "agentic_path": [],
+                },
+                {"recursion_limit": session.max_cycles * _SESSION_NODE_STEPS_PER_CYCLE + 10},
+            )
+            db.refresh(session)
+            return session
+        except Exception as exc:
+            session.status = AgentSessionStatus.FAILED
+            session.stop_reason = str(exc)
+            session.finished_at = datetime.utcnow()
+            db.add(session)
+            db.commit()
+            if workflow is not None:
+                self.agent.workflow_service.fail_running_runs_for_session(db, session.id, str(exc))
+            raise
+        finally:
+            self.agent.redis_runtime.release_lock(lock)
+
     def _build_graph(self):
         graph = StateGraph(AgentGraphState)
         graph.add_node("runtime_lock", self._runtime_lock_node)
@@ -148,6 +249,62 @@ class AgentGraphService:
         graph.add_edge("journal_agent", "finish")
         graph.add_edge("finish", END)
         graph.add_edge("skipped_decision", END)
+        return graph.compile()
+
+    def _build_session_graph(self):
+        """Same per-cycle node logic as _build_graph(), wired with a back-edge so
+        journal_agent/skipped_decision route through loop_gate instead of ending,
+        and loop_gate either starts another cycle (next_cycle -> market_agent) or
+        ends the session (session_finish). runtime_lock only runs once, since the
+        cyclic back-edge re-enters at market_agent, not at the entry point.
+        """
+        graph = StateGraph(AgentGraphState)
+        graph.add_node("runtime_lock", self._runtime_lock_node)
+        graph.add_node("market_agent", self._market_agent_node)
+        graph.add_node("news_agent", self._news_agent_node)
+        graph.add_node("risk_agent", self._risk_agent_node)
+        graph.add_node("memory_agent", self._memory_agent_node)
+        graph.add_node("decision_agent", self._decision_agent_node)
+        graph.add_node("execution_risk_agent", self._execution_risk_agent_node)
+        graph.add_node("logger_agent", self._logger_agent_node)
+        graph.add_node("order_agent", self._order_agent_node)
+        graph.add_node("evaluation_agent", self._evaluation_agent_node)
+        graph.add_node("journal_agent", self._journal_agent_node)
+        graph.add_node("skipped_decision", self._skipped_decision_node)
+        graph.add_node("cycle_finish", self._finish_node)
+        graph.add_node("loop_gate", self._loop_gate_node)
+        graph.add_node("next_cycle", self._next_cycle_node)
+        graph.add_node("session_finish", self._session_finish_node)
+
+        graph.set_entry_point("runtime_lock")
+        graph.add_edge("runtime_lock", "market_agent")
+        graph.add_edge("market_agent", "news_agent")
+        graph.add_conditional_edges(
+            "news_agent",
+            self._route_after_news,
+            {"continue": "risk_agent", "skip": "skipped_decision"},
+        )
+        graph.add_conditional_edges(
+            "risk_agent",
+            self._route_after_risk,
+            {"continue": "memory_agent", "skip": "skipped_decision"},
+        )
+        graph.add_edge("memory_agent", "decision_agent")
+        graph.add_edge("decision_agent", "execution_risk_agent")
+        graph.add_edge("execution_risk_agent", "logger_agent")
+        graph.add_edge("logger_agent", "order_agent")
+        graph.add_edge("order_agent", "evaluation_agent")
+        graph.add_edge("evaluation_agent", "journal_agent")
+        graph.add_edge("journal_agent", "cycle_finish")
+        graph.add_edge("cycle_finish", "loop_gate")
+        graph.add_edge("skipped_decision", "loop_gate")
+        graph.add_conditional_edges(
+            "loop_gate",
+            self._route_after_loop_gate,
+            {"continue": "next_cycle", "stop": "session_finish"},
+        )
+        graph.add_edge("next_cycle", "market_agent")
+        graph.add_edge("session_finish", END)
         return graph.compile()
 
     def _runtime_lock_node(self, state: AgentGraphState) -> dict[str, Any]:
@@ -519,6 +676,119 @@ class AgentGraphService:
             "decision": decision,
             "agentic_path": self._path(state, "skipped_decision"),
         }
+
+    def _loop_gate_node(self, state: AgentGraphState) -> dict[str, Any]:
+        db = state["db"]
+        session = state["session"]
+        settings = self.agent.settings
+
+        # Re-read from DB: an admin may have flipped stop_requested via a separate
+        # request/DB session while this cycle was running.
+        db.refresh(session)
+        session.cycle_count += 1
+
+        stop_reason = self._session_stop_reason(db, session, settings)
+
+        lock = state["lock"]
+        if stop_reason is None:
+            lock = self.agent.redis_runtime.renew_agent_run_lock(lock, settings.agent_session_lock_ttl_seconds)
+            if not lock.acquired:
+                stop_reason = lock.reason
+
+        session.stop_reason = stop_reason
+        db.add(session)
+        db.commit()
+
+        self.agent.workflow_service.record_step(
+            db,
+            state["workflow"],
+            step_name="loop_gate",
+            status=WorkflowStepStatus.SUCCEEDED,
+            output_json={
+                "cycle_count": session.cycle_count,
+                "session_max_cycles": session.max_cycles,
+                "continue": stop_reason is None,
+                "stop_reason": stop_reason,
+            },
+        )
+
+        return {
+            "session": session,
+            "lock": lock,
+            "session_stop_reason": stop_reason,
+            "agentic_path": self._path(state, "loop_gate"),
+        }
+
+    def _session_stop_reason(self, db: Session, session: AgentSession, settings) -> str | None:
+        """First stop condition that fails, or None to continue. Order matters:
+        cheap/deterministic checks first, DB/budget queries last."""
+        if session.stop_requested:
+            return "Admin requested the session to stop."
+        if session.cycle_count >= session.max_cycles:
+            return f"Session reached its max cycle count ({session.max_cycles})."
+        elapsed_minutes = (datetime.utcnow() - session.started_at).total_seconds() / 60
+        if elapsed_minutes >= settings.agent_session_max_minutes_safe:
+            return f"Session reached its max duration ({settings.agent_session_max_minutes_safe} minutes)."
+        if settings.agent_scheduler_market_hours_only and not is_market_open(settings):
+            return "Market is not in regular session."
+
+        budget = self.agent.llm_budget_manager.check_budget(db)
+        if not budget["approved"]:
+            return f"LLM budget exceeded: {budget['reason']}"
+
+        trade_count = self.agent.execution_risk_agent.risk_manager.count_today_simulated_trades(db)
+        if trade_count >= settings.max_daily_trades:
+            return f"Daily trade limit reached ({settings.max_daily_trades})."
+
+        return None
+
+    @staticmethod
+    def _route_after_loop_gate(state: AgentGraphState) -> str:
+        return "stop" if state.get("session_stop_reason") else "continue"
+
+    def _next_cycle_node(self, state: AgentGraphState) -> dict[str, Any]:
+        db = state["db"]
+        session = state["session"]
+        settings = self.agent.settings
+
+        elapsed_seconds = (datetime.utcnow() - state["cycle_started_at"]).total_seconds()
+        pace_seconds = max(settings.agent_scheduler_interval_minutes_safe * 60 - elapsed_seconds, 0)
+        if pace_seconds:
+            time.sleep(pace_seconds)
+
+        workflow = self.agent.workflow_service.start_run(
+            db,
+            workflow_name="agent.run_once",
+            trigger_source=state["trigger_source"],
+            input_json={
+                "workflow_engine": "langgraph",
+                "session_id": session.id,
+                "cycle_index": session.cycle_count,
+                "session_max_cycles": session.max_cycles,
+                "active_universe": settings.active_universe,
+                "llm_mode": settings.llm_mode,
+            },
+            session_id=session.id,
+            cycle_index=session.cycle_count,
+        )
+
+        return {
+            "workflow": workflow,
+            "cycle_started_at": datetime.utcnow(),
+            "skip_reason": None,
+            "agentic_path": [],
+        }
+
+    def _session_finish_node(self, state: AgentGraphState) -> dict[str, Any]:
+        db = state["db"]
+        session = state["session"]
+        session.status = (
+            AgentSessionStatus.STOPPED if session.stop_requested else AgentSessionStatus.SUCCEEDED
+        )
+        session.finished_at = datetime.utcnow()
+        db.add(session)
+        db.commit()
+        return {"agentic_path": self._path(state, "session_finish")}
 
     @staticmethod
     def _path(state: AgentGraphState, node_name: str) -> list[str]:

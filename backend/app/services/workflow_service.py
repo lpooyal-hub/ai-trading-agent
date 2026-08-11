@@ -154,12 +154,16 @@ class WorkflowService:
         workflow_name: str,
         trigger_source: str,
         input_json: dict[str, Any] | None = None,
+        session_id: int | None = None,
+        cycle_index: int | None = None,
     ) -> WorkflowRun:
         run = WorkflowRun(
             workflow_name=workflow_name,
             trigger_source=trigger_source,
             status=WorkflowRunStatus.RUNNING,
             input_json=input_json or {},
+            session_id=session_id,
+            cycle_index=cycle_index,
         )
         db.add(run)
         db.commit()
@@ -229,6 +233,35 @@ class WorkflowService:
             .options(selectinload(WorkflowRun.steps))
             .filter(WorkflowRun.id == run_id)
             .first()
+        )
+
+    def fail_running_runs_for_session(self, db: Session, session_id: int, error_message: str) -> None:
+        """Best-effort cleanup for a session that raised mid-loop.
+
+        The graph invocation only returns state on success, so on an in-flight
+        exception we don't have a reliable in-memory reference to which cycle's
+        WorkflowRun was active. Querying by session_id + RUNNING status avoids
+        depending on a stale local variable.
+        """
+        runs = (
+            db.query(WorkflowRun)
+            .filter(WorkflowRun.session_id == session_id, WorkflowRun.status == WorkflowRunStatus.RUNNING)
+            .all()
+        )
+        for run in runs:
+            run.status = WorkflowRunStatus.FAILED
+            run.error_message = error_message
+            run.finished_at = datetime.utcnow()
+            db.add(run)
+        db.commit()
+
+    def list_runs_for_session(self, db: Session, session_id: int) -> list[WorkflowRun]:
+        return (
+            db.query(WorkflowRun)
+            .options(selectinload(WorkflowRun.steps))
+            .filter(WorkflowRun.session_id == session_id)
+            .order_by(WorkflowRun.cycle_index.asc())
+            .all()
         )
 
     def get_latest_run_for_decision(self, db: Session, decision_id: int) -> WorkflowRun | None:

@@ -79,6 +79,11 @@ class Settings(BaseSettings):
         default="",
         validation_alias="AGENT_MARKET_CLOSED_DATES",
     )
+    # Continuous multi-cycle session loop (docs/plans/continuous-session-loop.md).
+    # agent_scheduler_interval_minutes above is reused as the pacing target between
+    # cycles *inside* a session, not just the external trigger interval.
+    agent_session_max_cycles: int = 30
+    agent_session_max_minutes: int = 420
 
     toss_app_key: str | None = Field(
         default=None,
@@ -236,6 +241,21 @@ class Settings(BaseSettings):
     @property
     def agent_scheduler_interval_minutes_safe(self) -> int:
         return max(self.agent_scheduler_interval_minutes, 1)
+
+    @property
+    def agent_session_max_cycles_safe(self) -> int:
+        return max(self.agent_session_max_cycles, 1)
+
+    @property
+    def agent_session_max_minutes_safe(self) -> int:
+        return max(self.agent_session_max_minutes, 1)
+
+    @property
+    def agent_session_lock_ttl_seconds(self) -> int:
+        # Heartbeat lock must comfortably outlive one full inter-cycle pacing wait
+        # (agent_scheduler_interval_minutes) so a normal cycle never loses the lock
+        # before it renews. 2x interval + a fixed floor covers a slow cycle too.
+        return max(self.agent_scheduler_interval_minutes_safe * 2 * 60, self.redis_agent_run_lock_ttl_seconds)
 
     @property
     def quantity_decimal_places_safe(self) -> int:
