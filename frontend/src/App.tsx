@@ -12,6 +12,7 @@ import { MemoryPage } from "./pages/MemoryPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SessionsPage } from "./pages/SessionsPage";
 import { WorkflowsPage } from "./pages/WorkflowsPage";
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { id: "journal", label: "저널" },
   { id: "memory", label: "메모리" },
   { id: "workflows", label: "실행 흐름" },
+  { id: "sessions", label: "에이전트 세션" },
   { id: "llm-usage", label: "LLM 사용량" },
   { id: "settings", label: "설정" },
 ];
@@ -52,6 +54,7 @@ export default function App() {
       {activePage === "journal" ? <JournalPage /> : null}
       {activePage === "memory" ? <MemoryPage /> : null}
       {activePage === "workflows" ? <WorkflowsPage /> : null}
+      {activePage === "sessions" ? <SessionsPage /> : null}
       {activePage === "llm-usage" ? <LLMUsagePage /> : null}
       {activePage === "settings" ? <SettingsPage /> : null}
     </Layout>

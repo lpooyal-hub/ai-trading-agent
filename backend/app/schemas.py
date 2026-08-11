@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import (
     AgentAction,
+    AgentSessionStatus,
     DecisionStatus,
     EvaluationWindow,
     OrderSide,
@@ -774,3 +775,26 @@ class LiveTradingReadinessRead(BaseModel):
     adapter_checklist: list[str]
     blockers: list[str]
     next_actions: list[str]
+
+
+class AgentSessionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status: AgentSessionStatus
+    trigger_source: str
+    started_at: datetime
+    finished_at: datetime | None
+    cycle_count: int
+    max_cycles: int
+    stop_reason: str | None
+    stop_requested: bool
+
+
+class AgentSessionWorkflowRunRead(WorkflowRunRead):
+    session_id: int
+    cycle_index: int
+
+
+class AgentSessionDetailRead(AgentSessionRead):
+    runs: list[AgentSessionWorkflowRunRead] = Field(default_factory=list)

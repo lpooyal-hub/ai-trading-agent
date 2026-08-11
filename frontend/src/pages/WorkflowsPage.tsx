@@ -62,7 +62,7 @@ function pathValue(value: unknown) {
   return Array.isArray(value) ? value.map(String).map(stepLabel).join(" -> ") : "-";
 }
 
-function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
+export function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
   const output = run.output_json ?? {};
   const decision = asRecord(output.decision);
   const executionRisk = asRecord(output.execution_risk);

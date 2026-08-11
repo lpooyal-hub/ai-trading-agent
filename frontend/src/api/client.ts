@@ -167,6 +167,29 @@ export type WorkflowRun = {
   steps: WorkflowStep[];
 };
 
+export type AgentSessionStatus = "RUNNING" | "SUCCEEDED" | "FAILED" | "STOPPED";
+
+export type AgentSession = {
+  id: number;
+  status: AgentSessionStatus;
+  trigger_source: string;
+  started_at: string;
+  finished_at: string | null;
+  cycle_count: number;
+  max_cycles: number;
+  stop_reason: string | null;
+  stop_requested: boolean;
+};
+
+export type AgentSessionWorkflowRun = WorkflowRun & {
+  session_id: number;
+  cycle_index: number;
+};
+
+export type AgentSessionDetail = AgentSession & {
+  runs: AgentSessionWorkflowRun[];
+};
+
 export type WorkflowNode = {
   id: string;
   label: string;
@@ -770,6 +793,9 @@ export const api = {
   getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
   getAgentSchedule: () => request<AgentSchedule>("/agent/schedule"),
   getAgentOperations: () => request<AgentOperations>("/agent/operations"),
+  getAgentSessions: (limit = 50) => request<AgentSession[]>(`/agent/sessions?limit=${limit}`),
+  getAgentSession: (id: number) => request<AgentSessionDetail>(`/agent/sessions/${id}`),
+  stopAgentSession: (id: number) => request<AgentSession>(`/agent/sessions/${id}/stop`, { method: "POST" }),
   getDecisions: (filters?: DecisionFilters) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);

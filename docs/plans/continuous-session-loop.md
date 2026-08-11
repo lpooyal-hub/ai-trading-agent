@@ -216,17 +216,19 @@ cycle_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 | `backend/app/services/workflow_service.py` | `start_run`에 `session_id`/`cycle_index` 옵션 인자, `list_runs_for_session`, `fail_running_runs_for_session` 추가 | ✅ |
 | `backend/app/utils/market_hours.py` (신규) | `scheduler_agent.py`에서 market-hours 판정 로직 추출 — Codex의 워커가 그대로 import해서 씀 | ✅ |
 
-### Codex 담당 (신규 파일 위주, 충돌 위험 낮음)
-| 파일 | 작업 |
-|---|---|
-| `backend/app/worker.py` (신규) | market open 대기 → `run_session()` 호출 → market close/세션 종료 후 대기, 반복 |
-| `docker-compose.yml` | `worker` 서비스 추가 (기존 backend 서비스 정의 옆에 append) |
-| `backend/app/services/agent_session_service.py` (신규) | `AgentSession` CRUD: list/get/request_stop |
-| `backend/app/routes/agent.py` | `GET /agent/sessions`, `GET /agent/sessions/{id}`, `POST /agent/sessions/{id}/stop` 엔드포인트 추가 (기존 라우트 건드리지 않고 append) |
-| `backend/app/schemas.py` | `AgentSessionRead` 등 신규 Pydantic 스키마 추가 (append) |
-| `frontend/src/api/client.ts` | 세션 관련 타입/fetch 함수 추가 (append) |
-| `frontend/src/pages/SessionsPage.tsx` (신규) | 세션 목록 + 세션 상세(사이클별 `WorkflowRun` 카드 나열, 기존 `WorkflowRunSummary` 재사용) + Stop 버튼, 라우팅 등록 |
-| `backend/tests/test_agent_session_service.py`, `test_worker_pacing.py` 등 (신규) | 신규 서비스/워커 단위 테스트 |
+### Codex 담당 (신규 파일 위주, 충돌 위험 낮음) — 완료
+| 파일 | 작업 | 상태 |
+|---|---|---|
+| `backend/app/worker.py` (신규) | market open 대기 → `run_session()` 호출 → market close/세션 종료 후 대기, 반복 | ✅ |
+| `docker-compose.yml` | `worker` 서비스 추가 (기존 backend 서비스 정의 옆에 append) | ✅ |
+| `backend/app/services/agent_session_service.py` (신규) | `AgentSession` CRUD: list/get/request_stop | ✅ |
+| `backend/app/routes/agent.py` | `GET /agent/sessions`, `GET /agent/sessions/{id}`, `POST /agent/sessions/{id}/stop` 엔드포인트 추가 (기존 라우트 건드리지 않고 append) | ✅ |
+| `backend/app/schemas.py` | `AgentSessionRead` 등 신규 Pydantic 스키마 추가 (append) | ✅ |
+| `frontend/src/api/client.ts` | 세션 관련 타입/fetch 함수 추가 (append) | ✅ |
+| `frontend/src/pages/SessionsPage.tsx` (신규) | 세션 목록 + 세션 상세(사이클별 `WorkflowRun` 카드 나열, 기존 `WorkflowRunSummary` 재사용) + Stop 버튼, 라우팅 등록 | ✅ |
+| `frontend/src/App.tsx` | `SessionsPage` 내비게이션/화면 등록 (위 라우팅 등록 작업의 지원 파일) | ✅ |
+| `frontend/src/pages/WorkflowsPage.tsx` | 기존 `WorkflowRunSummary`를 세션 화면에서 재사용할 수 있도록 export만 추가 | ✅ |
+| `backend/tests/test_agent_session_service.py`, `test_worker_pacing.py` 등 (신규) | 신규 서비스/워커 단위 테스트 | ✅ |
 
 ### 통합 단계 (Claude, Codex 결과물이 나온 뒤 마지막에)
 - Codex의 `agent_session_service.request_stop()`이 실제로 `AgentSession.stop_requested`를 세팅하는지, `loop_gate`가 그걸 매 사이클 `db.refresh`로 잘 읽는지 배선 확인 (로직 자체는 이미 검증됨, Codex 쪽 호출부만 확인하면 됨)
