@@ -11,9 +11,17 @@ from app.schemas import (
 )
 from app.security import require_admin_api_key
 from app.services.market_service import MarketService
+from app.utils.symbols import KRX_SYMBOL_NAMES
 
 
 router = APIRouter(prefix="/market", tags=["market"])
+
+
+@router.get("/symbol-names", response_model=dict[str, str])
+def get_symbol_names() -> dict[str, str]:
+    """Known KRX ticker -> display name, for the frontend to label symbols
+    with (falls back to showing the bare code for anything not in here)."""
+    return KRX_SYMBOL_NAMES
 
 
 @router.get("/snapshots", response_model=list[MarketSnapshotRead])

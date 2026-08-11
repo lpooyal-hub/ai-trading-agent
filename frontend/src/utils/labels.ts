@@ -53,6 +53,24 @@ const WINDOW_LABELS: Record<string, string> = {
   "30d": "30일",
 };
 
+// Mirrors backend/app/utils/symbols.py KRX_SYMBOL_NAMES. Kept as a static
+// map (like the label tables above) rather than fetched from
+// /market/symbol-names -- the frontend image has to be rebuilt to pick up
+// any code change regardless, so a fetch buys no staleness protection here,
+// only extra loading-state plumbing.
+const SYMBOL_NAMES: Record<string, string> = {
+  "005930": "삼성전자",
+  "000660": "SK하이닉스",
+  "005380": "현대차",
+  "000270": "기아",
+  "373220": "LG에너지솔루션",
+  "207940": "삼성바이오로직스",
+  "035420": "NAVER",
+  "035720": "카카오",
+  "005490": "POSCO홀딩스",
+  "068270": "셀트리온",
+};
+
 function normalize(value: string | null | undefined) {
   return value?.trim();
 }
@@ -78,4 +96,12 @@ export function outcomeLabel(value: string | null | undefined) {
 
 export function evaluationWindowLabel(value: string | null | undefined) {
   return labelFromMap(value, WINDOW_LABELS);
+}
+
+// "삼성전자 (005930)" when the code is known, otherwise just the bare code.
+export function symbolLabel(value: string | null | undefined) {
+  const normalized = normalize(value);
+  if (!normalized) return "-";
+  const name = SYMBOL_NAMES[normalized];
+  return name ? `${name} (${normalized})` : normalized;
 }
