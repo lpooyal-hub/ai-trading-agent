@@ -154,10 +154,10 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
 - 실주문 API 호출은 기본 설정에서 비활성화되어 있으며, env opt-in과 관리자 API key guard가 필요합니다.
 - 기존 보유 주식은 legacy position으로 보호해야 합니다.
-- 봇은 `.env`의 `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 universe는 국내 KRX 멀티섹터 대형주 10개입니다.
+- 봇은 `.env`의 `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 universe는 KOSPI 시가총액 상위권(ETF·우선주 제외) 멀티섹터 대형주입니다 — 정확한 목록은 아래 "Universe" 절 참고.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - `USE_MOCK_DATA=true`에서는 mock market data와 mock LLM 응답을 사용합니다.
-- `USE_MOCK_DATA=false`에서는 저장된 최신 market snapshot만 사용하며, `/market/snapshots`로 수동/외부 가격 데이터를 입력할 수 있습니다.
+- `USE_MOCK_DATA=false`에서는 Toss 일봉 API로 active universe의 market snapshot을 갱신하며, 수동 입력 경로도 함께 사용할 수 있습니다.
 - `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 - `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
 - LLM 입력 비용을 줄이기 위해 active universe 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
@@ -182,24 +182,60 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 
 ## Universe
 
-초기 감시 대상은 아래 KRX 멀티섹터 대형주 10개로 제한합니다.
+초기 감시 대상은 아래 KOSPI 시가총액 상위권(ETF·우선주 제외) 멀티섹터 대형주 46개로 제한합니다. `ALLOWED_SYMBOLS`가 실제 안전 경계이며, 여기 나열된 sector는 정보성 메타데이터일 뿐 후보 필터링에는 쓰이지 않습니다 (`SectorCandidateSelector`/`RiskManager` 참고). `000660`(SK하이닉스)은 시가총액 상위권이지만 사용자의 기존 실보유 종목이라 `PROTECTED_SYMBOLS`로만 보호하고 `ALLOWED_SYMBOLS`에는 넣지 않습니다 — 다시 추가하지 마세요.
 
 - `005930` 삼성전자 — semiconductor
-- `000660` SK하이닉스 — semiconductor
-- `005380` 현대차 — automobile
-- `000270` 기아 — automobile
+- `402340` SK스퀘어 — holding
+- `009150` 삼성전기 — electronics
 - `373220` LG에너지솔루션 — battery
+- `005380` 현대차 — automobile
 - `207940` 삼성바이오로직스 — bio
-- `035420` NAVER — internet
-- `035720` 카카오 — internet
-- `005490` POSCO홀딩스 — steel
+- `105560` KB금융 — finance
+- `032830` 삼성생명 — finance
+- `012450` 한화에어로스페이스 — defense
+- `028260` 삼성물산 — holding
+- `329180` HD현대중공업 — shipbuilding
+- `000270` 기아 — automobile
+- `034020` 두산에너빌리티 — heavy_industry
+- `055550` 신한지주 — finance
 - `068270` 셀트리온 — bio
+- `012330` 현대모비스 — automobile
+- `034730` SK — holding
+- `006400` 삼성SDI — battery
+- `086790` 하나금융지주 — finance
+- `035420` NAVER — internet
+- `010120` LS ELECTRIC — electrical_equipment
+- `066570` LG전자 — electronics
+- `000810` 삼성화재 — finance
+- `009540` HD한국조선해양 — shipbuilding
+- `042660` 한화오션 — shipbuilding
+- `267260` HD현대일렉트릭 — electrical_equipment
+- `298040` 효성중공업 — heavy_industry
+- `005490` POSCO홀딩스 — steel
+- `010130` 고려아연 — metals
+- `316140` 우리금융지주 — finance
+- `015760` 한국전력 — utility
+- `096770` SK이노베이션 — energy
+- `138040` 메리츠금융지주 — finance
+- `011200` HMM — shipping
+- `042700` 한미반도체 — semiconductor
+- `006800` 미래에셋증권 — finance
+- `051910` LG화학 — chemicals
+- `010140` 삼성중공업 — shipbuilding
+- `000150` 두산 — holding
+- `033780` KT&G — consumer
+- `017670` SK텔레콤 — telecom
+- `018260` 삼성에스디에스 — it_services
+- `035720` 카카오 — internet
+- `267250` HD현대 — holding
+- `079550` LIG넥스원 — defense
+- `003550` LG — holding
 
 ## Agent 실행 흐름
 
 현재 `/agent/run-once`는 아래 순서로 동작합니다.
 
-1. `USE_MOCK_DATA=false`이면 저장된 최신 market snapshot만 사용하고, mock mode이면 active universe의 mock snapshot을 저장합니다.
+1. `USE_MOCK_DATA=false`이면 Toss 일봉으로 active universe의 snapshot을 갱신·저장하고, 실패 시 freshness window 안의 기존 snapshot을 사용합니다. mock mode이면 active universe의 mock snapshot을 저장합니다.
 2. rule-based pre-filter로 1~3개 후보만 고릅니다. 후보는 change percent 절대값, volume, 상승/하락 압력 사유로 점수화됩니다.
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 LLM budget guard를 확인합니다.
@@ -275,8 +311,7 @@ curl -X POST http://localhost:8000/market/snapshots \
   -d '{"snapshots":[{"symbol":"005930","price":72000,"change_percent":1.2,"volume":1000000,"sector":"semiconductor"}]}'
 ```
 
-`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 공개 repo에 특정 유료/개인 시세 provider를 묶지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
-외부 시세 client는 명시적인 `NOT_CONFIGURED` stub으로 두어 provider 경계를 보여줍니다.
+`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 `MarketDataClient`가 Toss `/api/v1/candles`의 최근 일봉을 조회해 active universe의 가격, 등락률, 거래량 snapshot을 저장합니다. 캔들 endpoint는 `TOSS_CANDLES_PATH`로 오버라이드할 수 있습니다.
 `/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 
