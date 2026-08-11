@@ -109,6 +109,10 @@
 - §2에 나열된 Claude 소유 파일들의 이미 확정된 필드명/값은 그대로 소비할 것 (다시 바꾸지 말 것).
 - `RiskManager`, `market_service.py`의 universe 검증(`ALLOWED_SYMBOLS` 밖 심볼 거부) 로직 자체는 건드리지 말 것 — 안전 경계는 그대로 유지.
 
+## 6-0. 완료 (2026-08-11)
+
+§4의 Codex 담당 작업 전부 완료·리뷰·커밋됨 (`6102bd2`). 유닛테스트 19개 통과, `compileall` 클린, 프론트 `tsc && vite build` 클린, 재기동한 `backend-1`에서 `/health`·`/settings/safety`·`/portfolio/summary` 스모크 테스트로 실동작 확인 (KRW 필드, 신규 종목 유니버스, `DRY_RUN=true` 유지). 리뷰 중 `portfolio_service.get_cost_recovery()`의 통화 혼합은 지시대로 `usd_to_krw_display_rate`를 거쳐 정확히 처리된 것 확인.
+
 ## 6. 아직 열려있는 질문
 
 - `usd_to_krw_display_rate=1300`은 고정 근사치다. 나중에 실제 환율 API 연동이 필요하면 별도 논의.
