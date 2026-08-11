@@ -98,12 +98,12 @@ export function PortfolioPage() {
       <div className="stat-grid">
         <StatCard label="사용 가능 예산" value={formatKRW(summary?.available_budget_krw ?? 0)} />
         <StatCard label="투입 금액" value={formatKRW(summary?.invested_amount_krw ?? 0)} />
-        <StatCard label="미실현 손익률" value={`${summary?.unrealized_pnl_percent.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="미실현 손익률" value={`${summary?.unrealized_pnl_percent?.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="실현 손익" value={formatKRW(performance?.realized_pnl_krw ?? 0)} />
-        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent?.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="매수 금액" value={formatKRW(performance?.gross_bought_krw ?? 0)} />
         <StatCard label="매도 금액" value={formatKRW(performance?.gross_sold_krw ?? 0)} />
-        <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
+        <StatCard label="승률" value={`${performance?.win_rate_percent?.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
         <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={formatKRW(performance?.live_submitted_order_amount_krw ?? 0)} />
         <StatCard label="봇 포지션" value={`${summary?.bot_position_count ?? 0}`} />

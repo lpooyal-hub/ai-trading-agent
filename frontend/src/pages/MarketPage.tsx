@@ -121,7 +121,7 @@ export function MarketPage() {
       <div className="stat-grid">
         <StatCard label="에이전트 준비" value={status?.ready_for_agent ? "준비됨" : "미준비"} detail={status?.message} />
         <StatCard label="신선한 종목" value={`${status?.fresh_symbol_count ?? 0}`} detail={`${status?.max_age_minutes ?? 0}분 freshness window`} />
-        <StatCard label="누락 종목" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols.join(", ") || "없음"} />
+        <StatCard label="누락 종목" value={`${status?.missing_symbol_count ?? 0}`} detail={status?.missing_symbols?.join(", ") || "없음"} />
       </div>
       <div className="filter-row">
         <label>

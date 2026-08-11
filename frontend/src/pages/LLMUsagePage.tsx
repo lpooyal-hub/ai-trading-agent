@@ -48,8 +48,8 @@ export function LLMUsagePage() {
       <div className="stat-grid">
         <StatCard label="오늘 호출" value={`${budget?.today_calls ?? 0}`} />
         <StatCard label="오늘 토큰" value={`${budget?.today_total_tokens ?? 0}`} />
-        <StatCard label="일일 비용 잔여" value={`$${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
-        <StatCard label="월 비용 잔여" value={`$${budget?.monthly_cost_remaining_usd.toFixed(4) ?? "0.0000"}`} />
+        <StatCard label="일일 비용 잔여" value={`$${budget?.daily_cost_remaining_usd?.toFixed(4) ?? "0.0000"}`} />
+        <StatCard label="월 비용 잔여" value={`$${budget?.monthly_cost_remaining_usd?.toFixed(4) ?? "0.0000"}`} />
       </div>
       <div className="filter-row">
         <label>

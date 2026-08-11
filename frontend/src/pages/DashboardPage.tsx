@@ -198,8 +198,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       <div className="stat-grid">
         <StatCard label="사용 가능 예산" value={formatKRW(summary?.available_budget_krw ?? 0)} />
         <StatCard label="투입 금액" value={formatKRW(summary?.invested_amount_krw ?? 0)} />
-        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
-        <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
+        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent?.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="승률" value={`${performance?.win_rate_percent?.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
         <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={formatKRW(performance?.live_submitted_order_amount_krw ?? 0)} />
         <StatCard label="순손익" value={formatKRW(costRecovery?.net_after_llm_cost_krw ?? 0)} detail="LLM 비용 환산 반영" />
@@ -212,7 +212,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           title="에이전트 상태"
           items={[
             { label: "시장 데이터", value: statusText(marketStatus?.ready_for_agent, "준비됨", "미준비"), detail: marketStatus?.message },
-            { label: "후보 종목", value: `${agentReadiness?.candidate_symbols.length ?? 0}`, detail: agentReadiness?.candidate_symbols.join(", ") || "없음" },
+            { label: "후보 종목", value: `${agentReadiness?.candidate_symbols?.length ?? 0}`, detail: agentReadiness?.candidate_symbols?.join(", ") || "없음" },
             { label: "자동화", value: statusText(agentReadiness?.automation_ready, "준비됨", "차단됨"), detail: agentReadiness?.automation_reason },
             { label: "모의 자동", value: statusText(agentReadiness?.paper_auto_ready, "준비됨", "꺼짐"), detail: agentReadiness?.paper_auto_reason },
           ]}
@@ -222,7 +222,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
           items={[
             { label: "LLM 모드", value: modeLabel(agentReadiness?.llm_mode), detail: (agentReadiness?.llm_blockers ?? []).join(" / ") || "사용 가능" },
             { label: "오늘 호출", value: `${llmSummary?.today_calls ?? 0}`, detail: `잔여 ${llmBudget?.daily_calls_remaining ?? 0}회` },
-            { label: "오늘 비용", value: `$${llmSummary?.today_estimated_cost_usd.toFixed(4) ?? "0.0000"}`, detail: `잔여 $${llmBudget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}` },
+            { label: "오늘 비용", value: `$${llmSummary?.today_estimated_cost_usd?.toFixed(4) ?? "0.0000"}`, detail: `잔여 $${llmBudget?.daily_cost_remaining_usd?.toFixed(4) ?? "0.0000"}` },
             { label: "평균 지연", value: `${Math.round(llmSummary?.average_latency_ms ?? 0)}ms`, detail: `오늘 ${llmSummary?.today_total_tokens ?? 0} 토큰` },
           ]}
         />

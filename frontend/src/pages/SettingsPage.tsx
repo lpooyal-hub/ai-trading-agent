@@ -115,24 +115,24 @@ export function SettingsPage() {
         <div><dt>모의 데이터 (USE_MOCK_DATA)</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
         <div><dt>BOT_CAPITAL_LIMIT_KRW</dt><dd>{formatKRW(settings?.bot_capital_limit_krw ?? 300000)}</dd></div>
         <div><dt>MAX_ORDER_AMOUNT_KRW</dt><dd>{formatKRW(settings?.max_order_amount_krw ?? 130000)}</dd></div>
-        <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent.toFixed(1) ?? "40.0"}%</dd></div>
+        <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent?.toFixed(1) ?? "40.0"}%</dd></div>
         <div><dt>FRACTIONAL_TRADING_ENABLED</dt><dd>{boolLabel(settings?.fractional_trading_enabled)}</dd></div>
         <div><dt>ORDER_SIZING_MODE</dt><dd>{settings?.order_sizing_mode ?? "notional"}</dd></div>
         <div><dt>MIN_CASH_RESERVE_KRW</dt><dd>{formatKRW(settings?.min_cash_reserve_krw ?? 30000)}</dd></div>
         <div><dt>MIN_ORDER_AMOUNT_KRW</dt><dd>{formatKRW(settings?.min_order_amount_krw ?? 5000)}</dd></div>
         <div><dt>QUANTITY_DECIMAL_PLACES</dt><dd>{settings?.quantity_decimal_places ?? 0}</dd></div>
         <div><dt>MAX_DAILY_TRADES</dt><dd>{settings?.max_daily_trades ?? 5}</dd></div>
-        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols.join(", ") ?? "-"}</dd></div>
-        <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords.join(", ") ?? "-"}</dd></div>
-        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols.join(", ") ?? "-"}</dd></div>
-        <div><dt>일일 LLM 예산 잔여</dt><dd>${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols?.join(", ") ?? "-"}</dd></div>
+        <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords?.join(", ") ?? "-"}</dd></div>
+        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols?.join(", ") ?? "-"}</dd></div>
+        <div><dt>일일 LLM 예산 잔여</dt><dd>${budget?.daily_cost_remaining_usd?.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>일일 LLM 호출 잔여</dt><dd>{budget?.daily_calls_remaining ?? 0} / {budget?.daily_call_limit ?? 0}</dd></div>
         <div><dt>일일 토큰 잔여</dt><dd>{budget?.daily_tokens_remaining ?? 0}</dd></div>
         <div><dt>LLM 쿨다운</dt><dd>{budget?.cooldown_remaining_minutes ?? 0}분 남음 / {settings?.llm_min_minutes_between_calls ?? 60}분 간격</dd></div>
         <div><dt>LLM_MAX_CANDIDATES_PER_RUN</dt><dd>{settings?.llm_max_candidates_per_run ?? 3}</dd></div>
         <div><dt>LLM_MODEL_DECISION</dt><dd>{settings?.llm_model_decision ?? "-"}</dd></div>
-        <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
-        <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd?.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd?.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>OPENAI_TIMEOUT_SECONDS</dt><dd>{settings?.openai_timeout_seconds ?? 30}</dd></div>
         <div><dt>AGENT_AUTOMATION_ENABLED</dt><dd>{boolLabel(settings?.agent_automation_enabled)}</dd></div>
         <div><dt>AGENT_AUTOMATION_MODE</dt><dd>{settings?.agent_automation_mode ?? "manual_approval"}</dd></div>
@@ -144,7 +144,7 @@ export function SettingsPage() {
         <div><dt>AGENT_SCHEDULER_MARKET_HOURS_ONLY</dt><dd>{boolLabel(settings?.agent_scheduler_market_hours_only, true)}</dd></div>
         <div><dt>AGENT_MARKET_TIMEZONE</dt><dd>{settings?.agent_market_timezone ?? "Asia/Seoul"}</dd></div>
         <div><dt>AGENT_MARKET_WINDOW</dt><dd>{settings?.agent_market_open_time ?? "09:00"}-{settings?.agent_market_close_time ?? "15:30"}</dd></div>
-        <div><dt>AGENT_MARKET_CLOSED_DATES</dt><dd>{(settings?.agent_market_closed_dates ?? []).length ? settings?.agent_market_closed_dates.join(", ") : "-"}</dd></div>
+        <div><dt>AGENT_MARKET_CLOSED_DATES</dt><dd>{(settings?.agent_market_closed_dates ?? []).length ? settings?.agent_market_closed_dates?.join(", ") : "-"}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{boolLabel(settings?.toss_token_path_configured)}</dd></div>
         <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{boolLabel(settings?.toss_accounts_path_configured)}</dd></div>
