@@ -253,7 +253,7 @@ cycle_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 - `agent_session_max_cycles`, `agent_session_max_minutes` 기본값 — 위 제안값(30, market 세션 길이)은 임시. 실제 리스크 허용치에 맞게 조정 필요. (국장 전환 후 세션 길이는 §5 참고 — 09:00~15:30 KST 기준으로 다시 계산 필요)
 - ~~워커를 24/7 vs 하이브리드로 둘지~~ → **최종 결정됨 (§1.4): 24/7 상시 데몬.** crontab은 안 씀. 남은 건 실제로 `AGENT_SCHEDULER_ENABLED=true`로 켜고 `docker compose up -d worker`로 띄울지 — 이 서버는 `USE_MOCK_DATA=false` + 실제 `OPENAI_API_KEY`가 설정돼 있어서 켜는 순간부터 실제 OpenAI 호출 비용이 발생한다 (LLM_DAILY_CALL_LIMIT=5, LLM_DAILY_COST_LIMIT_USD=2, LLM_MONTHLY_COST_LIMIT_USD=30 가드는 있음). DRY_RUN=true라 실제 주문은 안 나감. 사용자 확인 후 진행.
-- 운영 DB가 이미 있다면 `AgentSession`/`WorkflowRun` 스키마 변경을 수동 마이그레이션할지, 로컬/데모 DB처럼 재생성해도 되는지.
+- ~~운영 DB 마이그레이션 방식~~ → **완료 (2026-08-11).** 이 서버의 Postgres는 세션 루프 기능 이전부터 있던 DB라 `create_all`이 `workflow_runs.session_id`/`cycle_index` 컬럼을 추가해주지 않아서, 배포 직후 `/workflows`가 500 에러를 냈다 (라이브 회귀). 사용자 확인 후 `ALTER TABLE workflow_runs ADD COLUMN session_id INTEGER REFERENCES agent_sessions(id), ADD COLUMN cycle_index INTEGER`(+ 인덱스)로 수동 마이그레이션 적용, 기존 데이터 손실 없이 복구 확인. `run_session()`을 실제 Postgres에 대고 mock 모드로 end-to-end 실행해서 세션/사이클/12개 노드 스텝이 전부 정상 기록되는 것까지 검증함 (테스트 데이터는 정리함).
 
 ## 5. 국장 전환 + 통화/섹터 개편 (2026-08-11 추가)
 
