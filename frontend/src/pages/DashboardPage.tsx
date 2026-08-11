@@ -3,6 +3,7 @@ import { api, AgentAutomationPolicy, AgentDecision, AgentOperations, AgentReadin
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
+import { formatKRW } from "../utils/currency";
 
 function modeLabel(value: string | null | undefined) {
   if (!value) return "알 수 없음";
@@ -195,13 +196,13 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
       </header>
       {error ? <div className="notice">{error}</div> : null}
       <div className="stat-grid">
-        <StatCard label="사용 가능 예산" value={`$${summary?.available_budget_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="투입 금액" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="전체 손익" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="사용 가능 예산" value={formatKRW(summary?.available_budget_krw ?? 0)} />
+        <StatCard label="투입 금액" value={formatKRW(summary?.invested_amount_krw ?? 0)} />
+        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
         <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
-        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={`$${performance?.live_submitted_order_amount_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="순손익" value={`$${costRecovery?.net_after_llm_cost_usd.toFixed(4) ?? "0.0000"}`} detail="LLM 비용 반영" />
+        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={formatKRW(performance?.live_submitted_order_amount_krw ?? 0)} />
+        <StatCard label="순손익" value={formatKRW(costRecovery?.net_after_llm_cost_krw ?? 0)} detail="LLM 비용 환산 반영" />
         <StatCard label="워크플로 준비" value={statusText(agentReadiness?.ready)} detail={agentReadiness?.reason} />
         <StatCard label="최근 판단" value={agentOperations?.last_decision_symbol ?? "-"} detail={agentOperations?.last_decision_status ?? "없음"} />
         <StatCard label="대기 판단" value={`${agentOperations?.pending_decision_count ?? 0}`} detail={`${agentOperations?.executable_decision_count ?? 0}개 실행 가능`} />
@@ -228,10 +229,10 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <DashboardStatusPanel
           title="실행 정책"
           items={[
-            { label: "자동화 정책", value: modeLabel(automationPolicy?.automation_mode ?? "manual_approval"), detail: `최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 $${automationPolicy?.max_order_amount_usd.toFixed(2) ?? "50.00"}` },
+            { label: "자동화 정책", value: modeLabel(automationPolicy?.automation_mode ?? "manual_approval"), detail: `최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 ${formatKRW(automationPolicy?.max_order_amount_krw ?? 65000)}` },
             { label: "스케줄", value: agentSchedule?.scheduler_enabled ? "켜짐" : "꺼짐", detail: agentSchedule?.due ? "지금 실행 가능" : `${agentSchedule?.minutes_until_next_run ?? 0}분 후` },
             { label: "실주문", value: statusText(liveReadiness?.live_order_ready, "준비됨", "차단됨"), detail: modeLabel(liveReadiness?.execution_mode) },
-            { label: "상위 종목", value: topSymbol?.symbol ?? "-", detail: topSymbol ? `$${topSymbol.realized_pnl_usd.toFixed(2)} 실현` : "실현 거래 없음" },
+            { label: "상위 종목", value: topSymbol?.symbol ?? "-", detail: topSymbol ? `${formatKRW(topSymbol.realized_pnl_krw)} 실현` : "실현 거래 없음" },
           ]}
         />
         <DashboardStatusPanel
@@ -240,7 +241,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
             { label: "데모 모드", value: demoStatus?.demo_enabled ? "켜짐" : "꺼짐", detail: demoStatus?.demo_reason },
             { label: "데모 데이터", value: `${demoStatus?.decisions ?? 0}`, detail: `${demoStatus?.orders ?? 0}개 주문` },
             { label: "최근 주문", value: agentOperations?.last_order_symbol ?? "-", detail: agentOperations?.last_order_status ?? "없음" },
-            { label: "봇 포지션", value: `${summary?.bot_position_count ?? 0}`, detail: `운용 한도 $${summary?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}` },
+            { label: "봇 포지션", value: `${summary?.bot_position_count ?? 0}`, detail: `운용 한도 ${formatKRW(summary?.bot_capital_limit_krw ?? 300000)}` },
           ]}
         />
       </div>

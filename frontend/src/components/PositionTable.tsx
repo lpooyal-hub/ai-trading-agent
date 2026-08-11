@@ -1,4 +1,5 @@
 import { BotPosition, LegacyPosition } from "../api/client";
+import { formatKRW } from "../utils/currency";
 import { statusLabel } from "../utils/labels";
 
 type PositionTableProps = {
@@ -7,7 +8,7 @@ type PositionTableProps = {
 };
 
 function formatOptionalCurrency(value: number) {
-  return value > 0 ? `$${value.toFixed(2)}` : "-";
+  return value > 0 ? formatKRW(value) : "-";
 }
 
 export function PositionTable({ botPositions = [], legacyPositions = [] }: PositionTableProps) {
@@ -59,9 +60,9 @@ export function PositionTable({ botPositions = [], legacyPositions = [] }: Posit
             <tr key={position.id}>
               <td>{position.symbol}</td>
               <td>{position.quantity.toFixed(4)}</td>
-              <td>${position.avg_buy_price.toFixed(2)}</td>
-              <td>${position.total_invested_amount.toFixed(2)}</td>
-              <td>${position.current_price.toFixed(2)}</td>
+              <td>{formatKRW(position.avg_buy_price)}</td>
+              <td>{formatKRW(position.total_invested_amount)}</td>
+              <td>{formatKRW(position.current_price)}</td>
               <td>{position.unrealized_pnl_percent.toFixed(2)}%</td>
               <td>{statusLabel(position.status)}</td>
             </tr>

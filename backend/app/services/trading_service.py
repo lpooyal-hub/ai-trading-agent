@@ -197,9 +197,9 @@ class TradingService:
 
     def calculate_available_budget(self, db: Session) -> float:
         return max(
-            self.settings.bot_capital_limit_usd
+            self.settings.bot_capital_limit_krw
             - self.calculate_bot_exposure(db)
-            - self.settings.min_cash_reserve_usd,
+            - self.settings.min_cash_reserve_krw,
             0,
         )
 

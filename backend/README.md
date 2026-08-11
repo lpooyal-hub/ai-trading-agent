@@ -1,6 +1,6 @@
 # AI Trading Agent Backend
 
-토스증권 Open API를 기본 브로커 어댑터로 가정한 실험용 AI 트레이딩 에이전트 백엔드입니다.
+토스증권 Open API를 기본 브로커 어댑터로 가정한 국내 KRX 멀티섹터·KRW 기반 실험용 AI 트레이딩 에이전트 백엔드입니다.
 
 현재 기본 설정은 DRY_RUN / paper trading입니다. 실행 모드는 별도 브랜치가 아니라 env로 나누며, live order는 Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key가 모두 준비된 경우에만 opt-in으로 전송됩니다.
 
@@ -121,7 +121,7 @@ docker compose exec -T backend python -m unittest discover -s tests
 docker compose exec -T backend python -m compileall app
 ```
 
-현재 테스트 범위는 `DecisionResponseGuard`, `SectorCandidateSelector`, `RiskManager`입니다. 외부 뉴스 provider는 아직 연결하지 않았기 때문에 News Agent는 테스트 범위에서 제외합니다.
+현재 테스트 범위는 `DecisionResponseGuard`, `CandidateSelector`, `RiskManager`입니다. 외부 뉴스 provider는 아직 연결하지 않았기 때문에 News Agent는 테스트 범위에서 제외합니다.
 
 ## Execution Modes
 
@@ -154,14 +154,14 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
 - 실주문 API 호출은 기본 설정에서 비활성화되어 있으며, env opt-in과 관리자 API key guard가 필요합니다.
 - 기존 보유 주식은 legacy position으로 보호해야 합니다.
-- 봇은 `.env`의 `ALLOWED_SECTOR`, `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 예시는 반도체 Top 10입니다.
+- 봇은 `.env`의 `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 universe는 국내 KRX 멀티섹터 대형주 10개입니다.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - `USE_MOCK_DATA=true`에서는 mock market data와 mock LLM 응답을 사용합니다.
 - `USE_MOCK_DATA=false`에서는 저장된 최신 market snapshot만 사용하며, `/market/snapshots`로 수동/외부 가격 데이터를 입력할 수 있습니다.
 - `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 - `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
 - LLM 입력 비용을 줄이기 위해 active universe 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
-- 후보 선택 규칙은 `SectorCandidateSelector` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다. 기본 universe는 반도체 Top 10이지만, `ALLOWED_SECTOR`와 `ALLOWED_SYMBOLS`를 바꾸면 다른 섹터에도 같은 후보 선택 구조를 적용할 수 있습니다.
+- 후보 선택 규칙은 `CandidateSelector` 전략 클래스로 분리되어 있으며, LLM 호출 전 deterministic pre-filter로 동작합니다. 섹터는 정보성 메타데이터이며, 후보 필터와 주문 안전 경계는 멀티섹터 `ALLOWED_SYMBOLS` 화이트리스트를 기준으로 합니다.
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, env에 따라 DRY_RUN simulated order 또는 Toss live order 제출로 분기합니다.
@@ -182,18 +182,18 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 
 ## Universe
 
-초기 감시 대상은 아래 10개 종목으로 제한합니다.
+초기 감시 대상은 아래 KRX 멀티섹터 대형주 10개로 제한합니다.
 
-- NVDA
-- AMD
-- TSM
-- AVGO
-- ASML
-- QCOM
-- MU
-- ARM
-- INTC
-- AMAT
+- `005930` 삼성전자 — semiconductor
+- `000660` SK하이닉스 — semiconductor
+- `005380` 현대차 — automobile
+- `000270` 기아 — automobile
+- `373220` LG에너지솔루션 — battery
+- `207940` 삼성바이오로직스 — bio
+- `035420` NAVER — internet
+- `035720` 카카오 — internet
+- `005490` POSCO홀딩스 — steel
+- `068270` 셀트리온 — bio
 
 ## Agent 실행 흐름
 
@@ -240,7 +240,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 `/agent/automation-policy`는 현재 자동화 모드, confidence/order amount 기준, blocker를 반환합니다.
 `/agent/schedule`은 마지막 decision 기준 다음 실행 시각과 due 여부를 반환합니다.
 `/agent/run-scheduled`는 schedule이 due일 때만 `/agent/run-once`를 실행하고, due가 아니면 decision 없이 reason만 반환합니다.
-`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`에서는 설정된 timezone/open/close 기준 평일 정규장 안에서만 scheduled run을 통과시킵니다.
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`에서는 `Asia/Seoul`, `09:00`~`15:30` KRX 평일 정규장 안에서만 scheduled run을 통과시킵니다.
 `AGENT_MARKET_CLOSED_DATES`에 `YYYY-MM-DD` CSV로 휴장일을 지정하면 해당 날짜도 차단합니다. 공개 버전은 고정 휴장일 CSV를 사용하고, 조기폐장 캘린더 provider는 별도 확장 지점으로 둡니다.
 내부 백그라운드 루프 대신 외부 cron/스케줄러가 `/agent/run-scheduled`를 호출하는 구조를 기본으로 합니다.
 `/settings/llm-readiness`는 LLM mode, blockers, next actions를 별도로 반환합니다.
@@ -262,7 +262,7 @@ curl http://localhost:8000/market/snapshots/latest
 curl -X POST http://localhost:8000/market/snapshots/refresh
 curl -X POST http://localhost:8000/market/snapshots \
   -H "Content-Type: application/json" \
-  -d '{"snapshots":[{"symbol":"NVDA","price":120,"change_percent":1.2,"volume":1000000}]}'
+  -d '{"snapshots":[{"symbol":"005930","price":72000,"change_percent":1.2,"volume":1000000,"sector":"semiconductor"}]}'
 ```
 
 `/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 공개 repo에 특정 유료/개인 시세 provider를 묶지 않고, 수동 입력 또는 별도 feeder가 저장한 최신 snapshot을 반환합니다.
@@ -270,9 +270,9 @@ curl -X POST http://localhost:8000/market/snapshots \
 `/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 
-허용 universe 밖의 심볼이나 `ALLOWED_SECTOR`와 다른 sector는 저장하지 않습니다.
+`ALLOWED_SYMBOLS` 허용 universe 밖의 심볼은 저장하지 않습니다. sector는 멀티섹터 후보의 정보성 메타데이터이며 저장 필터로 사용하지 않습니다.
 
-LLM 예상 비용은 `LLM_INPUT_COST_PER_1M_TOKENS_USD`, `LLM_OUTPUT_COST_PER_1M_TOKENS_USD`를 기준으로 계산합니다. 기본값은 `0`이며, 모델 가격은 변동될 수 있으므로 사용자가 현재 단가를 `.env`에 직접 입력합니다.
+트레이딩 금액과 PnL은 KRW로 처리합니다. LLM 예상 비용은 OpenAI 과금 통화에 맞춰 `LLM_INPUT_COST_PER_1M_TOKENS_USD`, `LLM_OUTPUT_COST_PER_1M_TOKENS_USD`를 기준으로 계속 USD로 계산합니다. 기본값은 `0`이며, 모델 가격은 변동될 수 있으므로 사용자가 현재 단가를 `.env`에 직접 입력합니다.
 
 ## Toss Read-Only Setup
 

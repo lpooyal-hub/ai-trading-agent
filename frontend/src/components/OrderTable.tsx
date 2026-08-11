@@ -1,4 +1,5 @@
 import { TradeOrder } from "../api/client";
+import { formatKRW } from "../utils/currency";
 import { actionLabel, statusLabel } from "../utils/labels";
 
 function formatDateTime(value: string) {
@@ -83,8 +84,8 @@ export function OrderTable({
               <td className="symbol-cell">{order.symbol}</td>
               <td>{actionLabel(order.side)}</td>
               <td>{order.quantity.toFixed(4)}</td>
-              <td>${order.price.toFixed(2)}</td>
-              <td>${order.order_amount.toFixed(2)}</td>
+              <td>{formatKRW(order.price)}</td>
+              <td>{formatKRW(order.order_amount)}</td>
               <td>{fillSummary(order)}</td>
               <td>
                 <span className={`status-pill ${statusTone(order.status)}`}>{statusLabel(order.status)}</span>

@@ -386,7 +386,7 @@ class AgentService:
             "automation_mode": self.settings.agent_automation_mode_normalized,
             "paper_auto_enabled": self.settings.paper_auto_enabled,
             "min_confidence": self.settings.agent_auto_execute_min_confidence,
-            "max_order_amount_usd": self.settings.agent_auto_execute_max_order_amount_usd,
+            "max_order_amount_krw": self.settings.agent_auto_execute_max_order_amount_krw,
             "dry_run": self.settings.dry_run,
             "live_trading_enabled": self.settings.live_trading_enabled,
             "blockers": blockers,
@@ -753,7 +753,7 @@ class AgentService:
             "automation_mode": self.settings.agent_automation_mode_normalized,
             "paper_auto_enabled": self.settings.paper_auto_enabled,
             "min_confidence": self.settings.agent_auto_execute_min_confidence,
-            "max_order_amount_usd": self.settings.agent_auto_execute_max_order_amount_usd,
+            "max_order_amount_krw": self.settings.agent_auto_execute_max_order_amount_krw,
         }
 
     @staticmethod

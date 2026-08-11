@@ -1,6 +1,6 @@
 # AI Trading Agent Research Platform
 
-이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단, 리스크 검증, 주문 시뮬레이션, LLM 비용, 사후 평가를 감사 가능한 workflow로 남기는 것입니다.
+이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 국내 KRX 멀티섹터 기반의 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단, 리스크 검증, KRW 주문 시뮬레이션, LLM 비용, 사후 평가를 감사 가능한 workflow로 남기는 것입니다.
 
 ## Preview
 
@@ -161,11 +161,13 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `LIVE_TRADING_ENABLED=false`
 - `USE_MOCK_DATA=true`
 - `BROKER_PROVIDER`
-- `BOT_CAPITAL_LIMIT_USD`
+- `BOT_CAPITAL_LIMIT_KRW`
+- `MAX_ORDER_AMOUNT_KRW`
 - `MAX_SYMBOL_EXPOSURE_PERCENT`
 - `FRACTIONAL_TRADING_ENABLED`
 - `ORDER_SIZING_MODE`
-- `MIN_ORDER_AMOUNT_USD`
+- `MIN_CASH_RESERVE_KRW`
+- `MIN_ORDER_AMOUNT_KRW`
 - `ALLOWED_SYMBOLS`
 - `REDIS_ENABLED`
 - `REDIS_URL`
@@ -389,7 +391,7 @@ Paper 자동 실행은 기본적으로 꺼져 있습니다. 아래 값을 모두
 AGENT_AUTOMATION_ENABLED=true
 AGENT_AUTOMATION_MODE=paper_auto
 AGENT_AUTO_EXECUTE_MIN_CONFIDENCE=0.75
-AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
+AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=65000
 ```
 
 `paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. live order는 별도 approval endpoint와 관리자 API key guard를 통과한 경우에만 실행됩니다.
@@ -400,13 +402,13 @@ AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
 AGENT_SCHEDULER_ENABLED=false
 AGENT_SCHEDULER_INTERVAL_MINUTES=60
 AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
-AGENT_MARKET_TIMEZONE=America/New_York
-AGENT_MARKET_OPEN_TIME=09:30
-AGENT_MARKET_CLOSE_TIME=16:00
+AGENT_MARKET_TIMEZONE=Asia/Seoul
+AGENT_MARKET_OPEN_TIME=09:00
+AGENT_MARKET_CLOSE_TIME=15:30
 AGENT_MARKET_CLOSED_DATES=2026-01-01,2026-12-25
 ```
 
-`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 설정된 timezone/open/close 기준의 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 Asia/Seoul 기준 KRX 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
@@ -425,7 +427,7 @@ LLM_MAX_CANDIDATES_PER_RUN=3
 
 `LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
 
-`/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 paper PnL에서 월간 LLM 예상 비용을 뺀 값을 보여줍니다. 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
+`/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 KRW paper PnL에서 월간 LLM 예상 비용(USD)을 `USD_TO_KRW_DISPLAY_RATE` 고정 근사 환율로 원화 환산한 값을 뺀 결과를 보여줍니다. 원본 LLM 비용은 USD로 함께 유지되며, 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
 
 ## Local Development
 
@@ -467,7 +469,7 @@ docker compose exec -T backend python -m compileall app
 docker compose exec -T frontend npm run build
 ```
 
-현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`SectorCandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`)입니다. News Agent는 외부 provider 연결 전 보류 상태이므로 테스트 범위에 포함하지 않았습니다.
+현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`CandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`)입니다. News Agent는 외부 provider 연결 전 보류 상태이므로 테스트 범위에 포함하지 않았습니다.
 
 ## Live Trading Readiness
 

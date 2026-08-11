@@ -135,9 +135,9 @@ class LLMClient:
                 news_context=news_context,
                 memory_context=memory_context,
                 settings_snapshot={
-                    "bot_capital_limit_usd": self.settings.bot_capital_limit_usd,
-                    "max_order_amount_usd": self.settings.max_order_amount_usd,
-                    "allowed_sector": self.settings.allowed_sector,
+                    "trading_currency": "KRW",
+                    "bot_capital_limit_krw": self.settings.bot_capital_limit_krw,
+                    "max_order_amount_krw": self.settings.max_order_amount_krw,
                     "allowed_symbols": self.settings.allowed_symbols,
                     "dry_run": self.settings.dry_run,
                     "live_trading_enabled": self.settings.live_trading_enabled,

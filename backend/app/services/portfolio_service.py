@@ -139,25 +139,25 @@ class PortfolioService:
         bot_positions = self.list_bot_positions(db)
         legacy_positions = self.list_legacy_positions(db)
         available_budget = max(
-            self.settings.bot_capital_limit_usd
+            self.settings.bot_capital_limit_krw
             - invested_amount
-            - self.settings.min_cash_reserve_usd,
+            - self.settings.min_cash_reserve_krw,
             0,
         )
         pnl_percent = (unrealized_pnl / invested_amount * 100) if invested_amount else 0
 
         return {
-            "bot_capital_limit_usd": self.settings.bot_capital_limit_usd,
-            "invested_amount_usd": invested_amount,
-            "available_budget_usd": available_budget,
-            "min_cash_reserve_usd": self.settings.min_cash_reserve_usd,
+            "bot_capital_limit_krw": self.settings.bot_capital_limit_krw,
+            "invested_amount_krw": invested_amount,
+            "available_budget_krw": available_budget,
+            "min_cash_reserve_krw": self.settings.min_cash_reserve_krw,
             "bot_position_count": len(bot_positions),
             "legacy_position_count": len(legacy_positions),
             "protected_legacy_symbols": [
                 position.symbol for position in legacy_positions if position.is_protected
             ],
             "bot_symbols": [position.symbol for position in bot_positions],
-            "unrealized_pnl_usd": unrealized_pnl,
+            "unrealized_pnl_krw": unrealized_pnl,
             "unrealized_pnl_percent": pnl_percent,
             "dry_run": self.settings.dry_run,
             "live_trading_enabled": self.settings.live_trading_enabled,
@@ -182,9 +182,9 @@ class PortfolioService:
                 sell_order_count += 1
                 gross_sold += order.order_amount
 
-        realized_pnl = sum(trade["realized_pnl_usd"] for trade in realized_trades)
-        winning_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_usd"] > 0])
-        losing_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_usd"] < 0])
+        realized_pnl = sum(trade["realized_pnl_krw"] for trade in realized_trades)
+        winning_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_krw"] > 0])
+        losing_sell_count = len([trade for trade in realized_trades if trade["realized_pnl_krw"] < 0])
         unrealized_pnl = float(
             db.query(func.coalesce(func.sum(BotPosition.unrealized_pnl), 0)).scalar()
             or 0
@@ -199,14 +199,14 @@ class PortfolioService:
         return {
             "simulated_order_count": len(orders),
             "live_submitted_order_count": len(live_submitted_orders),
-            "live_submitted_order_amount_usd": sum(order.order_amount for order in live_submitted_orders),
+            "live_submitted_order_amount_krw": sum(order.order_amount for order in live_submitted_orders),
             "buy_order_count": buy_order_count,
             "sell_order_count": sell_order_count,
-            "gross_bought_usd": gross_bought,
-            "gross_sold_usd": gross_sold,
-            "realized_pnl_usd": realized_pnl,
-            "unrealized_pnl_usd": unrealized_pnl,
-            "total_pnl_usd": total_pnl,
+            "gross_bought_krw": gross_bought,
+            "gross_sold_krw": gross_sold,
+            "realized_pnl_krw": realized_pnl,
+            "unrealized_pnl_krw": unrealized_pnl,
+            "total_pnl_krw": total_pnl,
             "total_pnl_percent": total_pnl_percent,
             "winning_sell_count": winning_sell_count,
             "losing_sell_count": losing_sell_count,
@@ -218,33 +218,34 @@ class PortfolioService:
     def get_cost_recovery(self, db: Session) -> dict:
         performance = self.get_performance(db)
         llm_summary = LLMUsageService().summarize(db)
-        monthly_llm_cost = llm_summary["monthly_estimated_cost_usd"]
-        total_pnl = performance["total_pnl_usd"]
-        realized_pnl = performance["realized_pnl_usd"]
-        net_after_llm_cost = total_pnl - monthly_llm_cost
-        realized_net_after_llm_cost = realized_pnl - monthly_llm_cost
+        monthly_llm_cost_usd = llm_summary["monthly_estimated_cost_usd"]
+        monthly_llm_cost_krw = monthly_llm_cost_usd * self.settings.usd_to_krw_display_rate
+        total_pnl_krw = performance["total_pnl_krw"]
+        realized_pnl_krw = performance["realized_pnl_krw"]
+        net_after_llm_cost_krw = total_pnl_krw - monthly_llm_cost_krw
+        realized_net_after_llm_cost_krw = realized_pnl_krw - monthly_llm_cost_krw
 
         return {
             "pnl_scope": "all_time_paper",
             "llm_cost_scope": "month_to_date",
-            "paper_total_pnl_usd": total_pnl,
-            "paper_realized_pnl_usd": realized_pnl,
-            "monthly_llm_cost_usd": monthly_llm_cost,
+            "paper_total_pnl_krw": total_pnl_krw,
+            "paper_realized_pnl_krw": realized_pnl_krw,
+            "monthly_llm_cost_usd": monthly_llm_cost_usd,
             "today_llm_cost_usd": llm_summary["today_estimated_cost_usd"],
-            "net_after_llm_cost_usd": net_after_llm_cost,
-            "realized_net_after_llm_cost_usd": realized_net_after_llm_cost,
+            "net_after_llm_cost_krw": net_after_llm_cost_krw,
+            "realized_net_after_llm_cost_krw": realized_net_after_llm_cost_krw,
             "llm_cost_recovery_ratio": (
-                total_pnl / monthly_llm_cost
-                if monthly_llm_cost > 0
+                total_pnl_krw / monthly_llm_cost_krw
+                if monthly_llm_cost_krw > 0
                 else None
             ),
             "realized_llm_cost_recovery_ratio": (
-                realized_pnl / monthly_llm_cost
-                if monthly_llm_cost > 0
+                realized_pnl_krw / monthly_llm_cost_krw
+                if monthly_llm_cost_krw > 0
                 else None
             ),
-            "llm_cost_covered": net_after_llm_cost >= 0 if monthly_llm_cost > 0 else None,
-            "realized_llm_cost_covered": realized_net_after_llm_cost >= 0 if monthly_llm_cost > 0 else None,
+            "llm_cost_covered": net_after_llm_cost_krw >= 0 if monthly_llm_cost_krw > 0 else None,
+            "realized_llm_cost_covered": realized_net_after_llm_cost_krw >= 0 if monthly_llm_cost_krw > 0 else None,
             "simulated_order_count": performance["simulated_order_count"],
             "today_llm_calls": llm_summary["today_calls"],
         }
@@ -264,14 +265,14 @@ class PortfolioService:
                     "symbol": symbol,
                     "realized_trade_count": 0,
                     "winning_trade_count": 0,
-                    "realized_pnl_usd": 0.0,
-                    "sell_amount_usd": 0.0,
+                    "realized_pnl_krw": 0.0,
+                    "sell_amount_krw": 0.0,
                 },
             )
             row["realized_trade_count"] += 1
-            row["sell_amount_usd"] += trade["sell_amount_usd"]
-            row["realized_pnl_usd"] += trade["realized_pnl_usd"]
-            if trade["realized_pnl_usd"] > 0:
+            row["sell_amount_krw"] += trade["sell_amount_krw"]
+            row["realized_pnl_krw"] += trade["realized_pnl_krw"]
+            if trade["realized_pnl_krw"] > 0:
                 row["winning_trade_count"] += 1
 
         result = []
@@ -280,11 +281,11 @@ class PortfolioService:
             result.append({
                 "symbol": row["symbol"],
                 "realized_trade_count": trade_count,
-                "realized_pnl_usd": row["realized_pnl_usd"],
-                "sell_amount_usd": row["sell_amount_usd"],
+                "realized_pnl_krw": row["realized_pnl_krw"],
+                "sell_amount_krw": row["sell_amount_krw"],
                 "win_rate_percent": row["winning_trade_count"] / trade_count * 100 if trade_count else 0,
             })
-        return sorted(result, key=lambda item: item["realized_pnl_usd"], reverse=True)
+        return sorted(result, key=lambda item: item["realized_pnl_krw"], reverse=True)
 
     @staticmethod
     def _list_simulated_orders(db: Session) -> list[TradeOrder]:
@@ -330,9 +331,9 @@ class PortfolioService:
                     "created_at": order.created_at,
                     "symbol": symbol,
                     "quantity": matched_quantity,
-                    "sell_amount_usd": order.order_amount,
-                    "cost_basis_usd": cost_basis,
-                    "realized_pnl_usd": realized_pnl,
+                    "sell_amount_krw": order.order_amount,
+                    "cost_basis_krw": cost_basis,
+                    "realized_pnl_krw": realized_pnl,
                     "realized_pnl_percent": realized_pnl_percent,
                 })
             quantity_by_symbol[symbol] = max(held_quantity - matched_quantity, 0)

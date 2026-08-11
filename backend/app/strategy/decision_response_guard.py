@@ -17,8 +17,8 @@ class GuardedDecisionResponse:
 class DecisionResponseGuard:
     """Normalize LLM decision JSON before it becomes an AgentDecision."""
 
-    def __init__(self, *, max_order_amount_usd: float):
-        self.max_order_amount_usd = max(max_order_amount_usd, 0)
+    def __init__(self, *, max_order_amount_krw: float):
+        self.max_order_amount_krw = max(max_order_amount_krw, 0)
 
     def normalize(self, response: dict[str, Any], candidates: list[dict]) -> GuardedDecisionResponse:
         warnings: list[str] = []
@@ -39,7 +39,7 @@ class DecisionResponseGuard:
         recommended_order_amount = self._clamp_float(
             response.get("recommended_order_amount"),
             0,
-            self.max_order_amount_usd,
+            self.max_order_amount_krw,
             "recommended_order_amount",
             warnings,
         )

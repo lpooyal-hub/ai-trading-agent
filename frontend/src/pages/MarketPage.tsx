@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { api, MarketSnapshot, MarketSnapshotStatus } from "../api/client";
 import { StatCard } from "../components/StatCard";
+import { formatKRW } from "../utils/currency";
 
 export function MarketPage() {
   const [snapshots, setSnapshots] = useState<MarketSnapshot[]>([]);
   const [status, setStatus] = useState<MarketSnapshotStatus | null>(null);
-  const [symbol, setSymbol] = useState("NVDA");
+  const [symbol, setSymbol] = useState("005930");
+  const [sector, setSector] = useState("unknown");
   const [price, setPrice] = useState("0");
   const [changePercent, setChangePercent] = useState("0");
   const [volume, setVolume] = useState("0");
@@ -64,7 +66,7 @@ export function MarketPage() {
         price: parsedPrice,
         change_percent: parsedChangePercent,
         volume: parsedVolume,
-        sector: "semiconductor",
+        sector: sector.trim() || "unknown",
         extra_json: { source: "manual_dashboard" },
       },
     ])
@@ -131,6 +133,10 @@ export function MarketPage() {
           <input value={price} onChange={(event) => setPrice(event.target.value)} type="number" />
         </label>
         <label>
+          섹터
+          <input value={sector} onChange={(event) => setSector(event.target.value)} />
+        </label>
+        <label>
           등락률 %
           <input value={changePercent} onChange={(event) => setChangePercent(event.target.value)} type="number" />
         </label>
@@ -159,7 +165,7 @@ export function MarketPage() {
               <tr key={row.id}>
                 <td>{new Date(row.created_at).toLocaleString()}</td>
                 <td>{row.symbol}</td>
-                <td>${row.price.toFixed(2)}</td>
+                <td>{formatKRW(row.price)}</td>
                 <td>{row.change_percent.toFixed(2)}%</td>
                 <td>{row.volume.toLocaleString()}</td>
                 <td>{String(row.extra_json.source ?? "-")}</td>

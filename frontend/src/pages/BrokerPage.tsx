@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL, api, BrokerAccount, BrokerPosition, BrokerStatus, HealthResponse } from "../api/client";
 import { StatCard } from "../components/StatCard";
+import { formatKRW } from "../utils/currency";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -13,6 +14,10 @@ function booleanStatus(value: boolean | undefined, trueLabel: string, falseLabel
 
 function formatOptionalNumber(value: number) {
   return value > 0 ? value.toLocaleString() : "-";
+}
+
+function formatOptionalKRW(value: number) {
+  return value > 0 ? formatKRW(value) : "-";
 }
 
 function brokerResponseMessage(label: string, response: { status: string; http_status_code?: number | null; message?: string }) {
@@ -219,8 +224,8 @@ export function BrokerPage() {
                   <td>{position.symbol}</td>
                   <td>{position.name}</td>
                   <td>{formatOptionalNumber(position.quantity)}</td>
-                  <td>{formatOptionalNumber(position.avg_price)}</td>
-                  <td>{formatOptionalNumber(position.current_price)}</td>
+                  <td>{formatOptionalKRW(position.avg_price)}</td>
+                  <td>{formatOptionalKRW(position.current_price)}</td>
                   <td>{position.source}</td>
                 </tr>
               ))}

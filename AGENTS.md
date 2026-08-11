@@ -13,7 +13,7 @@
 - `.env` 파일, API 키, 실제 증권 계좌 ID/번호, 실제 보유 종목·수량, 실제 주문 내역, 실제 API 응답 원문, 로컬 DB/로그 파일을 **절대 커밋하지 않는다**. (`SECURITY.md`)
 - `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`, `USE_MOCK_DATA=true`가 기본값이다. 사용자가 명시적으로 요청하지 않는 한 이 기본값을 바꾸는 코드/설정을 작성하지 않는다.
 - Live trading 관련 코드(`TossLiveExecutionAdapter`, 실주문 경로)를 건드릴 때는 항상 env opt-in(`DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, Toss credentials, `TOSS_ORDER_PATH`, 관리자 API key)이 모두 갖춰졌을 때만 동작하도록 유지한다. 이 가드 중 하나라도 약화시키는 변경은 하지 않는다.
-- `ALLOWED_SECTOR`/`ALLOWED_SYMBOLS`로 정의된 active universe 밖 종목을 다루는 코드를 추가하지 않는다.
+- `ALLOWED_SYMBOLS`로 정의된 active universe 밖 종목을 다루는 코드를 추가하지 않는다.
 - **Legacy position(기존 실보유 종목)과 bot position(봇 시뮬레이션)을 절대 섞지 않는다.** bot 관련 로직이 legacy position을 갱신하거나 읽어서 매매 판단에 쓰면 안 된다.
 - 공개 데모/포트폴리오 시연 경로는 `USE_MOCK_DATA=true`를 전제로 하며, mock mode에서는 실제 Toss API/OpenAI API를 호출하지 않는다.
 
