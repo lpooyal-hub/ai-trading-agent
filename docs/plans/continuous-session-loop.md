@@ -154,9 +154,11 @@ session_start (1회)
 
 ### 1.4 실행 모델 — 세션은 백그라운드 워커가 소유
 
-- 신규 파일 `backend/app/worker.py`: 기존 `AgentGraphService`를 그대로 재사용하되 `run_session()`이라는 새 진입점을 호출. 워커는 market open을 기다렸다가 세션 시작, 세션 종료 후 다음 market open까지 대기하는 루프.
-- `docker-compose.yml`에 `worker` 서비스 추가 — backend와 같은 이미지, 다른 command(`python -m app.worker`). 신규 인프라 의존성 추가 없이 기존 이미지 재사용.
-- 기존 HTTP 엔드포인트(`POST /agent/run-once`, `POST /workflows/run`, `POST /agent/run-scheduled`)는 **하위 호환 유지**: 내부적으로 `run_session(max_cycles=1)`을 호출하도록 감싸서, "1회 실행" 시맨틱은 그대로 유지한 채 코드 경로만 통합한다. 대시보드의 "지금 실행" 버튼 동작이 바뀌지 않아야 한다.
+> **결정됨 (2026-08-11): 하이브리드 방식 채택.** 워커는 24/7 상시 컨테이너가 아니라, 외부 host cron이 하루 1번 트리거하는 **1회성 프로세스**다. §4에 있던 "24/7 vs 하이브리드" 질문은 이걸로 확정됐다.
+
+- 신규 파일 `backend/app/worker.py`: 기존 `AgentGraphService`를 그대로 재사용하되 `run_session()`이라는 새 진입점을 호출. `run_worker_once()`는 (1) `agent_scheduler_enabled`가 꺼져 있으면 즉시 종료, (2) `wait_for_todays_market_open()`으로 오늘 정규장이 열릴 때까지만 대기하되 주말/휴장일/이미 장마감이면 기다리지 않고 즉시 종료(`get_market_window()`의 `session` 값으로 판단), (3) 장이 열리면 세션 1회(`run_session()`)를 끝까지 실행하고 반환. **다음 날 재실행은 이 프로세스가 아니라 외부 cron이 담당** — 컨테이너 안에서 여러 날에 걸쳐 도는 `while True` 루프는 없다.
+- `docker-compose.yml`의 `worker` 서비스는 `profiles: ["worker"]`로 빠져 있어 평소 `docker compose up`에는 포함되지 않는다. 호스트 cron이 장 시작 조금 전 `docker compose run --rm worker`를 하루 1번 실행하는 것을 전제로 한다 (crontab 등록은 아직 안 함 — 사용자 확인 후 등록).
+- 기존 HTTP 엔드포인트(`POST /agent/run-once`, `POST /workflows/run`, `POST /agent/run-scheduled`)는 **하위 호환 유지**: 내부적으로 `run_session(max_cycles=1)`을 호출하도록 감싸서, "1회 실행" 시맨틱은 그대로 유지한 채 코드 경로만 통합한다. 대시보드의 "지금 실행" 버튼 동작이 바뀌지 않아야 한다. (이 통합 자체는 아직 미착수 — §2 통합 단계의 선택 항목 참고.)
 
 ### 1.5 데이터 모델 변경 (`backend/app/models.py`)
 
@@ -219,8 +221,8 @@ cycle_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 ### Codex 담당 (신규 파일 위주, 충돌 위험 낮음) — 완료
 | 파일 | 작업 | 상태 |
 |---|---|---|
-| `backend/app/worker.py` (신규) | market open 대기 → `run_session()` 호출 → market close/세션 종료 후 대기, 반복 | ✅ |
-| `docker-compose.yml` | `worker` 서비스 추가 (기존 backend 서비스 정의 옆에 append) | ✅ |
+| `backend/app/worker.py` (신규) | ~~market open 대기 → `run_session()` 호출 → market close/세션 종료 후 대기, 반복~~ → **하이브리드로 변경** (아래 참고): `run_worker_once()` 1회성, 외부 cron이 재실행 담당 | ✅ |
+| `docker-compose.yml` | `worker` 서비스 추가, `profiles: ["worker"]`로 기본 `up`에서 제외 (하이브리드 방식으로 변경하며 Claude가 재조정) | ✅ |
 | `backend/app/services/agent_session_service.py` (신규) | `AgentSession` CRUD: list/get/request_stop | ✅ |
 | `backend/app/routes/agent.py` | `GET /agent/sessions`, `GET /agent/sessions/{id}`, `POST /agent/sessions/{id}/stop` 엔드포인트 추가 (기존 라우트 건드리지 않고 append) | ✅ |
 | `backend/app/schemas.py` | `AgentSessionRead` 등 신규 Pydantic 스키마 추가 (append) | ✅ |
@@ -249,6 +251,10 @@ cycle_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 ## 4. 아직 사용자 확인이 필요한 부분
 
-- `agent_session_max_cycles`, `agent_session_max_minutes` 기본값 — 위 제안값(30, market 세션 길이)은 임시. 실제 리스크 허용치에 맞게 조정 필요.
-- 워커를 정말 상시 가동 프로세스(24/7 컨테이너)로 둘지, 아니면 여전히 외부 cron이 하루 1번 "세션 시작"만 트리거하고 세션 내부만 루프로 도는 하이브리드로 둘지 — 이 문서는 후자(워커가 market open을 자체 polling)를 기본안으로 잡았지만, 이미 외부 cron/헬스체크 인프라가 있다면 그걸 재사용하는 게 나을 수 있음.
+- `agent_session_max_cycles`, `agent_session_max_minutes` 기본값 — 위 제안값(30, market 세션 길이)은 임시. 실제 리스크 허용치에 맞게 조정 필요. (국장 전환 후 세션 길이는 §5 참고 — 09:00~15:30 KST 기준으로 다시 계산 필요)
+- ~~워커를 24/7 vs 하이브리드로 둘지~~ → **결정됨 (§1.4): 하이브리드.** 남은 건 실제 host crontab 등록뿐 — 사용자가 직접 등록할지, Claude가 등록할지 아직 안 정함.
 - 운영 DB가 이미 있다면 `AgentSession`/`WorkflowRun` 스키마 변경을 수동 마이그레이션할지, 로컬/데모 DB처럼 재생성해도 되는지.
+
+## 5. 국장 전환 + 통화/섹터 개편 (2026-08-11 추가)
+
+시장을 해외장(America/New_York)에서 국내장(KRX, Asia/Seoul)으로, 종목 필터를 단일 섹터(`반도체`)에서 멀티섹터 화이트리스트로, 통화를 USD에서 KRW로 바꾸는 대규모 개편이 별도로 진행된다. 이 문서(LangGraph 세션 루프)와는 독립적인 변경이며, 상세 계획은 `docs/plans/domestic-krw-conversion.md`에 있다.
