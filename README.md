@@ -64,7 +64,7 @@ SchedulerAgent
 - `SchedulerAgent`: `/agent/run-scheduled` 호출 시 실행 가능 시간, 장중 여부, 실행 간격을 확인합니다.
 - `RuntimeLock`: Compose 기본 Redis 또는 설정된 Redis에서 `agent:run_once:lock`으로 중복 실행을 막습니다.
 - `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
-- `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
+- `NewsAgent`: rule-based pre-filter를 통과한 후보 종목에 한해 Naver 공개 시세뉴스 API의 실제 헤드라인을 가져오고, 시장 스냅샷 기반 가격·거래량 신호와 함께 이벤트 컨텍스트를 만듭니다.
 - `RiskAgent`: LLM 예산과 실행 전제 조건을 확인하고, LLM 호출 전에 비용/쿨다운 가드를 적용합니다.
 - `MemoryAgent`: 최근 저널/평가를 요약해 승률, 반복 실수, 모델/종목/프롬프트 버전별 개선 힌트를 `DecisionAgent` 입력에 포함합니다.
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
@@ -74,7 +74,7 @@ SchedulerAgent
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
 - `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다. 후보 없음, 예산 초과처럼 guard에서 멈춘 실행도 별도 저널로 남겨 Memory Agent가 반복 패턴을 볼 수 있게 합니다.
 
-현재 `NewsAgent`는 “실제 뉴스 수집기”가 아니라 `DecisionAgent` 입력 계약을 먼저 만든 버전입니다. 실제 뉴스 API를 붙이면 `NewsAgent` 내부 수집 로직만 교체하고 downstream agent 흐름은 유지할 수 있습니다.
+뉴스 조회가 실패하거나 헤드라인이 없으면 `NewsAgent`는 가격·거래량 기반 컨텍스트로 fail-soft 처리해 downstream agent 흐름을 유지합니다.
 
 ### Workflow audit layer
 
@@ -469,7 +469,7 @@ docker compose exec -T backend python -m compileall app
 docker compose exec -T frontend npm run build
 ```
 
-현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`CandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`)입니다. News Agent는 외부 provider 연결 전 보류 상태이므로 테스트 범위에 포함하지 않았습니다.
+현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`CandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`), market/news data client와 `NewsAgent`의 fail-soft 동작을 포함합니다. 외부 API를 다루는 테스트는 모두 mock을 사용합니다.
 
 ## Live Trading Readiness
 

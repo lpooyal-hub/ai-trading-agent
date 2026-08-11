@@ -121,7 +121,7 @@ docker compose exec -T backend python -m unittest discover -s tests
 docker compose exec -T backend python -m compileall app
 ```
 
-현재 테스트 범위는 `DecisionResponseGuard`, `CandidateSelector`, `RiskManager`입니다. 외부 뉴스 provider는 아직 연결하지 않았기 때문에 News Agent는 테스트 범위에서 제외합니다.
+현재 테스트 범위는 `DecisionResponseGuard`, `CandidateSelector`, `RiskManager`, market/news data client와 `NewsAgent`의 fail-soft 동작을 포함합니다. 외부 API를 다루는 테스트는 모두 mock을 사용합니다.
 
 ## Execution Modes
 
@@ -259,7 +259,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 목표 구조는 아래 역할 분리를 기준으로 확장합니다.
 
 1. Scheduler: 정해진 주기와 market-hours guard에 따라 agent run을 트리거합니다.
-2. News Agent: 외부 뉴스/실적/캘린더 API를 붙일 수 있는 이벤트 컨텍스트 경계입니다. 공개 포트폴리오 버전에서는 market snapshot 기반 context contract를 먼저 고정합니다.
+2. News Agent: rule-based pre-filter를 통과한 후보 종목에 한해 Naver 공개 시세뉴스 API의 실제 헤드라인을 가져오고, market snapshot 기반 가격·거래량 신호와 함께 이벤트 컨텍스트를 만듭니다. 뉴스 조회 실패 시 snapshot context로 fail-soft 처리합니다.
 3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재 `MarketAgent`가 market snapshot refresh/readiness preview와 후보 pre-filter를 맡습니다.
 4. Decision Agent: LLM으로 매수/매도/HOLD 판단과 이유를 생성합니다. 현재 `DecisionAgent`가 LLM 호출, 응답 guard, 예상 비용 계산을 맡습니다.
 5. Risk Agent: 투자 비중, 손절/익절, protected legacy position, budget guard를 검증합니다.
@@ -268,7 +268,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
 9. Memory Agent: 최근 journal/evaluation/decision 이력을 요약해 다음 전략 개선에 쓸 패턴을 관리합니다.
 
-현재 공개 포트폴리오 버전은 LangGraph node 기반 agentic workflow, audit trail, risk guard, paper execution, journal, memory feedback loop를 중심으로 역할을 분리합니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 외부 뉴스 provider를 붙일 때 확장할 수 있도록 `/memory/summary`의 `data_gaps`에 명시됩니다.
+현재 공개 포트폴리오 버전은 LangGraph node 기반 agentic workflow, audit trail, risk guard, paper execution, journal, memory feedback loop를 중심으로 역할을 분리합니다. 프롬프트 버전별 승률은 decision audit payload 기준으로 집계되며, 뉴스 유형별 성공률은 헤드라인 분류 데이터를 확장할 때 활용할 수 있도록 `/memory/summary`의 `data_gaps`에 명시됩니다.
 
 `/agent/readiness`는 run-once 전 market 후보, LLM budget, DRY_RUN/mock 상태를 확인하는 preflight 응답입니다.
 `automation_ready`는 real OpenAI LLM이 준비된 경우에만 true이며, mock 실행 가능 상태와 구분됩니다.
