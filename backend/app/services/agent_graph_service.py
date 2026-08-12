@@ -45,6 +45,7 @@ class AgentGraphState(TypedDict, total=False):
     cycle_started_at: datetime
     session_stop_reason: str
     market_result: Any
+    position_exit_result: Any
     snapshots: list[MarketSnapshot]
     candidates: list[MarketSnapshot]
     news_result: Any
@@ -215,6 +216,7 @@ class AgentGraphService:
         graph = StateGraph(AgentGraphState)
         graph.add_node("runtime_lock", self._runtime_lock_node)
         graph.add_node("market_agent", self._market_agent_node)
+        graph.add_node("position_exit_manager", self._position_exit_node)
         graph.add_node("news_agent", self._news_agent_node)
         graph.add_node("risk_agent", self._risk_agent_node)
         graph.add_node("memory_agent", self._memory_agent_node)
@@ -229,7 +231,8 @@ class AgentGraphService:
 
         graph.set_entry_point("runtime_lock")
         graph.add_edge("runtime_lock", "market_agent")
-        graph.add_edge("market_agent", "news_agent")
+        graph.add_edge("market_agent", "position_exit_manager")
+        graph.add_edge("position_exit_manager", "news_agent")
         graph.add_conditional_edges(
             "news_agent",
             self._route_after_news,
@@ -261,6 +264,7 @@ class AgentGraphService:
         graph = StateGraph(AgentGraphState)
         graph.add_node("runtime_lock", self._runtime_lock_node)
         graph.add_node("market_agent", self._market_agent_node)
+        graph.add_node("position_exit_manager", self._position_exit_node)
         graph.add_node("news_agent", self._news_agent_node)
         graph.add_node("risk_agent", self._risk_agent_node)
         graph.add_node("memory_agent", self._memory_agent_node)
@@ -278,7 +282,8 @@ class AgentGraphService:
 
         graph.set_entry_point("runtime_lock")
         graph.add_edge("runtime_lock", "market_agent")
-        graph.add_edge("market_agent", "news_agent")
+        graph.add_edge("market_agent", "position_exit_manager")
+        graph.add_edge("position_exit_manager", "news_agent")
         graph.add_conditional_edges(
             "news_agent",
             self._route_after_news,
@@ -303,7 +308,11 @@ class AgentGraphService:
             self._route_after_loop_gate,
             {"continue": "next_cycle", "stop": "session_finish"},
         )
-        graph.add_edge("next_cycle", "market_agent")
+        graph.add_conditional_edges(
+            "next_cycle",
+            self._route_after_next_cycle,
+            {"continue": "market_agent", "stop": "session_finish"},
+        )
         graph.add_edge("session_finish", END)
         return graph.compile()
 
@@ -370,6 +379,15 @@ class AgentGraphService:
             },
         )
         return updates
+
+    def _position_exit_node(self, state: AgentGraphState) -> dict[str, Any]:
+        result = self.agent._run_position_exits(state["db"], state["market_result"])
+        self.agent._record_position_exit_step(state["db"], state["workflow"], result)
+        return {
+            "position_exit_result": result,
+            "candidates": state["market_result"].candidates,
+            "agentic_path": self._path(state, "position_exit_manager"),
+        }
 
     @staticmethod
     def _route_after_news(state: AgentGraphState) -> str:
@@ -732,12 +750,14 @@ class AgentGraphService:
         if settings.agent_scheduler_market_hours_only and not is_market_open(settings):
             return "Market is not in regular session."
 
-        budget = self.agent.llm_budget_manager.check_budget(db)
+        # Price cycles continue during the post-call cooldown. The risk node
+        # checks that cooldown only when a new market event reaches the LLM.
+        budget = self.agent.llm_budget_manager.check_budget(db, include_cooldown=False)
         if not budget["approved"]:
             return f"LLM budget exceeded: {budget['reason']}"
 
         trade_count = self.agent.execution_risk_agent.risk_manager.count_today_simulated_trades(db)
-        if trade_count >= settings.max_daily_trades:
+        if settings.max_daily_trades > 0 and trade_count >= settings.max_daily_trades:
             return f"Daily trade limit reached ({settings.max_daily_trades})."
 
         return None
@@ -752,9 +772,22 @@ class AgentGraphService:
         settings = self.agent.settings
 
         elapsed_seconds = (datetime.utcnow() - state["cycle_started_at"]).total_seconds()
-        pace_seconds = max(settings.agent_scheduler_interval_minutes_safe * 60 - elapsed_seconds, 0)
+        pace_minutes = settings.agent_scheduler_interval_minutes_safe
+        pace_seconds = max(pace_minutes * 60 - elapsed_seconds, 0)
         if pace_seconds:
             time.sleep(pace_seconds)
+
+        db.refresh(session)
+        stop_reason = self._session_stop_reason(db, session, settings)
+        if stop_reason is not None:
+            session.stop_reason = stop_reason
+            db.add(session)
+            db.commit()
+            return {
+                "session": session,
+                "session_stop_reason": stop_reason,
+                "agentic_path": self._path(state, "next_cycle"),
+            }
 
         workflow = self.agent.workflow_service.start_run(
             db,
@@ -778,6 +811,10 @@ class AgentGraphService:
             "skip_reason": None,
             "agentic_path": [],
         }
+
+    @staticmethod
+    def _route_after_next_cycle(state: AgentGraphState) -> str:
+        return "stop" if state.get("session_stop_reason") else "continue"
 
     def _session_finish_node(self, state: AgentGraphState) -> dict[str, Any]:
         db = state["db"]

@@ -130,14 +130,16 @@ class TradingServiceTest(unittest.TestCase):
         # 300000 - 100000 invested - 30000 reserve
         self.assertEqual(budget, 170000)
 
-    def test_calculate_available_budget_never_goes_negative(self):
+    def test_available_budget_uses_actual_whole_share_fill_amount(self):
         with self.SessionLocal() as db:
             decision = self._add_decision(db, amount=290000, price=50000)
             self.service.simulate_buy_order(db, decision)
 
             budget = self.service.calculate_available_budget(db)
 
-        self.assertEqual(budget, 0)
+        # 290000 recommendation fills 5 whole shares for 250000, leaving 20000
+        # after the 30000 cash reserve.
+        self.assertEqual(budget, 20000)
 
     def test_quantity_from_decision_rounds_down_to_whole_shares_when_fractional_disabled(self):
         with self.SessionLocal() as db:

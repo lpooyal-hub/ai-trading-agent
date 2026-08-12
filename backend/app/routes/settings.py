@@ -46,6 +46,14 @@ def get_safety_settings() -> SafetySettingsRead:
         default_stop_mode=settings.default_stop_mode,
         hard_max_position_loss_percent=settings.hard_max_position_loss_percent,
         hard_daily_loss_limit_percent=settings.hard_daily_loss_limit_percent,
+        position_exit_enabled=settings.position_exit_enabled,
+        position_stop_loss_percent=settings.position_stop_loss_percent,
+        position_take_profit_percent=settings.position_take_profit_percent,
+        position_trailing_stop_enabled=settings.position_trailing_stop_enabled,
+        position_trailing_activation_percent=settings.position_trailing_activation_percent,
+        position_trailing_distance_percent=settings.position_trailing_distance_percent,
+        position_max_holding_trading_days=settings.position_max_holding_trading_days,
+        position_exit_max_snapshot_age_seconds=settings.position_exit_max_snapshot_age_seconds_safe,
         llm_daily_call_limit=settings.llm_daily_call_limit,
         llm_min_minutes_between_calls=settings.llm_min_minutes_between_calls,
         llm_max_candidates_per_run=settings.llm_max_candidates_per_run_safe,
@@ -61,6 +69,9 @@ def get_safety_settings() -> SafetySettingsRead:
         paper_auto_enabled=settings.paper_auto_enabled,
         agent_scheduler_enabled=settings.agent_scheduler_enabled,
         agent_scheduler_interval_minutes=settings.agent_scheduler_interval_minutes_safe,
+        intraday_signals_enabled=settings.intraday_signals_enabled,
+        intraday_shortlist_size=settings.intraday_shortlist_size_safe,
+        intraday_candle_count=settings.intraday_candle_count_safe,
         agent_scheduler_market_hours_only=settings.agent_scheduler_market_hours_only,
         agent_market_timezone=settings.agent_market_timezone,
         agent_market_open_time=settings.agent_market_open_time,
@@ -139,6 +150,9 @@ def get_live_trading_readiness() -> LiveTradingReadinessRead:
         blockers.append("LIVE_TRADING_ENABLED is false.")
     if settings.use_mock_data:
         blockers.append("USE_MOCK_DATA is true.")
+    if settings.max_order_amount_limit_krw is None:
+        blockers.append("MAX_ORDER_AMOUNT_KRW must be positive for live trading.")
+        next_actions.append("Set a finite MAX_ORDER_AMOUNT_KRW before enabling live orders.")
     if not settings.toss_credentials_ready:
         blockers.append("Toss API credentials or TOSS_ACCOUNT_ID are incomplete.")
     if not settings.toss_read_only_ready:

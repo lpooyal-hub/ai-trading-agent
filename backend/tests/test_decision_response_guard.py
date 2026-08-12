@@ -48,6 +48,25 @@ class DecisionResponseGuardTest(unittest.TestCase):
         self.assertEqual(result.response["recommended_order_amount"], 0)
         self.assertFalse(result.response["should_execute"])
 
+    def test_zero_max_order_amount_disables_the_upper_bound(self):
+        guard = DecisionResponseGuard(max_order_amount_krw=0)
+
+        result = guard.normalize(
+            {
+                "symbol": "005930",
+                "action": "BUY",
+                "confidence": 0.8,
+                "recommended_order_amount": 500000,
+                "thesis": "The order remains bounded by portfolio guardrails.",
+                "risk_notes": "Capital and exposure limits still apply.",
+                "should_execute": True,
+            },
+            candidates=[{"symbol": "005930"}],
+        )
+
+        self.assertFalse(result.has_warnings)
+        self.assertEqual(result.response["recommended_order_amount"], 500000)
+
 
 if __name__ == "__main__":
     unittest.main()

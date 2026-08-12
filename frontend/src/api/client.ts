@@ -261,6 +261,12 @@ export type AgentCandidate = {
   reason: string;
   change_percent: number;
   volume: number;
+  return_5m_percent?: number;
+  return_15m_percent?: number;
+  volume_ratio?: number;
+  vwap_deviation_percent?: number;
+  spread_percent?: number;
+  event_triggered?: boolean;
 };
 
 export type AgentAutomationPolicy = {
@@ -624,6 +630,14 @@ export type SafetySettings = {
   default_stop_mode: string;
   hard_max_position_loss_percent: number;
   hard_daily_loss_limit_percent: number;
+  position_exit_enabled: boolean;
+  position_stop_loss_percent: number;
+  position_take_profit_percent: number;
+  position_trailing_stop_enabled: boolean;
+  position_trailing_activation_percent: number;
+  position_trailing_distance_percent: number;
+  position_max_holding_trading_days: number;
+  position_exit_max_snapshot_age_seconds: number;
   llm_daily_call_limit: number;
   llm_min_minutes_between_calls: number;
   llm_max_candidates_per_run: number;
@@ -639,6 +653,9 @@ export type SafetySettings = {
   paper_auto_enabled: boolean;
   agent_scheduler_enabled: boolean;
   agent_scheduler_interval_minutes: number;
+  intraday_signals_enabled: boolean;
+  intraday_shortlist_size: number;
+  intraday_candle_count: number;
   agent_scheduler_market_hours_only: boolean;
   agent_market_timezone: string;
   agent_market_open_time: string;

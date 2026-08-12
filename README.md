@@ -172,6 +172,8 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `REDIS_ENABLED`
 - `REDIS_URL`
 
+Paper mode에서 `MAX_ORDER_AMOUNT_KRW=0` 또는 `AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=0`은 해당 건별 상한을 끕니다. 총 봇 자본, 현금 보유, 종목별 노출 한도는 계속 적용되며, live trading은 양수인 `MAX_ORDER_AMOUNT_KRW` 없이는 readiness를 통과하지 못합니다.
+
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
 Compose 기본 실행에서는 `postgres`와 `redis` 서비스 이름을 그대로 사용합니다. 따라서 컨테이너 내부 연결값은 `DATABASE_URL=...@postgres:5432/...`, `REDIS_URL=redis://redis:6379/0` 형태를 유지합니다.
 OpenAI 키를 처음 연결한 뒤에는 `Settings` 화면의 `LLM Smoke Test` 버튼 또는 아래 endpoint로 작은 연결 테스트를 먼저 실행합니다. 이 테스트는 trading decision을 만들지 않고 LLM usage row만 기록합니다.
@@ -222,6 +224,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 `TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 주문 처리 방식은 execution adapter로 분리되어 있으며, env 설정에 따라 paper, blocked-live, Toss live 경로를 선택합니다.
 
 - `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
+- `PositionExitManager`: 매 가격 사이클마다 모든 bot-only 포지션을 별도로 감시하고, 신선한 시세에서 손절·익절·트레일링·최대 보유기간 조건이 충족되면 LLM 호출 없이 전량 paper SELL을 실행합니다. 기본값은 -5% / +8% / +4% 이후 고점 대비 2.5% / 10거래일이며 env로 조정할 수 있습니다.
 - `TossLiveExecutionAdapter`: `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 broker order endpoint를 호출하고 `LIVE_SUBMITTED` 또는 `FAILED` order를 저장합니다.
 - `BlockedLiveExecutionAdapter`: live intent는 있지만 readiness가 부족한 경우 실제 endpoint 호출 없이 order intent, idempotency key, 차단 사유를 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order로 저장합니다.
 
@@ -395,18 +398,26 @@ AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=65000
 ```
 
 `paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. live order는 별도 approval endpoint와 관리자 API key guard를 통과한 경우에만 실행됩니다.
+`AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=0`이면 paper-auto 건별 상한만 끄며 포트폴리오 리스크 가드는 유지됩니다.
 
 "지금 실행" 버튼/`/agent/run-scheduled`는 여전히 1회 실행이고, 그 반복 트리거는 아래 값으로 준비합니다. 이와 별도로, 하나의 세션 안에서 여러 decision 사이클이 도는 **연속 세션 루프**도 있습니다 (`backend/app/worker.py`, 대시보드 "에이전트 세션" 화면, 자세한 내용은 `backend/README.md`의 "Continuous Session Loop" 절과 `docs/plans/continuous-session-loop.md` 참고). 이 워커는 `docker compose up`에 포함되는 24/7 상시 데몬이며, `AGENT_SCHEDULER_ENABLED=false`가 기본값이라 컨테이너가 떠 있어도 명시적으로 켜기 전에는 세션이 시작되지 않습니다.
 
 ```bash
 AGENT_SCHEDULER_ENABLED=false
-AGENT_SCHEDULER_INTERVAL_MINUTES=60
+AGENT_SCHEDULER_INTERVAL_MINUTES=5
 AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
 AGENT_MARKET_TIMEZONE=Asia/Seoul
 AGENT_MARKET_OPEN_TIME=09:00
 AGENT_MARKET_CLOSE_TIME=15:30
 AGENT_MARKET_CLOSED_DATES=2026-01-01,2026-12-25
+AGENT_SESSION_MAX_CYCLES=90
+AGENT_SESSION_MAX_MINUTES=420
+INTRADAY_SIGNALS_ENABLED=true
+INTRADAY_SHORTLIST_SIZE=6
+INTRADAY_CANDLE_COUNT=30
 ```
+
+5분 주기(`AGENT_SCHEDULER_INTERVAL_MINUTES=5`)에서 KRX 정규장(09:00-15:30, 390분) 전체를 커버하려면 `AGENT_SESSION_MAX_CYCLES`가 최소 78 사이클(390/5) 이상이어야 합니다. 기본값 90은 여유분을 두어 사이클 수가 아니라 `AGENT_SESSION_MAX_MINUTES`나 장 마감 조건이 실제 세션 종료 사유가 되도록 합니다. 세션 pacing 간격을 5분보다 늘리면 `AGENT_SESSION_MAX_CYCLES`도 그에 맞게 다시 계산해야 합니다.
 
 `AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 Asia/Seoul 기준 KRX 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
 
@@ -420,12 +431,12 @@ LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
 장기 paper trading에서는 비용 단가가 잘못 설정돼도 호출량이 폭주하지 않도록 호출 횟수와 최소 간격도 함께 제한합니다.
 
 ```bash
-LLM_DAILY_CALL_LIMIT=5
-LLM_MIN_MINUTES_BETWEEN_CALLS=60
+LLM_DAILY_CALL_LIMIT=7
+LLM_MIN_MINUTES_BETWEEN_CALLS=30
 LLM_MAX_CANDIDATES_PER_RUN=3
 ```
 
-`LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
+시세 사이클은 5분마다 돌지만 OpenAI는 1분봉 이벤트가 발생하고 30분 쿨다운까지 지난 경우에만 호출됩니다. `LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
 
 `/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 KRW paper PnL에서 월간 LLM 예상 비용(USD)을 `USD_TO_KRW_DISPLAY_RATE` 고정 근사 환율로 원화 환산한 값을 뺀 결과를 보여줍니다. 원본 LLM 비용은 USD로 함께 유지되며, 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
 

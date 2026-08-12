@@ -18,7 +18,7 @@ class DecisionResponseGuard:
     """Normalize LLM decision JSON before it becomes an AgentDecision."""
 
     def __init__(self, *, max_order_amount_krw: float):
-        self.max_order_amount_krw = max(max_order_amount_krw, 0)
+        self.max_order_amount_krw = max_order_amount_krw if max_order_amount_krw > 0 else None
 
     def normalize(self, response: dict[str, Any], candidates: list[dict]) -> GuardedDecisionResponse:
         warnings: list[str] = []
@@ -83,7 +83,7 @@ class DecisionResponseGuard:
     def _clamp_float(
         value: Any,
         minimum: float,
-        maximum: float,
+        maximum: float | None,
         field_name: str,
         warnings: list[str],
     ) -> float:
@@ -93,7 +93,9 @@ class DecisionResponseGuard:
             warnings.append(f"LLM returned non-numeric {field_name}.")
             return minimum
 
-        clamped = min(max(parsed, minimum), maximum)
+        clamped = max(parsed, minimum)
+        if maximum is not None:
+            clamped = min(clamped, maximum)
         if clamped != parsed:
             warnings.append(f"LLM returned out-of-range {field_name}: {parsed}.")
         return clamped

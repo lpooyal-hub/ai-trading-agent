@@ -21,17 +21,30 @@ class MarketService:
         # isolation for anyone constructing MarketService(custom_settings)).
         self.market_data_client = MarketDataClient(self.settings)
 
-    def refresh_active_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
-        return self.refresh_active_universe_snapshot_result(db)["snapshots"]
+    def refresh_active_universe_snapshots(
+        self,
+        db: Session,
+        extra_symbols: list[str] | None = None,
+    ) -> list[MarketSnapshot]:
+        return self.refresh_active_universe_snapshot_result(db, extra_symbols=extra_symbols)["snapshots"]
 
-    def refresh_active_universe_snapshot_result(self, db: Session) -> dict:
+    def refresh_active_universe_snapshot_result(
+        self,
+        db: Session,
+        extra_symbols: list[str] | None = None,
+    ) -> dict:
+        symbols = list(
+            dict.fromkeys(
+                [*self.settings.active_universe, *(item.upper() for item in (extra_symbols or []))]
+            )
+        )
         if self.settings.use_mock_data:
-            return self._refresh_mock_snapshot_result(db)
-        return self._refresh_real_snapshot_result(db)
+            return self._refresh_mock_snapshot_result(db, symbols)
+        return self._refresh_real_snapshot_result(db, symbols)
 
-    def _refresh_mock_snapshot_result(self, db: Session) -> dict:
-        raw_snapshots = self.mock_client.get_demo_snapshots(symbols=self.settings.active_universe)
-        snapshots = self._persist_snapshots(db, raw_snapshots)
+    def _refresh_mock_snapshot_result(self, db: Session, symbols: list[str]) -> dict:
+        raw_snapshots = self.mock_client.get_demo_snapshots(symbols=symbols)
+        snapshots = self._persist_snapshots(db, raw_snapshots, allowed_symbols=set(symbols))
         return {
             "created_count": len(snapshots),
             "skipped_count": 0,
@@ -40,10 +53,10 @@ class MarketService:
             "snapshots": snapshots,
         }
 
-    def _refresh_real_snapshot_result(self, db: Session) -> dict:
-        fetch_result = self.market_data_client.get_market_snapshots(self.settings.active_universe)
+    def _refresh_real_snapshot_result(self, db: Session, symbols: list[str]) -> dict:
+        fetch_result = self.market_data_client.get_market_snapshots(symbols)
         if fetch_result.success and fetch_result.snapshots:
-            snapshots = self._persist_snapshots(db, fetch_result.snapshots)
+            snapshots = self._persist_snapshots(db, fetch_result.snapshots, allowed_symbols=set(symbols))
             return {
                 "created_count": len(snapshots),
                 "skipped_count": max(len(fetch_result.snapshots) - len(snapshots), 0),
@@ -60,11 +73,16 @@ class MarketService:
             "skipped_count": 0,
             "source": self.market_data_client.provider_name,
             "message": fetch_result.message,
-            "snapshots": self.get_latest_universe_snapshots(db),
+            "snapshots": self.get_latest_snapshots(db, symbols),
         }
 
-    def _persist_snapshots(self, db: Session, raw_snapshots: list[dict]) -> list[MarketSnapshot]:
-        allowed_symbols = set(self.settings.active_universe)
+    def _persist_snapshots(
+        self,
+        db: Session,
+        raw_snapshots: list[dict],
+        allowed_symbols: set[str] | None = None,
+    ) -> list[MarketSnapshot]:
+        allowed_symbols = allowed_symbols or set(self.settings.active_universe)
         snapshots: list[MarketSnapshot] = []
 
         for item in raw_snapshots:
@@ -146,9 +164,12 @@ class MarketService:
         return created, skipped_count
 
     def get_latest_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
+        return self.get_latest_snapshots(db, self.settings.active_universe)
+
+    def get_latest_snapshots(self, db: Session, symbols: list[str]) -> list[MarketSnapshot]:
         snapshots: list[MarketSnapshot] = []
         cutoff = datetime.utcnow() - timedelta(minutes=self.settings.market_snapshot_max_age_minutes)
-        for symbol in self.settings.active_universe:
+        for symbol in symbols:
             snapshot = (
                 db.query(MarketSnapshot)
                 .filter(MarketSnapshot.symbol == symbol)

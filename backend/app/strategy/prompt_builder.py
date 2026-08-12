@@ -2,7 +2,7 @@ import json
 
 
 class PromptBuilder:
-    decision_prompt_version = "decision-v1"
+    decision_prompt_version = "decision-v2-intraday"
     decision_strategy_name = "guarded-paper-trading"
 
     def decision_metadata(self) -> dict:
@@ -30,6 +30,7 @@ class PromptBuilder:
                             "You are a paper-trading research assistant. "
                             "This is not financial advice. Evaluate only the provided candidate symbols. "
                             "Prefer HOLD when confidence is low or data is insufficient. "
+                            "Treat intraday_signal as an event trigger and market context, not as a BUY/SELL instruction. "
                             "Avoid hype-based decisions and explain risks briefly. "
                             "Return only valid JSON matching the schema."
                         ),

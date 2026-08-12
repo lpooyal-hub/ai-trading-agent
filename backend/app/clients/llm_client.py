@@ -130,6 +130,9 @@ class LLMClient:
     ) -> dict:
         return {
             "model": self.model,
+            "reasoning": {
+                "effort": self.settings.llm_reasoning_effort_decision_normalized,
+            },
             "input": self.prompt_builder.build_decision_input(
                 candidates=candidates,
                 news_context=news_context,
@@ -137,7 +140,8 @@ class LLMClient:
                 settings_snapshot={
                     "trading_currency": "KRW",
                     "bot_capital_limit_krw": self.settings.bot_capital_limit_krw,
-                    "max_order_amount_krw": self.settings.max_order_amount_krw,
+                    "max_order_amount_krw": self.settings.max_order_amount_limit_krw,
+                    "per_order_limit_enabled": self.settings.max_order_amount_limit_krw is not None,
                     "allowed_symbols": self.settings.allowed_symbols,
                     "dry_run": self.settings.dry_run,
                     "live_trading_enabled": self.settings.live_trading_enabled,

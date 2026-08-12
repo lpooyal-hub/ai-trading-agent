@@ -115,6 +115,16 @@ class MarketServiceTest(unittest.TestCase):
         self.assertTrue(all(snapshot.symbol in active_symbols for snapshot in persisted))
         self.assertTrue(all(snapshot.id is not None for snapshot in snapshots))
 
+    def test_refresh_includes_explicit_held_symbol_outside_entry_universe(self):
+        with self.SessionLocal() as db:
+            snapshots = self.service.refresh_active_universe_snapshots(
+                db,
+                extra_symbols=[self.OUTSIDE_UNIVERSE],
+            )
+
+        symbols = {snapshot.symbol for snapshot in snapshots}
+        self.assertEqual(symbols, {*self.ACTIVE_UNIVERSE, self.OUTSIDE_UNIVERSE})
+
     def test_get_snapshot_status_is_not_ready_when_no_fresh_snapshots_exist(self):
         with self.SessionLocal() as db:
             status = self.service.get_snapshot_status(db)

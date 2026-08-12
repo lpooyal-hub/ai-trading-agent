@@ -36,6 +36,7 @@ class OrderAgent:
             return False, "Decision is not pending."
         if decision.confidence < self.settings.agent_auto_execute_min_confidence:
             return False, "Decision confidence is below paper auto threshold."
-        if decision.recommended_order_amount > self.settings.agent_auto_execute_max_order_amount_krw:
+        max_order_amount = self.settings.agent_auto_execute_max_order_amount_limit_krw
+        if max_order_amount is not None and decision.recommended_order_amount > max_order_amount:
             return False, "Decision order amount exceeds paper auto limit."
         return True, "Paper auto policy allows execution."

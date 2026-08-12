@@ -17,7 +17,7 @@ class MarketDataClientTest(unittest.TestCase):
         self.assertTrue(self.settings.toss_market_data_ready)
 
     @staticmethod
-    def _settings(*, use_mock_data: bool) -> Settings:
+    def _settings(*, use_mock_data: bool, intraday_signals_enabled: bool = False) -> Settings:
         return Settings(
             _env_file=None,
             use_mock_data=use_mock_data,
@@ -27,6 +27,9 @@ class MarketDataClientTest(unittest.TestCase):
             TOSS_SECRET_KEY="fake-secret",
             TOSS_TOKEN_PATH="/oauth2/token",
             TOSS_CANDLES_PATH="/api/v1/candles",
+            TOSS_PRICES_PATH="/api/v1/prices",
+            TOSS_ORDERBOOK_PATH="/api/v1/orderbook",
+            intraday_signals_enabled=intraday_signals_enabled,
         )
 
     @staticmethod
@@ -75,6 +78,7 @@ class MarketDataClientTest(unittest.TestCase):
                 "sector": "semiconductor",
                 "extra_json": {
                     "source": "toss_securities",
+                    "price_mode": "daily_candle",
                     "raw": self.toss_client.get_daily_candles.return_value["data"],
                 },
             },
@@ -166,6 +170,132 @@ class MarketDataClientTest(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertEqual(result.snapshots[0]["price"], 110000.0)
         self.assertEqual(result.snapshots[0]["change_percent"], 0.0)
+
+    def test_intraday_mode_batches_current_prices_and_uses_daily_reference(self):
+        client = MarketDataClient(
+            self._settings(use_mock_data=False, intraday_signals_enabled=True)
+        )
+        client.toss_client = self.toss_client
+        self.toss_client.get_current_prices.return_value = {
+            "success": True,
+            "data": {
+                "result": [
+                    {"symbol": "005930", "lastPrice": "110,000", "timestamp": "2026-08-12T10:00:00+09:00"},
+                    {"symbol": "035420", "lastPrice": "220,000", "timestamp": "2026-08-12T10:00:00+09:00"},
+                ]
+            },
+        }
+        self.toss_client.get_daily_candles.side_effect = [
+            self._success_response([self._candle("2026-08-11T00:00:00+09:00", "100000")]),
+            self._success_response([self._candle("2026-08-11T00:00:00+09:00", "200000")]),
+        ]
+
+        result = client.get_market_snapshots(["005930", "035420"])
+
+        self.assertTrue(result.success)
+        self.assertEqual([item["change_percent"] for item in result.snapshots], [10.0, 10.0])
+        self.toss_client.get_current_prices.assert_called_once_with(["005930", "035420"])
+        self.assertEqual(self.toss_client.get_daily_candles.call_count, 2)
+
+    @patch("app.clients.market_data_client.time.monotonic", side_effect=[10.0, 10.0, 10.22, 10.22])
+    @patch("app.clients.market_data_client.time.sleep")
+    def test_intraday_context_fetches_candles_and_orderbook_for_shortlist(self, sleep_mock, _monotonic_mock):
+        client = MarketDataClient(
+            self._settings(use_mock_data=False, intraday_signals_enabled=True)
+        )
+        client.toss_client = self.toss_client
+        self.toss_client.get_intraday_candles.return_value = self._success_response(
+            [self._candle("2026-08-12T10:00:00+09:00", "110000")]
+        )
+        self.toss_client.get_orderbook.return_value = {
+            "success": True,
+            "data": {"result": {"bids": [{"price": "109900"}], "asks": [{"price": "110100"}]}},
+        }
+
+        contexts = client.get_intraday_context(["005930", "035420"])
+
+        self.assertEqual(set(contexts), {"005930", "035420"})
+        self.assertEqual(contexts["005930"]["bids"], [{"price": "109900"}])
+        self.assertEqual(contexts["005930"]["asks"], [{"price": "110100"}])
+        self.assertIsNone(contexts["005930"]["orderbook_timestamp"])
+        self.assertEqual(self.toss_client.get_intraday_candles.call_count, 2)
+        sleep_mock.assert_not_called()
+
+    @patch("app.clients.market_data_client.time.monotonic", side_effect=[10.0, 10.0])
+    @patch("app.clients.market_data_client.time.sleep")
+    def test_intraday_context_propagates_the_orderbook_timestamp_when_present(self, _sleep_mock, _monotonic_mock):
+        client = MarketDataClient(
+            self._settings(use_mock_data=False, intraday_signals_enabled=True)
+        )
+        client.toss_client = self.toss_client
+        self.toss_client.get_intraday_candles.return_value = self._success_response(
+            [self._candle("2026-08-12T10:00:00+09:00", "110000")]
+        )
+        self.toss_client.get_orderbook.return_value = {
+            "success": True,
+            "data": {
+                "result": {
+                    "bids": [{"price": "109900"}],
+                    "asks": [{"price": "110100"}],
+                    "timestamp": "2026-08-12T10:00:05+09:00",
+                }
+            },
+        }
+
+        contexts = client.get_intraday_context(["005930"])
+
+        self.assertEqual(contexts["005930"]["orderbook_timestamp"], "2026-08-12T10:00:05+09:00")
+
+    @patch("app.clients.market_data_client.time.monotonic", return_value=10.0)
+    @patch("app.clients.market_data_client.time.sleep")
+    def test_intraday_context_only_calls_detail_apis_for_the_shortlist(self, _sleep_mock, _monotonic_mock):
+        client = MarketDataClient(
+            self._settings(use_mock_data=False, intraday_signals_enabled=True)
+        )
+        client.toss_client = self.toss_client
+        self.assertEqual(client.settings.intraday_shortlist_size_safe, 6)
+        self.toss_client.get_intraday_candles.return_value = self._success_response(
+            [self._candle("2026-08-12T10:00:00+09:00", "110000")]
+        )
+        self.toss_client.get_orderbook.return_value = {
+            "success": True,
+            "data": {"result": {"bids": [], "asks": []}},
+        }
+        full_universe = ["005930", "035420", "000270", "373220", "207940", "035720", "005490", "068270"]
+
+        contexts = client.get_intraday_context(full_universe)
+
+        self.assertEqual(set(contexts), set(full_universe[:6]))
+        self.assertEqual(self.toss_client.get_intraday_candles.call_count, 6)
+        self.assertEqual(self.toss_client.get_orderbook.call_count, 6)
+        self.toss_client.get_intraday_candles.assert_any_call("005930", count=30)
+        called_symbols = {call_args.args[0] for call_args in self.toss_client.get_intraday_candles.call_args_list}
+        self.assertNotIn("005490", called_symbols)
+        self.assertNotIn("068270", called_symbols)
+
+    def test_daily_reference_is_cached_and_not_refetched_within_the_same_market_day(self):
+        client = MarketDataClient(
+            self._settings(use_mock_data=False, intraday_signals_enabled=True)
+        )
+        client.toss_client = self.toss_client
+        self.toss_client.get_current_prices.return_value = {
+            "success": True,
+            "data": {
+                "result": [
+                    {"symbol": "005930", "lastPrice": "110,000", "timestamp": "2026-08-12T10:00:00+09:00"},
+                ]
+            },
+        }
+        self.toss_client.get_daily_candles.return_value = self._success_response(
+            [self._candle("2026-08-11T00:00:00+09:00", "100000")]
+        )
+
+        first = client.get_market_snapshots(["005930"])
+        second = client.get_market_snapshots(["005930"])
+
+        self.assertTrue(first.success)
+        self.assertTrue(second.success)
+        self.toss_client.get_daily_candles.assert_called_once_with("005930", count=2)
 
 
 if __name__ == "__main__":

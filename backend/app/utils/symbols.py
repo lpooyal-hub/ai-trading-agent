@@ -46,6 +46,12 @@ KRX_SYMBOL_NAMES: dict[str, str] = {
     "267250": "HD현대",
     "079550": "LIG넥스원",
     "003550": "LG",
+    "069500": "KODEX 200",
+    "229200": "KODEX 코스닥150",
+    "379800": "KODEX 미국S&P500",
+    "379810": "KODEX 미국나스닥100",
+    "273130": "KODEX 종합채권(AA-이상) 액티브",
+    "411060": "ACE KRX금현물",
 }
 
 # Sector metadata for the default ALLOWED_SYMBOLS (KRX market-cap top ~50,
@@ -101,6 +107,12 @@ KRX_SYMBOL_SECTORS: dict[str, str] = {
     "267250": "holding",         # HD Hyundai
     "079550": "defense",         # LIG Nex1
     "003550": "holding",         # LG
+    "069500": "etf_domestic_equity",
+    "229200": "etf_domestic_equity",
+    "379800": "etf_global_equity",
+    "379810": "etf_global_equity",
+    "273130": "etf_bond",
+    "411060": "etf_gold",
 }
 
 

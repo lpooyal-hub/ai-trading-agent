@@ -106,6 +106,49 @@ class RiskManagerTest(unittest.TestCase):
         self.assertFalse(result["approved"])
         self.assertIn("Symbol exposure limit", result["reason"])
 
+    def test_zero_order_cap_keeps_portfolio_guardrails_as_the_limit(self):
+        self.settings.max_order_amount_krw = 0
+        self.settings.max_symbol_exposure_percent = 100
+
+        with self.SessionLocal() as db:
+            result = self.manager.validate_decision(
+                self._decision(symbol="005930", amount=200000, price=50000),
+                db,
+                available_bot_budget=270000,
+            )
+
+        self.assertTrue(result["approved"])
+
+    def test_risk_reducing_sell_bypasses_buy_freeze_and_order_cap(self):
+        self.settings.max_order_amount_krw = 1
+        self.settings.max_daily_trades = 1
+        self.settings.hard_max_position_loss_percent = 5
+        self.settings.hard_daily_loss_limit_percent = 1
+        self.manager.count_today_simulated_trades = lambda _db: 1
+
+        with self.SessionLocal() as db:
+            db.add(
+                BotPosition(
+                    symbol="005930",
+                    name="Samsung Electronics",
+                    sector="semiconductor",
+                    quantity=2,
+                    avg_buy_price=100,
+                    total_invested_amount=200,
+                    current_price=90,
+                    unrealized_pnl=-20,
+                    unrealized_pnl_percent=-10,
+                    status="OPEN",
+                )
+            )
+            db.commit()
+            decision = self._decision(symbol="005930", amount=180, price=90)
+            decision.action = AgentAction.SELL
+
+            result = self.manager.validate_decision(decision, db, sell_quantity=2)
+
+        self.assertTrue(result["approved"])
+
     @staticmethod
     def _decision(symbol: str, amount: float, price: float):
         return SimpleNamespace(

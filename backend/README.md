@@ -154,10 +154,10 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - `LIVE_TRADING_ENABLED=false`가 기본값입니다.
 - 실주문 API 호출은 기본 설정에서 비활성화되어 있으며, env opt-in과 관리자 API key guard가 필요합니다.
 - 기존 보유 주식은 legacy position으로 보호해야 합니다.
-- 봇은 `.env`의 `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 기본 universe는 KOSPI 시가총액 상위권(ETF·우선주 제외) 멀티섹터 대형주입니다 — 정확한 목록은 아래 "Universe" 절 참고.
+- 봇은 `.env`의 `ALLOWED_SYMBOLS`로 정의된 active universe 허용 종목만 다룰 수 있어야 합니다. 운영 universe는 KOSPI 멀티섹터 대형주와 명시적으로 검토한 비레버리지 ETF만 포함합니다 — 정확한 목록은 아래 "Universe" 절 참고.
 - 에이전트 운용 비용을 보기 위해 판단별 토큰 사용량과 예상 비용을 기록합니다.
 - `USE_MOCK_DATA=true`에서는 mock market data와 mock LLM 응답을 사용합니다.
-- `USE_MOCK_DATA=false`에서는 Toss 일봉 API로 active universe의 market snapshot을 갱신하며, 수동 입력 경로도 함께 사용할 수 있습니다.
+- `USE_MOCK_DATA=false`와 `INTRADAY_SIGNALS_ENABLED=true`에서는 Toss 현재가를 한 번에 조회해 active universe를 갱신하고, 1차 후보에만 1분봉/호가를 조회합니다. 수동 입력 경로도 함께 사용할 수 있습니다.
 - `MARKET_SNAPSHOT_MAX_AGE_MINUTES`보다 오래된 snapshot은 agent 입력에서 제외합니다.
 - `USE_MOCK_DATA=false`, `OPENAI_API_KEY`, `LLM_MODEL_DECISION`이 모두 설정되면 실제 OpenAI Responses API를 사용할 수 있습니다.
 - LLM 입력 비용을 줄이기 위해 active universe 전체가 아니라 rule-based pre-filter를 통과한 상위 후보만 agent에 전달하며, `LLM_MAX_CANDIDATES_PER_RUN`으로 개수를 제한합니다.
@@ -165,6 +165,8 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - LLM 호출 전 budget guard를 확인하고, 비용/토큰/호출 횟수/최소 호출 간격 한도를 넘으면 LLM 호출 없이 `SKIPPED` decision을 저장합니다.
 - LLM 응답은 저장 직전 `DecisionResponseGuard`를 한 번 더 통과하며, 후보 밖 symbol, enum 밖 action, 범위 밖 confidence/order amount, 빈 thesis/risk_notes가 있으면 paper execution도 `SKIPPED`로 차단합니다.
 - decision 승인 시에도 RiskManager가 최종 검증하며, env에 따라 DRY_RUN simulated order 또는 Toss live order 제출로 분기합니다.
+- `PositionExitManager`는 매 가격 사이클에 모든 bot-only 보유종목을 LLM과 독립적으로 평가합니다. 기본 paper 정책은 -5% 손절, +8% 익절, +4% 수익 이후 고점 대비 2.5% 하락 트레일링, 최대 10거래일 보유이며 오래된 시세로는 청산하지 않습니다.
+- 손실·거래횟수·건별금액 가드는 신규 BUY와 물타기를 차단하지만, bot 보유수량 이내의 위험 축소 SELL은 차단하지 않습니다. 자동 청산은 `DRY_RUN`의 `paper_auto`에서만 실행되며 live adapter로 전달되지 않습니다.
 - `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false`, `USE_MOCK_DATA=false`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 `TossLiveExecutionAdapter`가 live order를 제출합니다.
 - Portfolio/Dashboard는 `LIVE_SUBMITTED` 주문을 제출 건수와 제출 금액으로 별도 표시하며, 체결 전 주문은 paper PnL이나 bot position 수량에 섞지 않습니다. `TOSS_ORDER_STATUS_PATH`가 있으면 `/orders/{order_id}/sync-live-status` 또는 `/orders/sync-live-status`로 broker 체결 상태를 조회하고, `LIVE_FILLED`로 정규화된 주문만 bot position에 한 번 반영합니다.
 - readiness가 부족한 live intent는 `TODO_LIVE_ORDER_NOT_IMPLEMENTED`로 차단되며, order intent와 idempotency key가 raw payload에 남습니다.
@@ -182,7 +184,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 
 ## Universe
 
-초기 감시 대상은 아래 KOSPI 시가총액 상위권(ETF·우선주 제외) 멀티섹터 대형주 46개로 제한합니다. `ALLOWED_SYMBOLS`가 실제 안전 경계이며, 여기 나열된 sector는 정보성 메타데이터일 뿐 후보 필터링에는 쓰이지 않습니다 (`SectorCandidateSelector`/`RiskManager` 참고). `000660`(SK하이닉스)은 시가총액 상위권이지만 사용자의 기존 실보유 종목이라 `PROTECTED_SYMBOLS`로만 보호하고 `ALLOWED_SYMBOLS`에는 넣지 않습니다 — 다시 추가하지 마세요.
+감시 대상은 아래 KOSPI 멀티섹터 대형주 46개와 대표 비레버리지 ETF 6개로 제한합니다. `ALLOWED_SYMBOLS`가 실제 안전 경계이며, 여기 나열된 sector는 정보성 메타데이터일 뿐 후보 필터링에는 쓰이지 않습니다 (`CandidateSelector`/`RiskManager` 참고). 레버리지·인버스 ETF는 포함하지 않습니다. `000660`(SK하이닉스)은 사용자의 기존 실보유 종목이라 `PROTECTED_SYMBOLS`로만 보호하고 `ALLOWED_SYMBOLS`에는 넣지 않습니다 — 다시 추가하지 마세요.
 
 - `005930` 삼성전자 — semiconductor
 - `402340` SK스퀘어 — holding
@@ -230,12 +232,18 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 - `267250` HD현대 — holding
 - `079550` LIG넥스원 — defense
 - `003550` LG — holding
+- `069500` KODEX 200 — etf_domestic_equity
+- `229200` KODEX 코스닥150 — etf_domestic_equity
+- `379800` KODEX 미국S&P500 — etf_global_equity
+- `379810` KODEX 미국나스닥100 — etf_global_equity
+- `273130` KODEX 종합채권(AA-이상) 액티브 — etf_bond
+- `411060` ACE KRX금현물 — etf_gold
 
 ## Agent 실행 흐름
 
 현재 `/agent/run-once`는 아래 순서로 동작합니다.
 
-1. `USE_MOCK_DATA=false`이면 Toss 일봉으로 active universe의 snapshot을 갱신·저장하고, 실패 시 freshness window 안의 기존 snapshot을 사용합니다. mock mode이면 active universe의 mock snapshot을 저장합니다.
+1. `USE_MOCK_DATA=false`이면 Toss 현재가로 active universe의 snapshot을 갱신·저장하고, 1차 후보에만 1분봉/호가 시그널을 계산합니다. 실패 시 freshness window 안의 기존 snapshot을 사용합니다. mock mode이면 active universe의 mock snapshot을 저장합니다.
 2. rule-based pre-filter로 1~3개 후보만 고릅니다. 후보는 change percent 절대값, volume, 상승/하락 압력 사유로 점수화됩니다.
 3. 후보가 없으면 LLM을 호출하지 않고 `SKIPPED` 결정을 저장합니다.
 4. 후보가 있으면 LLM budget guard를 확인합니다.
@@ -262,7 +270,7 @@ TOSS_ORDER_STATUS_PATH=<official-toss-order-status-path>
 2. News Agent: rule-based pre-filter를 통과한 후보 종목에 한해 Naver 공개 시세뉴스 API의 실제 헤드라인을 가져오고, market snapshot 기반 가격·거래량 신호와 함께 이벤트 컨텍스트를 만듭니다. 뉴스 조회 실패 시 snapshot context로 fail-soft 처리합니다.
 3. Market Agent: 시세, 재무, 기술지표 계산을 담당합니다. 현재 `MarketAgent`가 market snapshot refresh/readiness preview와 후보 pre-filter를 맡습니다.
 4. Decision Agent: LLM으로 매수/매도/HOLD 판단과 이유를 생성합니다. 현재 `DecisionAgent`가 LLM 호출, 응답 guard, 예상 비용 계산을 맡습니다.
-5. Risk Agent: 투자 비중, 손절/익절, protected legacy position, budget guard를 검증합니다.
+5. Position Exit Manager / Risk Agent: 보유 포지션의 결정적 손절·익절과 신규 주문의 투자 비중, protected legacy position, budget guard를 각각 검증합니다.
 6. Order Agent: paper/live execution adapter를 통해 주문 intent, simulated fill, 향후 Toss 주문/체결 조회를 담당합니다.
 7. Logger Agent: decision, order, usage, journal을 DB에 저장합니다.
 8. Evaluation Agent: 거래 결과와 전략 성과를 사후 평가합니다.
@@ -293,7 +301,8 @@ Dashboard의 `Refresh` 버튼으로 portfolio, market, agent readiness, decision
 `/agent/run-once`가 "tick 1회 = decision 1회"인 것과 별도로, `AgentGraphService.run_session()`은 하나의 그래프 실행 안에서 여러 decision 사이클이 순환하는 **세션**을 돈다 (설계 문서: `docs/plans/continuous-session-loop.md`).
 
 - 그래프: `market_agent → news_agent → risk_agent → memory_agent → decision_agent → execution_risk_agent → logger_agent → order_agent → evaluation_agent → journal_agent → loop_gate`, `loop_gate`가 계속할지(`market_agent`로 back-edge) 멈출지(`session_finish`) 판단한다.
-- `loop_gate`가 매 사이클 확인하는 정지 조건(하나라도 걸리면 세션 종료): `AgentSession.stop_requested`(관리자 kill switch), `cycle_count >= max_cycles`, 경과 시간 `>= agent_session_max_minutes`, 장 마감(`Asia/Seoul` KRX 정규장 09:00~15:30 기준), LLM budget 초과, 일일 거래 한도 도달, Redis 락 갱신 실패.
+- `loop_gate`가 매 사이클 확인하는 정지 조건(하나라도 걸리면 세션 종료): `AgentSession.stop_requested`(관리자 kill switch), `cycle_count >= max_cycles`, 경과 시간 `>= agent_session_max_minutes`, 장 마감(`Asia/Seoul` KRX 정규장 09:00~15:30 기준), LLM 비용·토큰·횟수 budget 초과, 일일 거래 한도 도달, Redis 락 갱신 실패. 호출 직후 cooldown은 종료 사유로 쓰지 않고 다음 사이클 대기 시간에 반영합니다.
+- `AGENT_SESSION_MAX_CYCLES`(기본 90) × `AGENT_SCHEDULER_INTERVAL_MINUTES`(intraday 권장값 5분)가 KRX 정규장 390분을 충분히 커버하도록 잡혀 있습니다. 실제 세션은 보통 사이클 수가 아니라 장 마감 또는 `AGENT_SESSION_MAX_MINUTES`(기본 420분)에서 끝납니다 — pacing 간격을 바꾸면 이 값도 같이 재계산해야 오후 세션이 조기 종료되지 않습니다.
 - 세션/사이클은 `AgentSession`(세션 1개)과 `WorkflowRun.session_id`/`cycle_index`(사이클마다 1개)로 저장된다. 대시보드의 "에이전트 세션" 화면(`/agent/sessions`, `/agent/sessions/{id}`)에서 세션 목록과 사이클별 실행 요약을 볼 수 있고, `POST /agent/sessions/{id}/stop`(admin key 필요)으로 중지시킬 수 있다.
 - **워커는 24/7 상시 데몬이다.** `backend/app/worker.py`의 `run_worker()`는 컨테이너가 사는 동안 "장 열릴 때까지 대기 → 세션 1개 실행 → 장 닫힐 때까지 대기"를 계속 반복한다. `docker-compose.yml`의 `worker` 서비스는 `restart: unless-stopped`가 붙은 일반 서비스라 `docker compose up`(또는 `-d`)에 backend/frontend/postgres/redis와 함께 포함된다. 별도 cron 설정은 필요 없다.
 - `AGENT_SCHEDULER_ENABLED=false`가 기본값이라, 워커 컨테이너를 띄워도 5분 간격 idle-poll만 하고 세션을 시작하지 않는다 — `.env`에서 명시적으로 `true`로 바꿔야 실제로 세션이 돈다. **이 서버처럼 `USE_MOCK_DATA=false`에 실제 `OPENAI_API_KEY`가 설정된 환경에서 켜면, 세션이 돌 때마다 진짜 OpenAI API 호출 비용이 발생한다** (`LLM_DAILY_CALL_LIMIT`/`LLM_DAILY_COST_LIMIT_USD`/`LLM_MONTHLY_COST_LIMIT_USD` 가드는 있음). `DRY_RUN=true`인 한 실제 주문은 나가지 않는다.
@@ -311,7 +320,7 @@ curl -X POST http://localhost:8000/market/snapshots \
   -d '{"snapshots":[{"symbol":"005930","price":72000,"change_percent":1.2,"volume":1000000,"sector":"semiconductor"}]}'
 ```
 
-`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 `MarketDataClient`가 Toss `/api/v1/candles`의 최근 일봉을 조회해 active universe의 가격, 등락률, 거래량 snapshot을 저장합니다. 캔들 endpoint는 `TOSS_CANDLES_PATH`로 오버라이드할 수 있습니다.
+`/market/snapshots/refresh`는 `USE_MOCK_DATA=true`에서 fictional demo market snapshot을 생성합니다. `USE_MOCK_DATA=false`에서는 `MarketDataClient`가 Toss `/api/v1/prices`로 현재가를 일괄 조회합니다. `INTRADAY_SIGNALS_ENABLED=true`인 에이전트 실행은 1차 후보에만 `/api/v1/candles?interval=1m`과 `/api/v1/orderbook`을 추가 조회하며, 시그널이 없으면 LLM을 호출하지 않습니다.
 `/market/snapshots/status`는 active universe 중 agent 입력으로 쓸 수 있는 fresh snapshot 수와 누락 symbol을 보여줍니다. Active universe 전체가 freshness window 안에 있을 때만 `ready_for_agent=true`가 됩니다.
 Frontend Dashboard와 Market 화면에서도 agent 입력용 market snapshot 준비 상태를 확인할 수 있습니다.
 

@@ -461,6 +461,12 @@ class AgentCandidateRead(BaseModel):
     reason: str
     change_percent: float
     volume: float
+    return_5m_percent: float | None = None
+    return_15m_percent: float | None = None
+    volume_ratio: float | None = None
+    vwap_deviation_percent: float | None = None
+    spread_percent: float | None = None
+    event_triggered: bool | None = None
 
 
 class AgentReadinessRead(BaseModel):
@@ -730,6 +736,14 @@ class SafetySettingsRead(BaseModel):
     default_stop_mode: str
     hard_max_position_loss_percent: float
     hard_daily_loss_limit_percent: float
+    position_exit_enabled: bool
+    position_stop_loss_percent: float
+    position_take_profit_percent: float
+    position_trailing_stop_enabled: bool
+    position_trailing_activation_percent: float
+    position_trailing_distance_percent: float
+    position_max_holding_trading_days: int
+    position_exit_max_snapshot_age_seconds: int
     llm_daily_call_limit: int
     llm_min_minutes_between_calls: int
     llm_max_candidates_per_run: int
@@ -745,6 +759,9 @@ class SafetySettingsRead(BaseModel):
     paper_auto_enabled: bool
     agent_scheduler_enabled: bool
     agent_scheduler_interval_minutes: int
+    intraday_signals_enabled: bool
+    intraday_shortlist_size: int
+    intraday_candle_count: int
     agent_scheduler_market_hours_only: bool
     agent_market_timezone: str
     agent_market_open_time: str

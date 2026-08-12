@@ -3,7 +3,7 @@ import { api, AgentAutomationPolicy, AgentDecision, AgentOperations, AgentReadin
 import { DecisionTable } from "../components/DecisionTable";
 import { OrderTable } from "../components/OrderTable";
 import { StatCard } from "../components/StatCard";
-import { formatKRW } from "../utils/currency";
+import { formatKRW, formatKRWLimit } from "../utils/currency";
 import { symbolLabel } from "../utils/labels";
 
 function modeLabel(value: string | null | undefined) {
@@ -230,7 +230,7 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
         <DashboardStatusPanel
           title="실행 정책"
           items={[
-            { label: "자동화 정책", value: modeLabel(automationPolicy?.automation_mode ?? "manual_approval"), detail: `최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 ${formatKRW(automationPolicy?.max_order_amount_krw ?? 65000)}` },
+            { label: "자동화 정책", value: modeLabel(automationPolicy?.automation_mode ?? "manual_approval"), detail: `최소 ${automationPolicy?.min_confidence ?? 0.75} / 최대 ${formatKRWLimit(automationPolicy?.max_order_amount_krw ?? 65000)}` },
             { label: "스케줄", value: agentSchedule?.scheduler_enabled ? "켜짐" : "꺼짐", detail: agentSchedule?.due ? "지금 실행 가능" : `${agentSchedule?.minutes_until_next_run ?? 0}분 후` },
             { label: "실주문", value: statusText(liveReadiness?.live_order_ready, "준비됨", "차단됨"), detail: modeLabel(liveReadiness?.execution_mode) },
             { label: "상위 종목", value: topSymbol ? symbolLabel(topSymbol.symbol) : "-", detail: topSymbol ? `${formatKRW(topSymbol.realized_pnl_krw)} 실현` : "실현 거래 없음" },
@@ -255,8 +255,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
                 <th>종목</th>
                 <th>점수</th>
                 <th>사유</th>
-                <th>등락률</th>
-                <th>거래량</th>
+                <th>5분</th>
+                <th>거래량 배수</th>
               </tr>
             </thead>
             <tbody>
@@ -265,8 +265,8 @@ export function DashboardPage({ onSelectDecision }: { onSelectDecision: (id: num
                   <td>{symbolLabel(candidate.symbol)}</td>
                   <td>{candidate.score.toFixed(2)}</td>
                   <td>{candidate.reason}</td>
-                  <td>{candidate.change_percent.toFixed(2)}%</td>
-                  <td>{Math.round(candidate.volume).toLocaleString()}</td>
+                  <td>{(candidate.return_5m_percent ?? candidate.change_percent).toFixed(2)}%</td>
+                  <td>{candidate.volume_ratio != null ? `${candidate.volume_ratio.toFixed(2)}x` : Math.round(candidate.volume).toLocaleString()}</td>
                 </tr>
               ))}
               {!(agentReadiness?.candidate_details ?? []).length ? (
