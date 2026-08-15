@@ -18,6 +18,19 @@ class IntradaySignal:
     event_triggered: bool
 
 
+@dataclass(frozen=True)
+class IntradaySignalDiagnostic:
+    symbol: str
+    outcome: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class IntradaySelectionResult:
+    signals: list[IntradaySignal]
+    diagnostics: list[IntradaySignalDiagnostic]
+
+
 class IntradaySignalSelector:
     """Deterministic intraday event trigger over 1-minute candles/orderbook.
 
@@ -72,28 +85,69 @@ class IntradaySignalSelector:
         signals_by_symbol: dict[str, dict[str, Any]],
         candidates: list[str],
     ) -> list[IntradaySignal]:
+        return self.select_with_diagnostics(signals_by_symbol, candidates).signals
+
+    def select_with_diagnostics(
+        self,
+        signals_by_symbol: dict[str, dict[str, Any]],
+        candidates: list[str],
+    ) -> IntradaySelectionResult:
         if not isinstance(signals_by_symbol, dict) or not isinstance(candidates, list):
-            return []
+            return IntradaySelectionResult(signals=[], diagnostics=[])
 
         built: list[IntradaySignal] = []
+        diagnostics: list[IntradaySignalDiagnostic] = []
         for symbol in candidates:
             if not isinstance(symbol, str):
                 continue
             payload = signals_by_symbol.get(symbol)
             if not isinstance(payload, dict):
+                diagnostics.append(
+                    IntradaySignalDiagnostic(
+                        symbol=symbol,
+                        outcome="MISSING_CONTEXT",
+                        detail="Intraday context was missing or malformed.",
+                    )
+                )
                 continue
-            signal = self._build_signal(symbol, payload)
+            signal, rejection = self._evaluate_signal(symbol, payload)
             if signal is not None:
                 built.append(signal)
+                diagnostics.append(
+                    IntradaySignalDiagnostic(
+                        symbol=symbol,
+                        outcome="TRIGGERED" if signal.event_triggered else "NO_EVENT",
+                        detail=signal.reason,
+                    )
+                )
+            else:
+                diagnostics.append(
+                    IntradaySignalDiagnostic(
+                        symbol=symbol,
+                        outcome=rejection or "INVALID_SIGNAL",
+                        detail="Signal validation failed closed.",
+                    )
+                )
 
         triggered = [signal for signal in built if signal.event_triggered]
         triggered.sort(key=lambda item: item.score, reverse=True)
-        return triggered[: self.max_candidates]
+        return IntradaySelectionResult(
+            signals=triggered[: self.max_candidates],
+            diagnostics=diagnostics,
+        )
 
     def _build_signal(self, symbol: str, payload: dict[str, Any]) -> IntradaySignal | None:
+        signal, _rejection = self._evaluate_signal(symbol, payload)
+        return signal
+
+    def _evaluate_signal(
+        self,
+        symbol: str,
+        payload: dict[str, Any],
+    ) -> tuple[IntradaySignal | None, str | None]:
         price = self._to_float(payload.get("price"))
         if price is None or price <= 0:
-            return None
+            return None, "INVALID_PRICE"
 
         # observed_at is the caller's UTC fetch-time anchor. Every other
         # timestamp below is checked against it, both for being too old and
@@ -102,27 +156,33 @@ class IntradaySignalSelector:
         # anchor at all, so fail closed rather than silently skipping checks.
         observed_at = self._parse_timestamp(payload.get("observed_at"))
         if observed_at is None:
-            return None
+            return None, "INVALID_OBSERVED_AT"
 
-        price_ts = self._validated_timestamp(
-            payload.get("price_timestamp"), observed_at, self._MAX_QUOTE_AGE_SECONDS
+        price_ts, price_ts_rejection = self._timestamp_result(
+            payload.get("price_timestamp"),
+            observed_at,
+            self._MAX_QUOTE_AGE_SECONDS,
+            source="PRICE",
         )
         if price_ts is None:
-            return None
+            return None, price_ts_rejection
 
-        orderbook_ts = self._validated_timestamp(
-            payload.get("orderbook_timestamp"), observed_at, self._MAX_QUOTE_AGE_SECONDS
+        orderbook_ts, orderbook_ts_rejection = self._timestamp_result(
+            payload.get("orderbook_timestamp"),
+            observed_at,
+            self._MAX_QUOTE_AGE_SECONDS,
+            source="ORDERBOOK",
         )
         if orderbook_ts is None:
-            return None
+            return None, orderbook_ts_rejection
 
         candles = self._sorted_candles(payload.get("candles"))
         if candles is None:
-            return None
+            return None, "INVALID_CANDLE_SERIES"
 
         latest_ts = candles[-1][0]
         if not self._within_tolerance(latest_ts, observed_at, self._MAX_LATEST_CANDLE_AGE_SECONDS):
-            return None
+            return None, "STALE_OR_FUTURE_CANDLE"
 
         source_timestamps = (price_ts, orderbook_ts, latest_ts)
         if max(source_timestamps) - min(source_timestamps) > self._MAX_SOURCE_SKEW_SECONDS:
@@ -130,12 +190,12 @@ class IntradaySignalSelector:
             # observed_at yet still disagree with each other -- e.g. a quote
             # from just now paired with a candle feed that stalled a few
             # minutes ago. Require them to describe roughly the same moment.
-            return None
+            return None, "SOURCE_TIMESTAMP_SKEW"
 
         return_5m = self._return_percent(candles, latest_ts, price, minutes=5)
         return_15m = self._return_percent(candles, latest_ts, price, minutes=15)
         if return_5m is None or return_15m is None:
-            return None
+            return None, "INVALID_RETURN_WINDOW"
 
         volume_ratio = self._volume_ratio(candles)
         vwap_deviation = self._vwap_deviation_percent(candles, price)
@@ -144,7 +204,7 @@ class IntradaySignalSelector:
         if spread_percent is None:
             # Missing, empty, malformed, or crossed orderbook: never fabricate
             # a candidate on an unknown spread.
-            return None
+            return None, "INVALID_ORDERBOOK"
 
         triggered_by_move = (
             abs(return_5m) >= self._RETURN_TRIGGER_PERCENT
@@ -161,26 +221,29 @@ class IntradaySignalSelector:
             - spread_percent * 0.5
         )
         if not math.isfinite(score):
-            return None
+            return None, "INVALID_SCORE"
 
-        return IntradaySignal(
-            symbol=symbol,
-            score=round(score, 4),
-            reason=self._reason(
-                return_5m=return_5m,
-                return_15m=return_15m,
-                volume_ratio=volume_ratio,
-                spread_percent=spread_percent,
-                triggered_by_move=triggered_by_move,
-                triggered_by_volume=triggered_by_volume,
-                spread_ok=spread_ok,
+        return (
+            IntradaySignal(
+                symbol=symbol,
+                score=round(score, 4),
+                reason=self._reason(
+                    return_5m=return_5m,
+                    return_15m=return_15m,
+                    volume_ratio=volume_ratio,
+                    spread_percent=spread_percent,
+                    triggered_by_move=triggered_by_move,
+                    triggered_by_volume=triggered_by_volume,
+                    spread_ok=spread_ok,
+                ),
+                return_5m_percent=round(return_5m, 4),
+                return_15m_percent=round(return_15m, 4),
+                volume_ratio=round(volume_ratio, 4),
+                vwap_deviation_percent=round(vwap_deviation, 4),
+                spread_percent=round(spread_percent, 4),
+                event_triggered=event_triggered,
             ),
-            return_5m_percent=round(return_5m, 4),
-            return_15m_percent=round(return_15m, 4),
-            volume_ratio=round(volume_ratio, 4),
-            vwap_deviation_percent=round(vwap_deviation, 4),
-            spread_percent=round(spread_percent, 4),
-            event_triggered=event_triggered,
+            None,
         )
 
     def _sorted_candles(self, raw_candles: Any) -> list[tuple[float, float, float, float]] | None:
@@ -263,18 +326,20 @@ class IntradaySignalSelector:
     def _kst_date(timestamp: float):
         return datetime.fromtimestamp(timestamp, tz=IntradaySignalSelector._TRADING_TIMEZONE).date()
 
-    def _validated_timestamp(
+    def _timestamp_result(
         self,
         value: Any,
         observed_at: float,
         max_age_seconds: float,
-    ) -> float | None:
+        *,
+        source: str,
+    ) -> tuple[float | None, str | None]:
         parsed = self._parse_timestamp(value)
         if parsed is None:
-            return None
+            return None, f"INVALID_{source}_TIMESTAMP"
         if not self._within_tolerance(parsed, observed_at, max_age_seconds):
-            return None
-        return parsed
+            return None, f"STALE_OR_FUTURE_{source}"
+        return parsed, None
 
     @staticmethod
     def _within_tolerance(timestamp: float, observed_at: float, max_age_seconds: float) -> bool:

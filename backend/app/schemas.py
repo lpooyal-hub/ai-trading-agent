@@ -295,6 +295,7 @@ class MemoryLessonRead(BaseModel):
 
 class MemorySummaryRead(BaseModel):
     lookback_journal_entries: int
+    strategy_entry_count: int
     evaluated_entry_count: int
     average_reward_score: float
     win_rate_percent: float

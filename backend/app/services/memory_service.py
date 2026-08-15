@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict
 from typing import Any
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import AgentDecision, DecisionEvaluation, TradeJournalEntry
@@ -17,23 +18,41 @@ class MemoryService:
             .limit(safe_limit)
             .all()
         )
-        decision_ids = [entry.decision_id for entry in journal_entries]
+        # Operational guard audits remain visible in journal history, while
+        # strategy memory reads its own outcome-backed window so a busy day of
+        # skipped cycles cannot push older executed evidence out of context.
+        strategy_entries = (
+            db.query(TradeJournalEntry)
+            .filter(TradeJournalEntry.symbol != "NONE")
+            .filter(TradeJournalEntry.outcome_label != "SKIPPED_GUARD")
+            .filter(
+                or_(
+                    TradeJournalEntry.order_id.is_not(None),
+                    TradeJournalEntry.evaluation_id.is_not(None),
+                )
+            )
+            .order_by(TradeJournalEntry.created_at.desc())
+            .limit(safe_limit)
+            .all()
+        )
+        decision_ids = [entry.decision_id for entry in strategy_entries]
         decisions = self._decisions_by_id(db, decision_ids)
         evaluations = self._latest_evaluations_by_decision_id(db, decision_ids)
 
         return {
             "lookback_journal_entries": len(journal_entries),
-            "evaluated_entry_count": sum(1 for entry in journal_entries if entry.evaluation_id),
-            "average_reward_score": self._average_reward(journal_entries),
-            "win_rate_percent": self._win_rate_percent(journal_entries),
-            "action_stats": self._action_stats(journal_entries),
-            "symbol_stats": self._symbol_stats(journal_entries),
-            "model_stats": self._model_stats(journal_entries, decisions),
-            "prompt_stats": self._prompt_stats(journal_entries, decisions),
+            "strategy_entry_count": len(strategy_entries),
+            "evaluated_entry_count": sum(1 for entry in strategy_entries if entry.evaluation_id),
+            "average_reward_score": self._average_reward(strategy_entries),
+            "win_rate_percent": self._win_rate_percent(strategy_entries),
+            "action_stats": self._action_stats(strategy_entries),
+            "symbol_stats": self._symbol_stats(strategy_entries),
+            "model_stats": self._model_stats(strategy_entries, decisions),
+            "prompt_stats": self._prompt_stats(strategy_entries, decisions),
             "common_mistakes": self._common_mistakes(evaluations),
-            "recent_lessons": self._recent_lessons(journal_entries),
-            "memory_notes": self._memory_notes(journal_entries, evaluations),
-            "data_gaps": self._data_gaps(journal_entries, decisions),
+            "recent_lessons": self._recent_lessons(strategy_entries),
+            "memory_notes": self._memory_notes(strategy_entries, evaluations),
+            "data_gaps": self._data_gaps(strategy_entries, decisions),
         }
 
     @staticmethod
@@ -167,7 +186,7 @@ class MemoryService:
     ) -> list[str]:
         notes = []
         if not entries:
-            return ["No journal entries yet. Create journal entries from decision detail after evaluations."]
+            return ["No executed or evaluated strategy entries are available yet."]
         if len(evaluations) < max(len(entries) // 2, 1):
             notes.append("Evaluation coverage is still thin; treat memory stats as directional only.")
         if not any(entry.lesson for entry in entries):

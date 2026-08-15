@@ -72,6 +72,41 @@ class IntradaySignalSelectorTest(unittest.TestCase):
         result = self.selector.select({"005930": payload}, ["005930"])
         self.assertEqual(result, [])
 
+    def test_diagnostics_explain_a_valid_payload_without_an_event(self):
+        payload = _payload(_same_day_candles(), 10000.0, bid=9995, ask=10005)
+
+        result = self.selector.select_with_diagnostics({"005930": payload}, ["005930"])
+
+        self.assertEqual(result.signals, [])
+        self.assertEqual(result.diagnostics[0].symbol, "005930")
+        self.assertEqual(result.diagnostics[0].outcome, "NO_EVENT")
+
+    def test_diagnostics_explain_a_stale_price_quote(self):
+        candles = _same_day_candles(count=20, close=10000.0)
+        anchor = candles[-1]["timestamp"]
+        stale_price_timestamp = (TRADING_DAY_OPEN + timedelta(minutes=10)).isoformat()
+        payload = _payload(
+            candles,
+            10300.0,
+            bid=10295,
+            ask=10305,
+            observed_at=anchor,
+            price_timestamp=stale_price_timestamp,
+        )
+
+        result = self.selector.select_with_diagnostics({"005930": payload}, ["005930"])
+
+        self.assertEqual(result.signals, [])
+        self.assertEqual(result.diagnostics[0].outcome, "STALE_OR_FUTURE_PRICE")
+
+    def test_diagnostics_report_missing_context_for_each_shortlisted_symbol(self):
+        result = self.selector.select_with_diagnostics({}, ["005930", "000660"])
+
+        self.assertEqual(
+            [item.outcome for item in result.diagnostics],
+            ["MISSING_CONTEXT", "MISSING_CONTEXT"],
+        )
+
     def test_same_day_continuous_candles_compute_returns_normally(self):
         candles = _same_day_candles(count=20, close=10000.0)
         candles[-1] = _candle_at(TRADING_DAY_OPEN + timedelta(minutes=19), 10200.0)

@@ -97,6 +97,7 @@ class AgentService:
                     "snapshot_count": len(snapshots),
                     "candidate_count": len(candidates),
                     "candidate_symbols": [item.symbol for item in candidates],
+                    "signal_diagnostics": market_result.signal_diagnostics or [],
                 },
             )
             self._record_position_exit_step(db, workflow, position_exit_result)
@@ -156,6 +157,7 @@ class AgentService:
                 status=WorkflowStepStatus.SUCCEEDED,
                 output_json={
                     "lookback_journal_entries": memory_context["lookback_journal_entries"],
+                    "strategy_entry_count": memory_context["strategy_entry_count"],
                     "evaluated_entry_count": memory_context["evaluated_entry_count"],
                     "win_rate_percent": memory_context["win_rate_percent"],
                     "common_mistake_count": len(memory_context["common_mistakes"]),

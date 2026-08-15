@@ -18,6 +18,7 @@ class MarketAgentResult:
     candidate_details: list[dict[str, Any]]
     market_source: str
     snapshot_status: dict[str, Any] | None = None
+    signal_diagnostics: list[dict[str, str]] | None = None
 
 
 class MarketAgent:
@@ -80,7 +81,8 @@ class MarketAgent:
                 context["price"] = snapshot.price
                 context["price_timestamp"] = (snapshot.extra_json or {}).get("price_timestamp")
 
-        signals = self.intraday_selector.select(contexts, shortlist_symbols)
+        selection = self.intraday_selector.select_with_diagnostics(contexts, shortlist_symbols)
+        signals = selection.signals
         candidates: list[MarketSnapshot] = []
         candidate_details: list[dict[str, Any]] = []
         for signal in signals:
@@ -109,6 +111,14 @@ class MarketAgent:
             candidates=candidates,
             candidate_details=candidate_details,
             market_source="toss_realtime_intraday",
+            signal_diagnostics=[
+                {
+                    "symbol": item.symbol,
+                    "outcome": item.outcome,
+                    "detail": item.detail,
+                }
+                for item in selection.diagnostics
+            ],
         )
 
     def _intraday_shortlist_symbols(self, snapshots: list[MarketSnapshot]) -> list[str]:

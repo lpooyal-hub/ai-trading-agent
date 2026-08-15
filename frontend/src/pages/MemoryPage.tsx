@@ -78,7 +78,10 @@ export function MemoryPage() {
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="저널 기준" value={`${summary?.lookback_journal_entries ?? 0}`} />
+        <StatCard
+          label="전략 근거 / 운영 저널"
+          value={`${summary?.strategy_entry_count ?? 0} / ${summary?.lookback_journal_entries ?? 0}`}
+        />
         <StatCard label="평가 완료" value={`${summary?.evaluated_entry_count ?? 0}`} />
         <StatCard label="승률" value={`${summary ? summary.win_rate_percent.toFixed(2) : "0.00"}%`} />
         <StatCard label="평균 보상" value={formatReward(summary?.average_reward_score ?? 0)} />

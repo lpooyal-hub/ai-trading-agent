@@ -347,6 +347,7 @@ class AgentGraphService:
                 "snapshot_count": len(snapshots),
                 "candidate_count": len(candidates),
                 "candidate_symbols": [item.symbol for item in candidates],
+                "signal_diagnostics": market_result.signal_diagnostics or [],
             },
         )
         return {
@@ -427,6 +428,7 @@ class AgentGraphService:
             status=WorkflowStepStatus.SUCCEEDED,
             output_json={
                 "lookback_journal_entries": memory_context["lookback_journal_entries"],
+                "strategy_entry_count": memory_context["strategy_entry_count"],
                 "evaluated_entry_count": memory_context["evaluated_entry_count"],
                 "win_rate_percent": memory_context["win_rate_percent"],
                 "common_mistake_count": len(memory_context["common_mistakes"]),
@@ -749,12 +751,6 @@ class AgentGraphService:
             return f"Session reached its max duration ({settings.agent_session_max_minutes_safe} minutes)."
         if settings.agent_scheduler_market_hours_only and not is_market_open(settings):
             return "Market is not in regular session."
-
-        # Price cycles continue during the post-call cooldown. The risk node
-        # checks that cooldown only when a new market event reaches the LLM.
-        budget = self.agent.llm_budget_manager.check_budget(db, include_cooldown=False)
-        if not budget["approved"]:
-            return f"LLM budget exceeded: {budget['reason']}"
 
         trade_count = self.agent.execution_risk_agent.risk_manager.count_today_simulated_trades(db)
         if settings.max_daily_trades > 0 and trade_count >= settings.max_daily_trades:

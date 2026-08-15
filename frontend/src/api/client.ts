@@ -123,6 +123,7 @@ export type MemoryLesson = {
 
 export type MemorySummary = {
   lookback_journal_entries: number;
+  strategy_entry_count: number;
   evaluated_entry_count: number;
   average_reward_score: number;
   win_rate_percent: number;

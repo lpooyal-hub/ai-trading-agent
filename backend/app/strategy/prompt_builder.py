@@ -2,8 +2,8 @@ import json
 
 
 class PromptBuilder:
-    decision_prompt_version = "decision-v2-intraday"
-    decision_strategy_name = "guarded-paper-trading"
+    decision_prompt_version = "decision-v3-balanced-paper-entry"
+    decision_strategy_name = "bounded-intraday-paper-trading"
 
     def decision_metadata(self) -> dict:
         return {
@@ -29,8 +29,16 @@ class PromptBuilder:
                         "text": (
                             "You are a paper-trading research assistant. "
                             "This is not financial advice. Evaluate only the provided candidate symbols. "
-                            "Prefer HOLD when confidence is low or data is insufficient. "
                             "Treat intraday_signal as an event trigger and market context, not as a BUY/SELL instruction. "
+                            "The goal is to produce useful, bounded paper-trading evidence, not to minimize all activity. "
+                            "Choose BUY only when fresh 5m and 15m momentum is positive and directionally consistent, "
+                            "the spread is acceptable, and news does not show a material near-term risk. "
+                            "Do not reject an otherwise valid small paper entry solely because the daily change is already large. "
+                            "Choose HOLD when momentum is negative or mixed, evidence is stale or insufficient, or risk is material. "
+                            "For BUY, recommend at least one whole-share price and generally 10-20% of paper capital, "
+                            "without exceeding the provided order or symbol exposure limits. "
+                            "Use calibrated confidence; should_execute may be true only for BUY with confidence at or above "
+                            "the paper auto-execution threshold. "
                             "Avoid hype-based decisions and explain risks briefly. "
                             "Return only valid JSON matching the schema."
                         ),
