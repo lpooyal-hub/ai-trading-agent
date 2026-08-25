@@ -53,15 +53,25 @@ class IntradaySignalSelector:
     _MAX_CANDLE_GAP_SECONDS = 150
     _MAX_REFERENCE_GAP_SECONDS = 150
     # How old price/orderbook/candle timestamps may be relative to observed_at.
-    _MAX_LATEST_CANDLE_AGE_SECONDS = 180
+    # The 1m candle feed from Toss runs measurably behind the current-price
+    # quote feed (quotes land ~1s stale in practice; candles were observed
+    # missing the old 180s bar on nearly every cycle all trading day on
+    # 2026-08-25, starving the LLM of candidates for 12 days straight -- see
+    # docs/plans -- the candle feed just isn't as close to real-time as the
+    # quote feed, not a sign of bad data). Widened to fit that real latency;
+    # revisit with a measured value once the vendor's actual candle delay is
+    # confirmed over a live session.
+    _MAX_LATEST_CANDLE_AGE_SECONDS = 600
     _MAX_QUOTE_AGE_SECONDS = 120
     # Explicit bound on how far apart the three independent data sources
     # (price quote, orderbook, latest candle) may be from *each other* --
     # each can individually pass its own observed_at age check while still
     # collectively describing different moments (e.g. a candle near its
-    # 180s limit and a quote near its 120s limit could otherwise be ~300s
-    # apart). This closes that gap with one explicit, tighter constant.
-    _MAX_SOURCE_SKEW_SECONDS = 120
+    # 600s limit and a quote near its 120s limit could otherwise be ~700s
+    # apart). This closes that gap with one explicit, tighter constant. Must
+    # stay >= _MAX_LATEST_CANDLE_AGE_SECONDS or it becomes the new bottleneck
+    # given the quote/candle latency gap above.
+    _MAX_SOURCE_SKEW_SECONDS = 600
     # Small clock-skew allowance -- anything claiming to be further in the
     # future than this relative to observed_at is treated as corrupt data,
     # not a legitimate quote.

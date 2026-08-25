@@ -521,14 +521,19 @@ class IntradaySignalSelectorTest(unittest.TestCase):
 
     def test_source_timestamps_skew_beyond_the_explicit_limit_fails_closed(self):
         # Each source is individually "recent enough" relative to observed_at
-        # (candle within 180s, quotes within 120s) but the candle and the
-        # quotes disagree with each other by more than the explicit
-        # cross-source skew limit -- observed_at alone can't catch this.
+        # (candle within 600s, quote within its future tolerance) but the
+        # candle and the quote disagree with each other by more than the
+        # explicit cross-source skew limit -- observed_at alone can't catch
+        # this. The skew limit now matches the candle age limit (both 600s,
+        # widened together -- see IntradaySignalSelector), so the only way to
+        # trip skew without also tripping the candle-age check on its own is
+        # to push the quote to the edge of its future tolerance while the
+        # candle sits at the edge of its age limit.
         candles = _same_day_candles(count=20, close=10000.0)
         candles[-1] = _candle_at(TRADING_DAY_OPEN + timedelta(minutes=19), 10300.0)
         candle_latest_dt = TRADING_DAY_OPEN + timedelta(minutes=19)
-        observed_at_dt = candle_latest_dt + timedelta(seconds=170)
-        quote_dt = observed_at_dt - timedelta(seconds=5)
+        observed_at_dt = candle_latest_dt + timedelta(seconds=599)
+        quote_dt = observed_at_dt + timedelta(seconds=4)
         payload = _payload(
             candles,
             10300.0,
