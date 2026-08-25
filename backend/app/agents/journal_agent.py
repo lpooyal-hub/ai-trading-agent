@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models import TradeJournalEntry
-from app.schemas import TradeJournalEntryCreate
+from app.schemas import TradeJournalEntryCreate, TradeJournalEntryUpdate
 from app.services.journal_service import JournalService
 
 
@@ -22,3 +22,11 @@ class JournalAgent:
 
     def create_entry(self, db: Session, payload: TradeJournalEntryCreate) -> TradeJournalEntry | None:
         return self.journal_service.create_entry(db, payload)
+
+    def update_entry(
+        self,
+        db: Session,
+        entry_id: int,
+        payload: TradeJournalEntryUpdate,
+    ) -> TradeJournalEntry | None:
+        return self.journal_service.update_entry(db, entry_id, payload)

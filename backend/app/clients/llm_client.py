@@ -130,14 +130,21 @@ class LLMClient:
     ) -> dict:
         return {
             "model": self.model,
+            "reasoning": {
+                "effort": self.settings.llm_reasoning_effort_decision_normalized,
+            },
             "input": self.prompt_builder.build_decision_input(
                 candidates=candidates,
                 news_context=news_context,
                 memory_context=memory_context,
                 settings_snapshot={
-                    "bot_capital_limit_usd": self.settings.bot_capital_limit_usd,
-                    "max_order_amount_usd": self.settings.max_order_amount_usd,
-                    "allowed_sector": self.settings.allowed_sector,
+                    "trading_currency": "KRW",
+                    "bot_capital_limit_krw": self.settings.bot_capital_limit_krw,
+                    "max_order_amount_krw": self.settings.max_order_amount_limit_krw,
+                    "per_order_limit_enabled": self.settings.max_order_amount_limit_krw is not None,
+                    "max_symbol_exposure_percent": self.settings.max_symbol_exposure_percent,
+                    "paper_auto_min_confidence": self.settings.agent_auto_execute_min_confidence,
+                    "fractional_trading_enabled": self.settings.fractional_trading_enabled,
                     "allowed_symbols": self.settings.allowed_symbols,
                     "dry_run": self.settings.dry_run,
                     "live_trading_enabled": self.settings.live_trading_enabled,

@@ -12,6 +12,8 @@ _READ_CACHE: dict[tuple[str, bool, str], tuple[float, dict]] = {}
 class TossClient:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
+        self._access_token: str | None = None
+        self._access_token_expires_at = 0.0
 
     def get_status(self) -> dict:
         has_app_key = bool(self.settings.toss_app_key)
@@ -73,6 +75,55 @@ class TossClient:
         if not self._read_only_endpoint_ready(self.settings.toss_positions_path):
             return self._todo_read_only_response("Toss read-only positions endpoint is not configured.")
         return self._authenticated_get(self.settings.toss_positions_path)
+
+    def get_daily_candles(self, symbol: str, count: int = 2) -> dict:
+        """Latest daily candles (open/high/low/close/volume) for one symbol.
+        Account-independent (public market data), so require_account=False.
+        Used to derive price/change_percent/volume for MarketDataClient,
+        since Toss's current-price endpoint doesn't include those."""
+        if not self._read_only_endpoint_ready(self.settings.toss_candles_path, require_account=False):
+            return self._todo_read_only_response("Toss candles endpoint is not configured.")
+        path = (
+            f"{self.settings.toss_candles_path}"
+            f"?symbol={parse.quote(symbol)}&interval=1d&count={count}"
+        )
+        return self._authenticated_get(path, include_account_header=False)
+
+    def get_current_prices(self, symbols: list[str]) -> dict:
+        """Fetch up to 200 current prices in one account-independent call."""
+        if not self._read_only_endpoint_ready(self.settings.toss_prices_path, require_account=False):
+            return self._todo_read_only_response("Toss current-prices endpoint is not configured.")
+        normalized = [symbol.strip().upper() for symbol in symbols if symbol.strip()][:200]
+        if not normalized:
+            return {
+                "success": True,
+                "status": "OK",
+                "data": {"result": []},
+                "raw_response_saved": False,
+            }
+        query = parse.urlencode({"symbols": ",".join(normalized)})
+        return self._authenticated_get(
+            f"{self.settings.toss_prices_path}?{query}",
+            include_account_header=False,
+        )
+
+    def get_intraday_candles(self, symbol: str, count: int = 30) -> dict:
+        """Latest 1-minute candles for deterministic intraday signal calculation."""
+        if not self._read_only_endpoint_ready(self.settings.toss_candles_path, require_account=False):
+            return self._todo_read_only_response("Toss candles endpoint is not configured.")
+        safe_count = min(max(int(count), 1), 200)
+        path = (
+            f"{self.settings.toss_candles_path}"
+            f"?symbol={parse.quote(symbol)}&interval=1m&count={safe_count}"
+        )
+        return self._authenticated_get(path, include_account_header=False)
+
+    def get_orderbook(self, symbol: str) -> dict:
+        """Latest bid/ask levels for spread validation."""
+        if not self._read_only_endpoint_ready(self.settings.toss_orderbook_path, require_account=False):
+            return self._todo_read_only_response("Toss orderbook endpoint is not configured.")
+        path = f"{self.settings.toss_orderbook_path}?symbol={parse.quote(symbol)}"
+        return self._authenticated_get(path, include_account_header=False)
 
     def preview_live_order(self, *args, **kwargs) -> dict:
         return self._todo_live_order_response(
@@ -230,6 +281,14 @@ class TossClient:
             return self._todo_read_only_response("Toss token endpoint path is not configured.")
         if not self.settings.toss_app_key or not self.settings.toss_app_secret:
             return self._todo_read_only_response("Toss API credentials are incomplete.")
+        if self._access_token and time.monotonic() < self._access_token_expires_at:
+            return {
+                "success": True,
+                "status": "OK",
+                "access_token": self._access_token,
+                "raw_response_saved": False,
+                "cache_hit": True,
+            }
 
         payload = parse.urlencode(
             {
@@ -255,6 +314,9 @@ class TossClient:
                     "message": "Toss token response did not include access_token.",
                     "raw_response_saved": False,
                 }
+            expires_in = self._safe_positive_int(body.get("expires_in"), default=300)
+            self._access_token = access_token
+            self._access_token_expires_at = time.monotonic() + max(expires_in - 30, 1)
             return {
                 "success": True,
                 "status": "OK",
@@ -263,6 +325,14 @@ class TossClient:
             }
         except (error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             return self._safe_error_response(exc)
+
+    @staticmethod
+    def _safe_positive_int(value, default: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed > 0 else default
 
     def _url(self, path: str) -> str:
         base = self.settings.toss_base_url.rstrip("/")

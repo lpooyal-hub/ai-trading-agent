@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, MemoryGroupStat, MemorySummary } from "../api/client";
 import { StatCard } from "../components/StatCard";
-import { actionLabel } from "../utils/labels";
+import { actionLabel, symbolLabel } from "../utils/labels";
 
 function formatReward(value: number) {
   const sign = value > 0 ? "+" : "";
@@ -78,7 +78,10 @@ export function MemoryPage() {
       </header>
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="저널 기준" value={`${summary?.lookback_journal_entries ?? 0}`} />
+        <StatCard
+          label="전략 근거 / 운영 저널"
+          value={`${summary?.strategy_entry_count ?? 0} / ${summary?.lookback_journal_entries ?? 0}`}
+        />
         <StatCard label="평가 완료" value={`${summary?.evaluated_entry_count ?? 0}`} />
         <StatCard label="승률" value={`${summary ? summary.win_rate_percent.toFixed(2) : "0.00"}%`} />
         <StatCard label="평균 보상" value={formatReward(summary?.average_reward_score ?? 0)} />
@@ -88,7 +91,7 @@ export function MemoryPage() {
         <MemoryStatsTable title="모델별 메모리" rows={summary?.model_stats ?? []} />
       </div>
       <MemoryStatsTable title="프롬프트별 메모리" rows={summary?.prompt_stats ?? []} />
-      <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} />
+      <MemoryStatsTable title="종목별 메모리" rows={summary?.symbol_stats ?? []} formatKey={symbolLabel} />
       <div className="detail-grid">
         <section>
           <h3>반복 실수</h3>
@@ -112,7 +115,7 @@ export function MemoryPage() {
           {(summary?.recent_lessons ?? []).map((lesson) => (
             <article className="journal-card" key={lesson.journal_id}>
               <p className="eyebrow">저널 #{lesson.journal_id}</p>
-              <h3>{lesson.symbol} {actionLabel(lesson.action)}</h3>
+              <h3>{symbolLabel(lesson.symbol)} {actionLabel(lesson.action)}</h3>
               <p className="helper-text">보상 {formatReward(lesson.reward_score)}</p>
               <p>{lesson.lesson}</p>
             </article>

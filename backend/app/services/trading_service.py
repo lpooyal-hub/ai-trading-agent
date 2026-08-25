@@ -117,6 +117,7 @@ class TradingService:
         commit: bool = True,
     ) -> TradeOrder:
         quantity = self._quantity_from_decision(decision)
+        order_amount = quantity * decision.current_price
         position = self._get_bot_position(db, decision.symbol)
         quantity_before = position.quantity if position else 0
         quantity_after = quantity_before + quantity
@@ -126,7 +127,7 @@ class TradingService:
             side=OrderSide.BUY,
             quantity=quantity,
             price=decision.current_price,
-            order_amount=decision.recommended_order_amount,
+            order_amount=order_amount,
             status=OrderStatus.SIMULATED,
             dry_run=True,
             reason="DRY_RUN simulated buy order.",
@@ -139,13 +140,13 @@ class TradingService:
                     "side": OrderSide.BUY.value,
                     "quantity": quantity,
                     "price": decision.current_price,
-                    "order_amount": decision.recommended_order_amount,
+                    "order_amount": order_amount,
                     "position_quantity_before": quantity_before,
                     "position_quantity_after": quantity_after,
                 },
             },
         )
-        self._apply_buy_position(db, decision, quantity)
+        self._apply_buy_position(db, decision, quantity, order_amount)
         if commit:
             db.add(order)
             db.commit()
@@ -197,9 +198,9 @@ class TradingService:
 
     def calculate_available_budget(self, db: Session) -> float:
         return max(
-            self.settings.bot_capital_limit_usd
+            self.settings.bot_capital_limit_krw
             - self.calculate_bot_exposure(db)
-            - self.settings.min_cash_reserve_usd,
+            - self.settings.min_cash_reserve_krw,
             0,
         )
 
@@ -291,6 +292,7 @@ class TradingService:
         db: Session,
         decision: AgentDecision,
         quantity: float,
+        order_amount: float,
     ) -> None:
         position = self._get_bot_position(db, decision.symbol)
         if not position:
@@ -300,7 +302,7 @@ class TradingService:
                 sector=decision.sector,
                 quantity=quantity,
                 avg_buy_price=decision.current_price,
-                total_invested_amount=decision.recommended_order_amount,
+                total_invested_amount=order_amount,
                 current_price=decision.current_price,
                 unrealized_pnl=0,
                 unrealized_pnl_percent=0,
@@ -310,7 +312,7 @@ class TradingService:
             db.add(position)
             return
 
-        new_total = position.total_invested_amount + decision.recommended_order_amount
+        new_total = position.total_invested_amount + order_amount
         new_quantity = position.quantity + quantity
         position.quantity = new_quantity
         position.avg_buy_price = new_total / new_quantity if new_quantity else 0
@@ -342,7 +344,7 @@ class TradingService:
         fill_amount: float,
     ) -> None:
         position = self._get_bot_position(db, order.symbol)
-        sector = order.decision.sector if order.decision else self.settings.allowed_sector
+        sector = order.decision.sector if order.decision else "unknown"
         if not position:
             position = BotPosition(
                 symbol=order.symbol,

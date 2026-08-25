@@ -129,6 +129,43 @@ class RedisRuntimeService:
             reason="Redis agent run lock acquired.",
         )
 
+    def renew_agent_run_lock(self, lock: RedisLockResult, ttl_seconds: int) -> RedisLockResult:
+        """Extend a held lock's TTL for one more cycle of a continuous session.
+
+        Only renews if we still own it (token matches) so a session never keeps
+        running once the lock has been taken by someone else. Not atomic (GET then
+        EXPIRE), matching the existing release_lock() pattern in this file; a lost
+        race here just means the next loop_gate check stops the session, which is
+        the safe failure mode.
+        """
+        if not lock.enabled or not lock.acquired:
+            return lock
+        try:
+            if self.client.get(lock.key) != lock.token:
+                return RedisLockResult(
+                    key=lock.key,
+                    token=lock.token,
+                    acquired=False,
+                    enabled=True,
+                    reason="Agent run lock was lost (held by another process).",
+                )
+            self.client.expire(lock.key, ttl_seconds)
+            return RedisLockResult(
+                key=lock.key,
+                token=lock.token,
+                acquired=True,
+                enabled=True,
+                reason="Agent run lock renewed.",
+            )
+        except RedisError as exc:
+            return RedisLockResult(
+                key=lock.key,
+                token=lock.token,
+                acquired=False,
+                enabled=True,
+                reason=f"Agent run lock renewal failed: {exc}",
+            )
+
     def release_lock(self, lock: RedisLockResult) -> bool:
         if not lock.enabled or not lock.acquired:
             return False

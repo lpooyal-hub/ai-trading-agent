@@ -34,7 +34,7 @@ class DecisionAgent:
         self.llm_client = MockLLMClient() if self.settings.use_mock_data else LLMClient(self.settings)
         self.cost_service = LLMCostService(self.settings)
         self.response_guard = DecisionResponseGuard(
-            max_order_amount_usd=self.settings.max_order_amount_usd,
+            max_order_amount_krw=self.settings.max_order_amount_krw,
         )
 
     def run(

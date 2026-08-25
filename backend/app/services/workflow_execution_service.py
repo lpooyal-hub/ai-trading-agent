@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.models import WorkflowRun
-from app.services.agent_service import AgentService
+from app.services.agent_graph_service import AgentGraphService
 from app.services.workflow_service import WorkflowService
 
 
@@ -11,7 +11,7 @@ class WorkflowExecutionService:
 
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
-        self.agent_service = AgentService(self.settings)
+        self.agent_service = AgentGraphService(self.settings)
         self.workflow_service = WorkflowService()
 
     def run_once(self, db: Session, trigger_source: str = "workflow") -> WorkflowRun | None:

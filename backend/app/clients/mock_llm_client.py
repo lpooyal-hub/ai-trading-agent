@@ -34,7 +34,7 @@ class MockLLMClient:
             "symbol": candidate["symbol"],
             "action": "BUY",
             "confidence": 0.68,
-            "recommended_order_amount": 50,
+            "recommended_order_amount": 50000,
             "thesis": "Public demo mock response suggests a small paper-trade position for review.",
             "risk_notes": "Mock mode uses fictional data, requires RiskManager approval, and never places real orders.",
             "time_horizon": "short_term",

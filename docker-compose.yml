@@ -23,6 +23,25 @@ services:
       retries: 3
       start_period: 10s
 
+  # Standing daemon: waits for market open, runs one continuous session,
+  # waits for market close, repeats -- forever, for as long as the container
+  # runs. Stays inert (no sessions) while AGENT_SCHEDULER_ENABLED=false.
+  # See docs/plans/continuous-session-loop.md.
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    env_file:
+      - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - backend_data:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -30,12 +49,12 @@ services:
     env_file:
       - ./backend/.env
     ports:
-      - "3000:5173"
+      - "3000:80"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
       interval: 30s
       timeout: 5s
       retries: 3

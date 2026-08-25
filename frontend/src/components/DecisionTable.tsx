@@ -1,6 +1,7 @@
 import { AgentDecision } from "../api/client";
+import { formatKRW } from "../utils/currency";
 import { decisionBlockReason, decisionGuardWarnings } from "../utils/decisionSafety";
-import { actionLabel, statusLabel } from "../utils/labels";
+import { actionLabel, statusLabel, symbolLabel } from "../utils/labels";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString(undefined, {
@@ -48,10 +49,10 @@ export function DecisionTable({ decisions, onSelect }: DecisionTableProps) {
             return (
               <tr key={decision.id}>
                 <td className="muted-cell">{formatDateTime(decision.created_at)}</td>
-                <td className="symbol-cell">{decision.symbol}</td>
+                <td className="symbol-cell">{symbolLabel(decision.symbol)}</td>
                 <td>{actionLabel(decision.action)}</td>
                 <td>{Math.round(decision.confidence * 100)}%</td>
-                <td>${decision.recommended_order_amount.toFixed(2)}</td>
+                <td>{formatKRW(decision.recommended_order_amount)}</td>
                 <td>
                   <span className={`status-pill ${statusTone(decision.status)}`}>{statusLabel(decision.status)}</span>
                 </td>

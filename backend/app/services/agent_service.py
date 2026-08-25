@@ -22,6 +22,7 @@ from app.models import (
 from app.risk.llm_budget_manager import LLMBudgetManager
 from app.schemas import TradeJournalEntryCreate
 from app.services.redis_runtime_service import RedisRuntimeService
+from app.services.position_exit_service import PositionExitService
 from app.services.workflow_service import WorkflowService
 
 
@@ -46,6 +47,7 @@ class AgentService:
         self.llm_budget_manager = LLMBudgetManager(self.settings)
         self.workflow_service = WorkflowService()
         self.redis_runtime = RedisRuntimeService(self.settings)
+        self.position_exit_service = PositionExitService(self.settings)
 
     def run_once(self, db: Session, trigger_source: str = "manual") -> AgentDecision:
         lock = self.redis_runtime.acquire_agent_run_lock()
@@ -82,6 +84,7 @@ class AgentService:
                 },
             )
             market_result = self.market_agent.run(db)
+            position_exit_result = self._run_position_exits(db, market_result)
             snapshots = market_result.snapshots
             candidates = market_result.candidates
             self.workflow_service.record_step(
@@ -94,10 +97,12 @@ class AgentService:
                     "snapshot_count": len(snapshots),
                     "candidate_count": len(candidates),
                     "candidate_symbols": [item.symbol for item in candidates],
+                    "signal_diagnostics": market_result.signal_diagnostics or [],
                 },
             )
+            self._record_position_exit_step(db, workflow, position_exit_result)
 
-            news_result = self.news_agent.run(snapshots)
+            news_result = self.news_agent.run(candidates)
             news_context = self._news_context_snapshot(news_result)
             self.workflow_service.record_step(
                 db,
@@ -152,6 +157,7 @@ class AgentService:
                 status=WorkflowStepStatus.SUCCEEDED,
                 output_json={
                     "lookback_journal_entries": memory_context["lookback_journal_entries"],
+                    "strategy_entry_count": memory_context["strategy_entry_count"],
                     "evaluated_entry_count": memory_context["evaluated_entry_count"],
                     "win_rate_percent": memory_context["win_rate_percent"],
                     "common_mistake_count": len(memory_context["common_mistakes"]),
@@ -171,7 +177,7 @@ class AgentService:
             usage = decision_result.usage
             decision = AgentDecision(
                 symbol=response["symbol"],
-                sector=self.settings.allowed_sector,
+                sector=selected_snapshot.sector,
                 action=AgentAction(response["action"]),
                 confidence=response["confidence"],
                 current_price=selected_snapshot.price,
@@ -386,7 +392,7 @@ class AgentService:
             "automation_mode": self.settings.agent_automation_mode_normalized,
             "paper_auto_enabled": self.settings.paper_auto_enabled,
             "min_confidence": self.settings.agent_auto_execute_min_confidence,
-            "max_order_amount_usd": self.settings.agent_auto_execute_max_order_amount_usd,
+            "max_order_amount_krw": self.settings.agent_auto_execute_max_order_amount_krw,
             "dry_run": self.settings.dry_run,
             "live_trading_enabled": self.settings.live_trading_enabled,
             "blockers": blockers,
@@ -485,7 +491,7 @@ class AgentService:
     ) -> AgentDecision:
         decision = AgentDecision(
             symbol="NONE",
-            sector=self.settings.allowed_sector,
+            sector="unknown",
             action=AgentAction.HOLD,
             confidence=0,
             current_price=0,
@@ -715,13 +721,61 @@ class AgentService:
 
     @staticmethod
     def _snapshot_to_dict(snapshot: MarketSnapshot) -> dict:
-        return {
+        payload = {
             "symbol": snapshot.symbol,
             "price": snapshot.price,
             "change_percent": snapshot.change_percent,
             "volume": snapshot.volume,
             "sector": snapshot.sector,
         }
+        intraday_signal = (snapshot.extra_json or {}).get("intraday_signal")
+        if isinstance(intraday_signal, dict):
+            payload["intraday_signal"] = intraday_signal
+        return payload
+
+    def _run_position_exits(self, db: Session, market_result):
+        result = self.position_exit_service.run(db, market_result.snapshots)
+        exited_symbols = {item.symbol for item in result.executions}
+        if exited_symbols:
+            market_result.candidates = [
+                item for item in market_result.candidates if item.symbol not in exited_symbols
+            ]
+            market_result.candidate_details = [
+                item
+                for item in market_result.candidate_details
+                if str(item.get("symbol", "")).upper() not in exited_symbols
+            ]
+        return result
+
+    def _record_position_exit_step(self, db: Session, workflow, result) -> None:
+        self.workflow_service.record_step(
+            db,
+            workflow,
+            step_name="position_exit_manager",
+            status=(
+                WorkflowStepStatus.SUCCEEDED
+                if result.executions
+                else WorkflowStepStatus.SKIPPED
+            ),
+            output_json={
+                "policy_active": result.policy_active,
+                "evaluated_count": result.evaluated_count,
+                "valuation_updated_count": result.valuation_updated_count,
+                "skipped_symbols": result.skipped_symbols,
+                "execution_count": len(result.executions),
+                "executions": [
+                    {
+                        "symbol": item.symbol,
+                        "reason_code": item.reason_code,
+                        "reason": item.reason,
+                        "decision_id": item.decision_id,
+                        "order_id": item.order_id,
+                        "order_status": item.order_status,
+                    }
+                    for item in result.executions
+                ],
+            },
+        )
 
     @staticmethod
     def _news_context_snapshot(news_result) -> dict:
@@ -753,7 +807,7 @@ class AgentService:
             "automation_mode": self.settings.agent_automation_mode_normalized,
             "paper_auto_enabled": self.settings.paper_auto_enabled,
             "min_confidence": self.settings.agent_auto_execute_min_confidence,
-            "max_order_amount_usd": self.settings.agent_auto_execute_max_order_amount_usd,
+            "max_order_amount_krw": self.settings.agent_auto_execute_max_order_amount_krw,
         }
 
     @staticmethod

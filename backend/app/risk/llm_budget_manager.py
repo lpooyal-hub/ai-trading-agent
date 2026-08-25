@@ -12,7 +12,7 @@ class LLMBudgetManager:
         self.settings = settings or get_settings()
         self.usage_service = LLMUsageService()
 
-    def check_budget(self, db: Session) -> dict[str, Any]:
+    def check_budget(self, db: Session, *, include_cooldown: bool = True) -> dict[str, Any]:
         summary = self.usage_service.summarize(db)
         cooldown_usage = self.usage_service.latest_usage_for_cooldown(db)
         cooldown_at = cooldown_usage.created_at if cooldown_usage else None
@@ -43,7 +43,7 @@ class LLMBudgetManager:
             )
 
         cooldown = self._cooldown_remaining_minutes(cooldown_at)
-        if cooldown > 0:
+        if include_cooldown and cooldown > 0:
             return self._reject(
                 f"LLM cooldown active for {cooldown} more minute(s)",
                 summary,

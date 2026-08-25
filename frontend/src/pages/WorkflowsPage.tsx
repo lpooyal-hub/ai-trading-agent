@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, WorkflowDefinition, WorkflowRun, WorkflowStep } from "../api/client";
 import { StatCard } from "../components/StatCard";
-import { statusLabel } from "../utils/labels";
+import { statusLabel, symbolLabel } from "../utils/labels";
 
 const STEP_LABELS: Record<string, string> = {
   runtime_lock: "런타임 락",
@@ -62,7 +62,7 @@ function pathValue(value: unknown) {
   return Array.isArray(value) ? value.map(String).map(stepLabel).join(" -> ") : "-";
 }
 
-function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
+export function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
   const output = run.output_json ?? {};
   const decision = asRecord(output.decision);
   const executionRisk = asRecord(output.execution_risk);
@@ -76,7 +76,7 @@ function WorkflowRunSummary({ run }: { run: WorkflowRun }) {
       <div className="workflow-summary-grid">
         <article>
           <span>판단</span>
-          <strong>{textValue(decision.symbol)} · {textValue(decision.action)}</strong>
+          <strong>{typeof decision.symbol === "string" ? symbolLabel(decision.symbol) : textValue(decision.symbol)} · {textValue(decision.action)}</strong>
           <small>{textValue(decision.status)} · 신뢰도 {textValue(decision.confidence)}</small>
         </article>
         <article>
@@ -242,7 +242,7 @@ export function WorkflowsPage() {
       <section className="workflow-definition">
         <div className="workflow-detail-header">
           <div>
-            <p className="eyebrow">{definition?.workflow_name ?? "agent.run_once"}</p>
+            <p className="eyebrow">{definition?.engine ?? "LangGraph StateGraph"}</p>
             <h3>정의된 Agent Graph</h3>
           </div>
           <span className="status-pill neutral">{definition?.nodes.length ?? 0} nodes</span>

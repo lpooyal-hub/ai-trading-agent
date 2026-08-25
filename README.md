@@ -1,6 +1,6 @@
 # AI Trading Agent Research Platform
 
-이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단, 리스크 검증, 주문 시뮬레이션, LLM 비용, 사후 평가를 감사 가능한 workflow로 남기는 것입니다.
+이 프로젝트는 **Toss Securities Open API**를 기본 브로커 어댑터로 가정한 국내 KRX 멀티섹터 기반의 공개 포트폴리오용 **AI Trading Agent Research Platform**입니다. 목적은 실거래 수익을 보장하는 자동매매가 아니라, 기본 DRY_RUN 환경에서 에이전트의 판단, 리스크 검증, KRW 주문 시뮬레이션, LLM 비용, 사후 평가를 감사 가능한 workflow로 남기는 것입니다.
 
 ## Preview
 
@@ -31,14 +31,14 @@
 
 ## 핵심 기능
 
-- Agentic workflow: Market, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계 기록
+- LangGraph agentic workflow: Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal node 실행 및 단계 기록
 - Runtime guard: Redis lock으로 중복 실행 방지
 - Decision audit: 판단 근거, 신뢰도, LLM 사용량, 비용, latency 저장
 - Paper execution: DRY_RUN 기반 금액 주문 시뮬레이션과 bot-only position 갱신
 - Risk control: 예산, 노출 한도, 보호 포지션, 일일 거래 수, 금지 키워드 검증
 - Performance loop: simulated PnL, win rate, symbol performance, evaluation, journal, memory feedback
 - Broker boundary: Toss read-only 조회와 env opt-in live order adapter 분리
-- React dashboard: 대시보드, 실행 흐름, 판단, 주문, 포트폴리오, 평가, 저널, 메모리 화면
+- React dashboard: 대시보드, 실행 흐름, 에이전트 세션, 판단, 주문, 포트폴리오, 평가, 저널, 메모리 화면
 
 ## 멀티에이전트 구조
 
@@ -64,7 +64,7 @@ SchedulerAgent
 - `SchedulerAgent`: `/agent/run-scheduled` 호출 시 실행 가능 시간, 장중 여부, 실행 간격을 확인합니다.
 - `RuntimeLock`: Compose 기본 Redis 또는 설정된 Redis에서 `agent:run_once:lock`으로 중복 실행을 막습니다.
 - `MarketAgent`: 최신 market snapshot을 준비하고, rule-based pre-filter로 LLM에 넘길 후보를 1~3개로 줄입니다.
-- `NewsAgent`: 현재는 외부 뉴스 API 없이 시장 스냅샷 기반 이벤트 컨텍스트를 만들고, 향후 뉴스/실적/캘린더 API 입력으로 확장할 자리입니다.
+- `NewsAgent`: rule-based pre-filter를 통과한 후보 종목에 한해 Naver 공개 시세뉴스 API의 실제 헤드라인을 가져오고, 시장 스냅샷 기반 가격·거래량 신호와 함께 이벤트 컨텍스트를 만듭니다.
 - `RiskAgent`: LLM 예산과 실행 전제 조건을 확인하고, LLM 호출 전에 비용/쿨다운 가드를 적용합니다.
 - `MemoryAgent`: 최근 저널/평가를 요약해 승률, 반복 실수, 모델/종목/프롬프트 버전별 개선 힌트를 `DecisionAgent` 입력에 포함합니다.
 - `DecisionAgent`: LLM 또는 mock LLM을 호출해 BUY/SELL/HOLD 판단, 신뢰도, 근거, 리스크 메모를 생성합니다.
@@ -74,13 +74,13 @@ SchedulerAgent
 - `EvaluationAgent`: 시간이 지난 판단의 사후 수익률, 성공 여부, mistake type, 개선 메모를 계산합니다.
 - `JournalAgent`: decision/order/evaluation을 묶어 거래 저널과 보상/교훈을 저장합니다. 후보 없음, 예산 초과처럼 guard에서 멈춘 실행도 별도 저널로 남겨 Memory Agent가 반복 패턴을 볼 수 있게 합니다.
 
-현재 `NewsAgent`는 “실제 뉴스 수집기”가 아니라 `DecisionAgent` 입력 계약을 먼저 만든 버전입니다. 실제 뉴스 API를 붙이면 `NewsAgent` 내부 수집 로직만 교체하고 downstream agent 흐름은 유지할 수 있습니다.
+뉴스 조회가 실패하거나 헤드라인이 없으면 `NewsAgent`는 가격·거래량 기반 컨텍스트로 fail-soft 처리해 downstream agent 흐름을 유지합니다.
 
 ### Workflow audit layer
 
-현재 구현은 이 프로젝트 안에서 직접 관리하는 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다. 실행 전 guard에서 멈춘 경우에도 스킵 사유와 저널 ID가 함께 남습니다.
+현재 구현은 LangGraph `StateGraph` 기반 agentic workflow 실행 단위입니다. `/workflows/run` 실행 시 각 agent를 node로 실행하고, node가 공유 state를 업데이트한 뒤 `workflow_runs`, `workflow_steps`에 Runtime Lock, Market, News, Risk, Memory, Decision, Execution Risk, Logger, Order, Evaluation, Journal 단계의 성공/스킵/실패 상태와 핵심 입출력을 저장합니다. 실행 전 guard에서 멈춘 경우에도 스킵 사유와 저널 ID가 함께 남습니다.
 
-이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 workflow recording 경로를 통과합니다.
+이 레이어는 포트폴리오 관점에서 “에이전트가 어떤 순서로 판단했고 어떤 state를 다음 node로 넘겼으며 어디서 멈췄는지”를 보여주기 위한 구조이며, 수동 실행 버튼과 scheduler 실행도 같은 LangGraph workflow recording 경로를 통과합니다.
 
 ### Redis runtime guard
 
@@ -161,14 +161,18 @@ Frontend는 기본적으로 `/api`를 호출하고, Docker Compose의 Vite proxy
 - `LIVE_TRADING_ENABLED=false`
 - `USE_MOCK_DATA=true`
 - `BROKER_PROVIDER`
-- `BOT_CAPITAL_LIMIT_USD`
+- `BOT_CAPITAL_LIMIT_KRW`
+- `MAX_ORDER_AMOUNT_KRW`
 - `MAX_SYMBOL_EXPOSURE_PERCENT`
 - `FRACTIONAL_TRADING_ENABLED`
 - `ORDER_SIZING_MODE`
-- `MIN_ORDER_AMOUNT_USD`
+- `MIN_CASH_RESERVE_KRW`
+- `MIN_ORDER_AMOUNT_KRW`
 - `ALLOWED_SYMBOLS`
 - `REDIS_ENABLED`
 - `REDIS_URL`
+
+Paper mode에서 `MAX_ORDER_AMOUNT_KRW=0` 또는 `AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=0`은 해당 건별 상한을 끕니다. 총 봇 자본, 현금 보유, 종목별 노출 한도는 계속 적용되며, live trading은 양수인 `MAX_ORDER_AMOUNT_KRW` 없이는 readiness를 통과하지 못합니다.
 
 실제 API 키, 계좌번호, OpenAI 키는 `backend/.env`에만 넣고 커밋하지 않습니다.
 Compose 기본 실행에서는 `postgres`와 `redis` 서비스 이름을 그대로 사용합니다. 따라서 컨테이너 내부 연결값은 `DATABASE_URL=...@postgres:5432/...`, `REDIS_URL=redis://redis:6379/0` 형태를 유지합니다.
@@ -220,6 +224,7 @@ Docker를 올린 뒤 Dashboard에서 아래 흐름으로 확인합니다.
 `TradingService`는 decision 승인, RiskManager 검증, order 저장 흐름을 조율합니다. 주문 처리 방식은 execution adapter로 분리되어 있으며, env 설정에 따라 paper, blocked-live, Toss live 경로를 선택합니다.
 
 - `PaperExecutionAdapter`: 기본 DRY_RUN / paper trading 실행 경로입니다. simulated order를 저장하고 bot-only position만 갱신합니다.
+- `PositionExitManager`: 매 가격 사이클마다 모든 bot-only 포지션을 별도로 감시하고, 신선한 시세에서 손절·익절·트레일링·최대 보유기간 조건이 충족되면 LLM 호출 없이 전량 paper SELL을 실행합니다. 기본값은 -5% / +8% / +4% 이후 고점 대비 2.5% / 10거래일이며 env로 조정할 수 있습니다.
 - `TossLiveExecutionAdapter`: `DRY_RUN=false`, `LIVE_TRADING_ENABLED=true`, Toss credentials, `TOSS_ORDER_PATH`가 준비되면 broker order endpoint를 호출하고 `LIVE_SUBMITTED` 또는 `FAILED` order를 저장합니다.
 - `BlockedLiveExecutionAdapter`: live intent는 있지만 readiness가 부족한 경우 실제 endpoint 호출 없이 order intent, idempotency key, 차단 사유를 `TODO_LIVE_ORDER_NOT_IMPLEMENTED` order로 저장합니다.
 
@@ -389,24 +394,32 @@ Paper 자동 실행은 기본적으로 꺼져 있습니다. 아래 값을 모두
 AGENT_AUTOMATION_ENABLED=true
 AGENT_AUTOMATION_MODE=paper_auto
 AGENT_AUTO_EXECUTE_MIN_CONFIDENCE=0.75
-AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD=50
+AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=65000
 ```
 
 `paper_auto`는 `DRY_RUN=true`, `LIVE_TRADING_ENABLED=false`에서만 동작합니다. live order는 별도 approval endpoint와 관리자 API key guard를 통과한 경우에만 실행됩니다.
+`AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW=0`이면 paper-auto 건별 상한만 끄며 포트폴리오 리스크 가드는 유지됩니다.
 
-반복 실행은 내부 백그라운드 루프를 바로 켜지 않고, 외부 cron/스케줄러가 호출할 수 있는 `/agent/run-scheduled`로 준비합니다.
+"지금 실행" 버튼/`/agent/run-scheduled`는 여전히 1회 실행이고, 그 반복 트리거는 아래 값으로 준비합니다. 이와 별도로, 하나의 세션 안에서 여러 decision 사이클이 도는 **연속 세션 루프**도 있습니다 (`backend/app/worker.py`, 대시보드 "에이전트 세션" 화면, 자세한 내용은 `backend/README.md`의 "Continuous Session Loop" 절과 `docs/plans/continuous-session-loop.md` 참고). 이 워커는 `docker compose up`에 포함되는 24/7 상시 데몬이며, `AGENT_SCHEDULER_ENABLED=false`가 기본값이라 컨테이너가 떠 있어도 명시적으로 켜기 전에는 세션이 시작되지 않습니다.
 
 ```bash
 AGENT_SCHEDULER_ENABLED=false
-AGENT_SCHEDULER_INTERVAL_MINUTES=60
+AGENT_SCHEDULER_INTERVAL_MINUTES=5
 AGENT_SCHEDULER_MARKET_HOURS_ONLY=true
-AGENT_MARKET_TIMEZONE=America/New_York
-AGENT_MARKET_OPEN_TIME=09:30
-AGENT_MARKET_CLOSE_TIME=16:00
+AGENT_MARKET_TIMEZONE=Asia/Seoul
+AGENT_MARKET_OPEN_TIME=09:00
+AGENT_MARKET_CLOSE_TIME=15:30
 AGENT_MARKET_CLOSED_DATES=2026-01-01,2026-12-25
+AGENT_SESSION_MAX_CYCLES=90
+AGENT_SESSION_MAX_MINUTES=420
+INTRADAY_SIGNALS_ENABLED=true
+INTRADAY_SHORTLIST_SIZE=6
+INTRADAY_CANDLE_COUNT=30
 ```
 
-`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 설정된 timezone/open/close 기준의 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
+5분 주기(`AGENT_SCHEDULER_INTERVAL_MINUTES=5`)에서 KRX 정규장(09:00-15:30, 390분) 전체를 커버하려면 `AGENT_SESSION_MAX_CYCLES`가 최소 78 사이클(390/5) 이상이어야 합니다. 기본값 90은 여유분을 두어 사이클 수가 아니라 `AGENT_SESSION_MAX_MINUTES`나 장 마감 조건이 실제 세션 종료 사유가 되도록 합니다. 세션 pacing 간격을 5분보다 늘리면 `AGENT_SESSION_MAX_CYCLES`도 그에 맞게 다시 계산해야 합니다.
+
+`AGENT_SCHEDULER_MARKET_HOURS_ONLY=true`는 Asia/Seoul 기준 KRX 평일 정규장 안에서만 `/agent/run-scheduled`를 통과시킵니다. `AGENT_MARKET_CLOSED_DATES`에 휴장일을 `YYYY-MM-DD` CSV로 넣으면 해당 날짜도 차단합니다. 조기폐장 캘린더는 아직 별도 반영하지 않았습니다.
 
 LLM 예상 비용을 기록하려면 사용하는 모델의 현재 input/output 단가를 `.env`에 직접 설정합니다. 기본값은 `0`입니다.
 
@@ -418,14 +431,14 @@ LLM_OUTPUT_COST_PER_1M_TOKENS_USD=0
 장기 paper trading에서는 비용 단가가 잘못 설정돼도 호출량이 폭주하지 않도록 호출 횟수와 최소 간격도 함께 제한합니다.
 
 ```bash
-LLM_DAILY_CALL_LIMIT=5
-LLM_MIN_MINUTES_BETWEEN_CALLS=60
+LLM_DAILY_CALL_LIMIT=7
+LLM_MIN_MINUTES_BETWEEN_CALLS=30
 LLM_MAX_CANDIDATES_PER_RUN=3
 ```
 
-`LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
+시세 사이클은 5분마다 돌지만 OpenAI는 1분봉 이벤트가 발생하고 30분 쿨다운까지 지난 경우에만 호출됩니다. `LLM_MAX_CANDIDATES_PER_RUN`을 `1`이나 `2`로 낮추면 rule-based pre-filter를 통과한 후보 중 상위 일부만 LLM 입력으로 전달합니다. 실제 적용값은 비용 보호를 위해 1~3 범위로 제한됩니다. `/settings/llm-budget`와 Dashboard는 남은 호출 수, 쿨다운, 비용/토큰 잔여량을 함께 보여줍니다. 예산이나 쿨다운을 넘으면 agent run은 실제 LLM을 호출하지 않고 `SKIPPED` decision을 남깁니다.
 
-`/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 paper PnL에서 월간 LLM 예상 비용을 뺀 값을 보여줍니다. 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
+`/portfolio/cost-recovery`와 Dashboard의 cost recovery 카드는 KRW paper PnL에서 월간 LLM 예상 비용(USD)을 `USD_TO_KRW_DISPLAY_RATE` 고정 근사 환율로 원화 환산한 값을 뺀 결과를 보여줍니다. 원본 LLM 비용은 USD로 함께 유지되며, 이는 실수익 보장이 아니라 장기 paper trading에서 “LLM 비용을 감당할 가능성이 있는지”를 관찰하기 위한 운영 지표입니다.
 
 ## Local Development
 
@@ -467,7 +480,7 @@ docker compose exec -T backend python -m compileall app
 docker compose exec -T frontend npm run build
 ```
 
-현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`SectorCandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`)입니다. News Agent는 외부 provider 연결 전 보류 상태이므로 테스트 범위에 포함하지 않았습니다.
+현재 테스트 범위는 LLM 응답 정규화(`DecisionResponseGuard`), rule-based 후보 선별(`CandidateSelector`), 주문 전 deterministic risk guard(`RiskManager`), market/news data client와 `NewsAgent`의 fail-soft 동작을 포함합니다. 외부 API를 다루는 테스트는 모두 mock을 사용합니다.
 
 ## Live Trading Readiness
 

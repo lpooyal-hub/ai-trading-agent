@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models import AgentDecision, DecisionEvaluation, TradeJournalEntry, TradeOrder
-from app.schemas import TradeJournalEntryCreate
+from app.schemas import TradeJournalEntryCreate, TradeJournalEntryUpdate
 
 
 class JournalService:
@@ -61,6 +61,26 @@ class JournalService:
                 "evaluation_window": evaluation.evaluation_window.value if evaluation else None,
             },
         )
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return entry
+
+    def update_entry(
+        self,
+        db: Session,
+        entry_id: int,
+        payload: TradeJournalEntryUpdate,
+    ) -> TradeJournalEntry | None:
+        entry = self.get_entry(db, entry_id)
+        if not entry:
+            return None
+        if payload.agent_self_feedback is not None:
+            entry.agent_self_feedback = payload.agent_self_feedback
+        if payload.lesson is not None:
+            entry.lesson = payload.lesson
+        if payload.strategy_tags is not None:
+            entry.strategy_tags_json = payload.strategy_tags
         db.add(entry)
         db.commit()
         db.refresh(entry)

@@ -9,7 +9,8 @@ from app.models import WorkflowRun, WorkflowRunStatus, WorkflowStep, WorkflowSte
 class WorkflowService:
     agent_workflow_definition = {
         "workflow_name": "agent.run_once",
-        "description": "Agentic trading research workflow with deterministic guards and LLM decision support.",
+        "description": "LangGraph-backed agentic trading research workflow with deterministic guards and LLM decision support.",
+        "engine": "LangGraph StateGraph",
         "nodes": [
             {
                 "id": "runtime_lock",
@@ -42,6 +43,14 @@ class WorkflowService:
                 "uses_llm": False,
                 "runtime": "Python",
                 "responsibility": "Check LLM budget and deterministic execution constraints.",
+            },
+            {
+                "id": "skipped_decision",
+                "label": "Skipped Decision Guard",
+                "agent_type": "system",
+                "uses_llm": False,
+                "runtime": "LangGraph conditional edge",
+                "responsibility": "Persist skipped decision and journal when a guard stops the workflow.",
             },
             {
                 "id": "memory_agent",
@@ -112,6 +121,20 @@ class WorkflowService:
             {"from": "order_agent", "to": "evaluation_agent"},
             {"from": "evaluation_agent", "to": "journal_agent"},
         ],
+        "conditional_edges": [
+            {
+                "from": "news_agent",
+                "condition": "candidate_count > 0",
+                "true": "risk_agent",
+                "false": "skipped_decision",
+            },
+            {
+                "from": "risk_agent",
+                "condition": "llm_budget_approved == true",
+                "true": "memory_agent",
+                "false": "skipped_decision",
+            },
+        ],
         "side_loops": [
             {
                 "name": "evaluation_memory_loop",
@@ -131,12 +154,16 @@ class WorkflowService:
         workflow_name: str,
         trigger_source: str,
         input_json: dict[str, Any] | None = None,
+        session_id: int | None = None,
+        cycle_index: int | None = None,
     ) -> WorkflowRun:
         run = WorkflowRun(
             workflow_name=workflow_name,
             trigger_source=trigger_source,
             status=WorkflowRunStatus.RUNNING,
             input_json=input_json or {},
+            session_id=session_id,
+            cycle_index=cycle_index,
         )
         db.add(run)
         db.commit()
@@ -206,6 +233,35 @@ class WorkflowService:
             .options(selectinload(WorkflowRun.steps))
             .filter(WorkflowRun.id == run_id)
             .first()
+        )
+
+    def fail_running_runs_for_session(self, db: Session, session_id: int, error_message: str) -> None:
+        """Best-effort cleanup for a session that raised mid-loop.
+
+        The graph invocation only returns state on success, so on an in-flight
+        exception we don't have a reliable in-memory reference to which cycle's
+        WorkflowRun was active. Querying by session_id + RUNNING status avoids
+        depending on a stale local variable.
+        """
+        runs = (
+            db.query(WorkflowRun)
+            .filter(WorkflowRun.session_id == session_id, WorkflowRun.status == WorkflowRunStatus.RUNNING)
+            .all()
+        )
+        for run in runs:
+            run.status = WorkflowRunStatus.FAILED
+            run.error_message = error_message
+            run.finished_at = datetime.utcnow()
+            db.add(run)
+        db.commit()
+
+    def list_runs_for_session(self, db: Session, session_id: int) -> list[WorkflowRun]:
+        return (
+            db.query(WorkflowRun)
+            .options(selectinload(WorkflowRun.steps))
+            .filter(WorkflowRun.session_id == session_id)
+            .order_by(WorkflowRun.cycle_index.asc())
+            .all()
         )
 
     def get_latest_run_for_decision(self, db: Session, decision_id: int) -> WorkflowRun | None:

@@ -249,6 +249,44 @@ class LLMUsage(Base):
     raw_usage_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
+class AgentSessionStatus(str, enum.Enum):
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    STOPPED = "STOPPED"
+
+
+class AgentSession(Base):
+    """A continuous multi-cycle agent run. One session owns many WorkflowRun cycles.
+
+    Kept as its own table (rather than reusing WorkflowRun.decision_id, which is
+    singular) because a session can span many decisions over time.
+    """
+
+    __tablename__ = "agent_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    status: Mapped[AgentSessionStatus] = mapped_column(
+        Enum(AgentSessionStatus),
+        default=AgentSessionStatus.RUNNING,
+        index=True,
+    )
+    trigger_source: Mapped[str] = mapped_column(String(100), default="manual")
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cycle_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_cycles: Mapped[int] = mapped_column(Integer, default=1)
+    stop_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    stop_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    redis_lock_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    redis_lock_token: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    runs: Mapped[list["WorkflowRun"]] = relationship(
+        back_populates="session",
+        order_by="WorkflowRun.id",
+    )
+
+
 class WorkflowRun(Base):
     __tablename__ = "workflow_runs"
 
@@ -266,6 +304,14 @@ class WorkflowRun(Base):
         ForeignKey("agent_decisions.id"),
         nullable=True,
     )
+    # Nullable so existing one-shot runs (session_id=None) stay valid. A session's
+    # cycles share session_id and are ordered by cycle_index (0-based).
+    session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("agent_sessions.id"),
+        nullable=True,
+        index=True,
+    )
+    cycle_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     input_json: Mapped[dict] = mapped_column(JSON, default=dict)
     output_json: Mapped[dict] = mapped_column(JSON, default=dict)
     error_message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
@@ -275,6 +321,7 @@ class WorkflowRun(Base):
         cascade="all, delete-orphan",
         order_by="WorkflowStep.id",
     )
+    session: Mapped["AgentSession | None"] = relationship(back_populates="runs")
 
 
 class WorkflowStep(Base):

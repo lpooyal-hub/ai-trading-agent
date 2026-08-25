@@ -11,12 +11,16 @@ from app.schemas import (
     AgentReadinessRead,
     AgentScheduleRead,
     AgentScheduledRunRead,
+    AgentSessionDetailRead,
+    AgentSessionRead,
     AgentStatusRead,
 )
 from app.security import require_admin_api_key
 from app.services.agent_operations_service import AgentOperationsService
+from app.services.agent_session_service import AgentSessionService
 from app.services.agent_service import AgentRunLockedError, AgentService
 from app.services.workflow_execution_service import WorkflowExecutionService
+from app.services.workflow_service import WorkflowService
 
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -91,3 +95,39 @@ def get_agent_operations(db: Session = Depends(get_db)) -> AgentOperationsRead:
 def get_agent_readiness(db: Session = Depends(get_db)) -> AgentReadinessRead:
     service = AgentService()
     return AgentReadinessRead(**service.get_readiness(db))
+
+
+@router.get("/sessions", response_model=list[AgentSessionRead])
+def list_agent_sessions(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+) -> list[AgentSessionRead]:
+    return AgentSessionService().list_sessions(db, limit=limit)
+
+
+@router.get("/sessions/{session_id}", response_model=AgentSessionDetailRead)
+def get_agent_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+) -> AgentSessionDetailRead:
+    session = AgentSessionService().get_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Agent session was not found.")
+    runs = WorkflowService().list_runs_for_session(db, session_id)
+    session_data = AgentSessionRead.model_validate(session).model_dump()
+    return AgentSessionDetailRead(**session_data, runs=runs)
+
+
+@router.post(
+    "/sessions/{session_id}/stop",
+    response_model=AgentSessionRead,
+    dependencies=[Depends(require_admin_api_key)],
+)
+def stop_agent_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+) -> AgentSessionRead:
+    session = AgentSessionService().request_stop(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Agent session was not found.")
+    return session

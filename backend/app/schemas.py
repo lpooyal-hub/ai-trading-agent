@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import (
     AgentAction,
+    AgentSessionStatus,
     DecisionStatus,
     EvaluationWindow,
     OrderSide,
@@ -123,15 +124,15 @@ class BotPositionMarketSyncResponse(BaseModel):
 
 
 class PortfolioSummaryRead(BaseModel):
-    bot_capital_limit_usd: float
-    invested_amount_usd: float
-    available_budget_usd: float
-    min_cash_reserve_usd: float
+    bot_capital_limit_krw: float
+    invested_amount_krw: float
+    available_budget_krw: float
+    min_cash_reserve_krw: float
     bot_position_count: int
     legacy_position_count: int
     protected_legacy_symbols: list[str]
     bot_symbols: list[str]
-    unrealized_pnl_usd: float
+    unrealized_pnl_krw: float
     unrealized_pnl_percent: float
     dry_run: bool
     live_trading_enabled: bool
@@ -142,14 +143,14 @@ class PortfolioSummaryRead(BaseModel):
 class PortfolioPerformanceRead(BaseModel):
     simulated_order_count: int
     live_submitted_order_count: int
-    live_submitted_order_amount_usd: float
+    live_submitted_order_amount_krw: float
     buy_order_count: int
     sell_order_count: int
-    gross_bought_usd: float
-    gross_sold_usd: float
-    realized_pnl_usd: float
-    unrealized_pnl_usd: float
-    total_pnl_usd: float
+    gross_bought_krw: float
+    gross_sold_krw: float
+    realized_pnl_krw: float
+    unrealized_pnl_krw: float
+    total_pnl_krw: float
     total_pnl_percent: float
     winning_sell_count: int
     losing_sell_count: int
@@ -161,12 +162,12 @@ class PortfolioPerformanceRead(BaseModel):
 class PortfolioCostRecoveryRead(BaseModel):
     pnl_scope: str
     llm_cost_scope: str
-    paper_total_pnl_usd: float
-    paper_realized_pnl_usd: float
+    paper_total_pnl_krw: float
+    paper_realized_pnl_krw: float
     monthly_llm_cost_usd: float
     today_llm_cost_usd: float
-    net_after_llm_cost_usd: float
-    realized_net_after_llm_cost_usd: float
+    net_after_llm_cost_krw: float
+    realized_net_after_llm_cost_krw: float
     llm_cost_recovery_ratio: float | None
     realized_llm_cost_recovery_ratio: float | None
     llm_cost_covered: bool | None
@@ -180,17 +181,17 @@ class PortfolioRealizedTradeRead(BaseModel):
     created_at: datetime
     symbol: str
     quantity: float
-    sell_amount_usd: float
-    cost_basis_usd: float
-    realized_pnl_usd: float
+    sell_amount_krw: float
+    cost_basis_krw: float
+    realized_pnl_krw: float
     realized_pnl_percent: float
 
 
 class PortfolioSymbolPerformanceRead(BaseModel):
     symbol: str
     realized_trade_count: int
-    realized_pnl_usd: float
-    sell_amount_usd: float
+    realized_pnl_krw: float
+    sell_amount_krw: float
     win_rate_percent: float
 
 
@@ -243,6 +244,16 @@ class TradeJournalEntryCreate(BaseModel):
     journal_json: dict[str, Any] = Field(default_factory=dict)
 
 
+class TradeJournalEntryUpdate(BaseModel):
+    # Narrow, additive update surface: only the qualitative fields a
+    # reviewer (human or an external Claude routine) fills in after the
+    # fact. Does not allow touching outcome_label/reward_score -- those stay
+    # owned by the deterministic evaluation math in journal_service.py.
+    agent_self_feedback: str | None = None
+    lesson: str | None = None
+    strategy_tags: list[str] | None = None
+
+
 class TradeJournalEntryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -284,6 +295,7 @@ class MemoryLessonRead(BaseModel):
 
 class MemorySummaryRead(BaseModel):
     lookback_journal_entries: int
+    strategy_entry_count: int
     evaluated_entry_count: int
     average_reward_score: float
     win_rate_percent: float
@@ -394,7 +406,7 @@ class AgentAutomationPolicyRead(BaseModel):
     automation_mode: str
     paper_auto_enabled: bool
     min_confidence: float
-    max_order_amount_usd: float
+    max_order_amount_krw: float
     dry_run: bool
     live_trading_enabled: bool
     blockers: list[str]
@@ -450,6 +462,12 @@ class AgentCandidateRead(BaseModel):
     reason: str
     change_percent: float
     volume: float
+    return_5m_percent: float | None = None
+    return_15m_percent: float | None = None
+    volume_ratio: float | None = None
+    vwap_deviation_percent: float | None = None
+    spread_percent: float | None = None
+    event_triggered: bool | None = None
 
 
 class AgentReadinessRead(BaseModel):
@@ -703,23 +721,30 @@ class SafetySettingsRead(BaseModel):
     dry_run: bool
     live_trading_enabled: bool
     use_mock_data: bool
-    bot_capital_limit_usd: float
-    max_order_amount_usd: float
+    bot_capital_limit_krw: float
+    max_order_amount_krw: float
     max_positions: int
     max_daily_trades: int
     max_symbol_exposure_percent: float
-    min_cash_reserve_usd: float
+    min_cash_reserve_krw: float
     fractional_trading_enabled: bool
-    min_order_amount_usd: float
+    min_order_amount_krw: float
     quantity_decimal_places: int
     order_sizing_mode: str
-    allowed_sector: str
     allowed_symbols: list[str]
     forbidden_keywords: list[str]
     protected_symbols: list[str]
     default_stop_mode: str
     hard_max_position_loss_percent: float
     hard_daily_loss_limit_percent: float
+    position_exit_enabled: bool
+    position_stop_loss_percent: float
+    position_take_profit_percent: float
+    position_trailing_stop_enabled: bool
+    position_trailing_activation_percent: float
+    position_trailing_distance_percent: float
+    position_max_holding_trading_days: int
+    position_exit_max_snapshot_age_seconds: int
     llm_daily_call_limit: int
     llm_min_minutes_between_calls: int
     llm_max_candidates_per_run: int
@@ -731,10 +756,13 @@ class SafetySettingsRead(BaseModel):
     agent_automation_enabled: bool
     agent_automation_mode: str
     agent_auto_execute_min_confidence: float
-    agent_auto_execute_max_order_amount_usd: float
+    agent_auto_execute_max_order_amount_krw: float
     paper_auto_enabled: bool
     agent_scheduler_enabled: bool
     agent_scheduler_interval_minutes: int
+    intraday_signals_enabled: bool
+    intraday_shortlist_size: int
+    intraday_candle_count: int
     agent_scheduler_market_hours_only: bool
     agent_market_timezone: str
     agent_market_open_time: str
@@ -774,3 +802,26 @@ class LiveTradingReadinessRead(BaseModel):
     adapter_checklist: list[str]
     blockers: list[str]
     next_actions: list[str]
+
+
+class AgentSessionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status: AgentSessionStatus
+    trigger_source: str
+    started_at: datetime
+    finished_at: datetime | None
+    cycle_count: int
+    max_cycles: int
+    stop_reason: str | None
+    stop_requested: bool
+
+
+class AgentSessionWorkflowRunRead(WorkflowRunRead):
+    session_id: int
+    cycle_index: int
+
+
+class AgentSessionDetailRead(AgentSessionRead):
+    runs: list[AgentSessionWorkflowRunRead] = Field(default_factory=list)

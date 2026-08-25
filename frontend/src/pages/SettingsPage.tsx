@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, BrokerStatus, LiveTradingReadiness, LLMBudget, LLMReadiness, LLMSmokeTest, SafetySettings, SecurityReadiness } from "../api/client";
-import { statusLabel } from "../utils/labels";
+import { formatKRW, formatKRWLimit } from "../utils/currency";
+import { statusLabel, symbolLabel } from "../utils/labels";
 
 function boolLabel(value: boolean | undefined, fallback = false) {
   return (value ?? fallback) ? "예" : "아니오";
@@ -109,40 +110,52 @@ export function SettingsPage() {
         <div><dt>LLM 차단 사유</dt><dd>{listOrNone(llmReadiness?.blockers)}</dd></div>
         <div><dt>LLM 다음 조치</dt><dd>{listOrNone(llmReadiness?.next_actions)}</dd></div>
         <div><dt>실거래 준비</dt><dd>{boolLabel(broker?.live_ready)}</dd></div>
-        <div><dt>DRY_RUN</dt><dd>{boolLabel(settings?.dry_run, true)}</dd></div>
-        <div><dt>LIVE_TRADING_ENABLED</dt><dd>{boolLabel(settings?.live_trading_enabled)}</dd></div>
-        <div><dt>USE_MOCK_DATA</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
-        <div><dt>BOT_CAPITAL_LIMIT_USD</dt><dd>${settings?.bot_capital_limit_usd.toFixed(2) ?? "250.00"}</dd></div>
-        <div><dt>MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.max_order_amount_usd.toFixed(2) ?? "100.00"}</dd></div>
-        <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent.toFixed(1) ?? "40.0"}%</dd></div>
-        <div><dt>FRACTIONAL_TRADING_ENABLED</dt><dd>{boolLabel(settings?.fractional_trading_enabled, true)}</dd></div>
+        <div><dt>모의 실행 (DRY_RUN)</dt><dd>{boolLabel(settings?.dry_run, true)}</dd></div>
+        <div><dt>실거래 활성화 (LIVE_TRADING_ENABLED)</dt><dd>{boolLabel(settings?.live_trading_enabled)}</dd></div>
+        <div><dt>모의 데이터 (USE_MOCK_DATA)</dt><dd>{boolLabel(settings?.use_mock_data, true)}</dd></div>
+        <div><dt>BOT_CAPITAL_LIMIT_KRW</dt><dd>{formatKRW(settings?.bot_capital_limit_krw ?? 300000)}</dd></div>
+        <div><dt>MAX_ORDER_AMOUNT_KRW</dt><dd>{formatKRWLimit(settings?.max_order_amount_krw ?? 130000)}</dd></div>
+        <div><dt>MAX_SYMBOL_EXPOSURE_PERCENT</dt><dd>{settings?.max_symbol_exposure_percent?.toFixed(1) ?? "40.0"}%</dd></div>
+        <div><dt>FRACTIONAL_TRADING_ENABLED</dt><dd>{boolLabel(settings?.fractional_trading_enabled)}</dd></div>
         <div><dt>ORDER_SIZING_MODE</dt><dd>{settings?.order_sizing_mode ?? "notional"}</dd></div>
-        <div><dt>MIN_ORDER_AMOUNT_USD</dt><dd>${settings?.min_order_amount_usd.toFixed(2) ?? "5.00"}</dd></div>
-        <div><dt>QUANTITY_DECIMAL_PLACES</dt><dd>{settings?.quantity_decimal_places ?? 6}</dd></div>
+        <div><dt>MIN_CASH_RESERVE_KRW</dt><dd>{formatKRW(settings?.min_cash_reserve_krw ?? 30000)}</dd></div>
+        <div><dt>MIN_ORDER_AMOUNT_KRW</dt><dd>{formatKRW(settings?.min_order_amount_krw ?? 5000)}</dd></div>
+        <div><dt>QUANTITY_DECIMAL_PLACES</dt><dd>{settings?.quantity_decimal_places ?? 0}</dd></div>
         <div><dt>MAX_DAILY_TRADES</dt><dd>{settings?.max_daily_trades ?? 5}</dd></div>
-        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols.join(", ") ?? "-"}</dd></div>
-        <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords.join(", ") ?? "-"}</dd></div>
-        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols.join(", ") ?? "-"}</dd></div>
-        <div><dt>일일 LLM 예산 잔여</dt><dd>${budget?.daily_cost_remaining_usd.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>허용 종목</dt><dd>{settings?.allowed_symbols?.map(symbolLabel).join(", ") ?? "-"}</dd></div>
+        <div><dt>금지 키워드</dt><dd>{settings?.forbidden_keywords?.join(", ") ?? "-"}</dd></div>
+        <div><dt>보호 종목</dt><dd>{settings?.protected_symbols?.map(symbolLabel).join(", ") ?? "-"}</dd></div>
+        <div><dt>자동 청산 정책</dt><dd>{boolLabel(settings?.position_exit_enabled)}</dd></div>
+        <div><dt>고정 손절</dt><dd>-{settings?.position_stop_loss_percent ?? 5}%</dd></div>
+        <div><dt>고정 익절</dt><dd>+{settings?.position_take_profit_percent ?? 8}%</dd></div>
+        <div><dt>트레일링 스톱</dt><dd>{boolLabel(settings?.position_trailing_stop_enabled)}</dd></div>
+        <div><dt>트레일링 발동 수익</dt><dd>+{settings?.position_trailing_activation_percent ?? 4}%</dd></div>
+        <div><dt>고점 대비 청산 하락폭</dt><dd>{settings?.position_trailing_distance_percent ?? 2.5}%</dd></div>
+        <div><dt>최대 보유기간</dt><dd>{settings?.position_max_holding_trading_days ?? 10} 거래일</dd></div>
+        <div><dt>청산 시세 허용 나이</dt><dd>{settings?.position_exit_max_snapshot_age_seconds ?? 120}초</dd></div>
+        <div><dt>일일 LLM 예산 잔여</dt><dd>${budget?.daily_cost_remaining_usd?.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>일일 LLM 호출 잔여</dt><dd>{budget?.daily_calls_remaining ?? 0} / {budget?.daily_call_limit ?? 0}</dd></div>
         <div><dt>일일 토큰 잔여</dt><dd>{budget?.daily_tokens_remaining ?? 0}</dd></div>
         <div><dt>LLM 쿨다운</dt><dd>{budget?.cooldown_remaining_minutes ?? 0}분 남음 / {settings?.llm_min_minutes_between_calls ?? 60}분 간격</dd></div>
         <div><dt>LLM_MAX_CANDIDATES_PER_RUN</dt><dd>{settings?.llm_max_candidates_per_run ?? 3}</dd></div>
         <div><dt>LLM_MODEL_DECISION</dt><dd>{settings?.llm_model_decision ?? "-"}</dd></div>
-        <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
-        <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>LLM_INPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_input_cost_per_1m_tokens_usd?.toFixed(4) ?? "0.0000"}</dd></div>
+        <div><dt>LLM_OUTPUT_COST_PER_1M_TOKENS_USD</dt><dd>${settings?.llm_output_cost_per_1m_tokens_usd?.toFixed(4) ?? "0.0000"}</dd></div>
         <div><dt>OPENAI_TIMEOUT_SECONDS</dt><dd>{settings?.openai_timeout_seconds ?? 30}</dd></div>
         <div><dt>AGENT_AUTOMATION_ENABLED</dt><dd>{boolLabel(settings?.agent_automation_enabled)}</dd></div>
         <div><dt>AGENT_AUTOMATION_MODE</dt><dd>{settings?.agent_automation_mode ?? "manual_approval"}</dd></div>
         <div><dt>PAPER_AUTO_ENABLED</dt><dd>{boolLabel(settings?.paper_auto_enabled)}</dd></div>
         <div><dt>AGENT_AUTO_EXECUTE_MIN_CONFIDENCE</dt><dd>{settings?.agent_auto_execute_min_confidence ?? 0.75}</dd></div>
-        <div><dt>AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_USD</dt><dd>${settings?.agent_auto_execute_max_order_amount_usd.toFixed(2) ?? "50.00"}</dd></div>
+        <div><dt>AGENT_AUTO_EXECUTE_MAX_ORDER_AMOUNT_KRW</dt><dd>{formatKRWLimit(settings?.agent_auto_execute_max_order_amount_krw ?? 65000)}</dd></div>
         <div><dt>AGENT_SCHEDULER_ENABLED</dt><dd>{boolLabel(settings?.agent_scheduler_enabled)}</dd></div>
         <div><dt>AGENT_SCHEDULER_INTERVAL_MINUTES</dt><dd>{settings?.agent_scheduler_interval_minutes ?? 60}</dd></div>
+        <div><dt>INTRADAY_SIGNALS_ENABLED</dt><dd>{boolLabel(settings?.intraday_signals_enabled)}</dd></div>
+        <div><dt>INTRADAY_SHORTLIST_SIZE</dt><dd>{settings?.intraday_shortlist_size ?? 6}</dd></div>
+        <div><dt>INTRADAY_CANDLE_COUNT</dt><dd>{settings?.intraday_candle_count ?? 30}</dd></div>
         <div><dt>AGENT_SCHEDULER_MARKET_HOURS_ONLY</dt><dd>{boolLabel(settings?.agent_scheduler_market_hours_only, true)}</dd></div>
-        <div><dt>AGENT_MARKET_TIMEZONE</dt><dd>{settings?.agent_market_timezone ?? "America/New_York"}</dd></div>
-        <div><dt>AGENT_MARKET_WINDOW</dt><dd>{settings?.agent_market_open_time ?? "09:30"}-{settings?.agent_market_close_time ?? "16:00"}</dd></div>
-        <div><dt>AGENT_MARKET_CLOSED_DATES</dt><dd>{(settings?.agent_market_closed_dates ?? []).length ? settings?.agent_market_closed_dates.join(", ") : "-"}</dd></div>
+        <div><dt>AGENT_MARKET_TIMEZONE</dt><dd>{settings?.agent_market_timezone ?? "Asia/Seoul"}</dd></div>
+        <div><dt>AGENT_MARKET_WINDOW</dt><dd>{settings?.agent_market_open_time ?? "09:00"}-{settings?.agent_market_close_time ?? "15:30"}</dd></div>
+        <div><dt>AGENT_MARKET_CLOSED_DATES</dt><dd>{(settings?.agent_market_closed_dates ?? []).length ? settings?.agent_market_closed_dates?.join(", ") : "-"}</dd></div>
         <div><dt>TOSS_BASE_URL</dt><dd>{settings?.toss_base_url ?? "-"}</dd></div>
         <div><dt>TOSS_TOKEN_PATH</dt><dd>{boolLabel(settings?.toss_token_path_configured)}</dd></div>
         <div><dt>TOSS_ACCOUNT_LIST_PATH</dt><dd>{boolLabel(settings?.toss_accounts_path_configured)}</dd></div>

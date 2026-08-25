@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api, BotPosition, LegacyPosition, PortfolioPerformance, PortfolioRealizedTrade, PortfolioSummary, PortfolioSymbolPerformance } from "../api/client";
 import { PositionTable } from "../components/PositionTable";
 import { StatCard } from "../components/StatCard";
+import { formatKRW } from "../utils/currency";
+import { symbolLabel } from "../utils/labels";
 
 export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
@@ -95,16 +97,16 @@ export function PortfolioPage() {
       {legacySyncBlocked ? <div className="notice">봇 포지션이 생긴 뒤에는 기존 보유분 브로커 동기화를 차단합니다.</div> : null}
       {message ? <div className="notice">{message}</div> : null}
       <div className="stat-grid">
-        <StatCard label="사용 가능 예산" value={`$${summary?.available_budget_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="투입 금액" value={`$${summary?.invested_amount_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="미실현 손익률" value={`${summary?.unrealized_pnl_percent.toFixed(2) ?? "0.00"}%`} />
-        <StatCard label="실현 손익" value={`$${performance?.realized_pnl_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="전체 손익" value={`$${performance?.total_pnl_usd.toFixed(2) ?? "0.00"}`} detail={`${performance?.total_pnl_percent.toFixed(2) ?? "0.00"}%`} />
-        <StatCard label="매수 금액" value={`$${performance?.gross_bought_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="매도 금액" value={`$${performance?.gross_sold_usd.toFixed(2) ?? "0.00"}`} />
-        <StatCard label="승률" value={`${performance?.win_rate_percent.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
+        <StatCard label="사용 가능 예산" value={formatKRW(summary?.available_budget_krw ?? 0)} />
+        <StatCard label="투입 금액" value={formatKRW(summary?.invested_amount_krw ?? 0)} />
+        <StatCard label="미실현 손익률" value={`${summary?.unrealized_pnl_percent?.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="실현 손익" value={formatKRW(performance?.realized_pnl_krw ?? 0)} />
+        <StatCard label="전체 손익" value={formatKRW(performance?.total_pnl_krw ?? 0)} detail={`${performance?.total_pnl_percent?.toFixed(2) ?? "0.00"}%`} />
+        <StatCard label="매수 금액" value={formatKRW(performance?.gross_bought_krw ?? 0)} />
+        <StatCard label="매도 금액" value={formatKRW(performance?.gross_sold_krw ?? 0)} />
+        <StatCard label="승률" value={`${performance?.win_rate_percent?.toFixed(2) ?? "0.00"}%`} detail={`${performance?.winning_sell_count ?? 0}승 / ${performance?.losing_sell_count ?? 0}패`} />
         <StatCard label="모의 주문" value={`${performance?.simulated_order_count ?? 0}`} detail={`${performance?.buy_order_count ?? 0} 매수 / ${performance?.sell_order_count ?? 0} 매도`} />
-        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={`$${performance?.live_submitted_order_amount_usd.toFixed(2) ?? "0.00"}`} />
+        <StatCard label="실주문 제출" value={`${performance?.live_submitted_order_count ?? 0}`} detail={formatKRW(performance?.live_submitted_order_amount_krw ?? 0)} />
         <StatCard label="봇 포지션" value={`${summary?.bot_position_count ?? 0}`} />
         <StatCard label="기존 보유분" value={`${summary?.legacy_position_count ?? 0}`} />
       </div>
@@ -124,10 +126,10 @@ export function PortfolioPage() {
             <tbody>
               {symbolPerformance.map((row) => (
                 <tr key={row.symbol}>
-                  <td>{row.symbol}</td>
+                  <td>{symbolLabel(row.symbol)}</td>
                   <td>{row.realized_trade_count}</td>
-                  <td>${row.sell_amount_usd.toFixed(2)}</td>
-                  <td>${row.realized_pnl_usd.toFixed(2)}</td>
+                  <td>{formatKRW(row.sell_amount_krw)}</td>
+                  <td>{formatKRW(row.realized_pnl_krw)}</td>
                   <td>{row.win_rate_percent.toFixed(2)}%</td>
                 </tr>
               ))}
@@ -161,11 +163,11 @@ export function PortfolioPage() {
               {recentRealizedTrades.map((trade) => (
                 <tr key={trade.order_id}>
                   <td>{new Date(trade.created_at).toLocaleString()}</td>
-                  <td>{trade.symbol}</td>
+                  <td>{symbolLabel(trade.symbol)}</td>
                   <td>{trade.quantity.toFixed(4)}</td>
-                  <td>${trade.sell_amount_usd.toFixed(2)}</td>
-                  <td>${trade.cost_basis_usd.toFixed(2)}</td>
-                  <td>${trade.realized_pnl_usd.toFixed(2)} ({trade.realized_pnl_percent.toFixed(2)}%)</td>
+                  <td>{formatKRW(trade.sell_amount_krw)}</td>
+                  <td>{formatKRW(trade.cost_basis_krw)}</td>
+                  <td>{formatKRW(trade.realized_pnl_krw)} ({trade.realized_pnl_percent.toFixed(2)}%)</td>
                 </tr>
               ))}
               {!recentRealizedTrades.length ? (

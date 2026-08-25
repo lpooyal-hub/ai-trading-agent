@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, AgentDecision, DecisionEvaluation, DecisionPreview, TradeJournalEntry, TradeOrder } from "../api/client";
+import { formatKRW } from "../utils/currency";
 import { decisionGuardWarnings } from "../utils/decisionSafety";
-import { actionLabel, evaluationWindowLabel, outcomeLabel, statusLabel } from "../utils/labels";
+import { actionLabel, evaluationWindowLabel, outcomeLabel, statusLabel, symbolLabel } from "../utils/labels";
 
 function orderFillSummary(order: TradeOrder) {
   const intent = order.raw_response_json.order_intent;
@@ -119,7 +120,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
       <header className="page-header">
         <div>
           <p className="eyebrow">판단 #{decision.id}</p>
-          <h2>{decision.symbol} {actionLabel(decision.action)}</h2>
+          <h2>{symbolLabel(decision.symbol)} {actionLabel(decision.action)}</h2>
         </div>
         <button className="primary-button" disabled={isApproving || (preview ? !preview.approved : false)} onClick={approve} type="button">
           {isApproving ? "승인 중..." : `${statusLabel(preview?.execution_mode ?? "판단")} 승인`}
@@ -129,8 +130,8 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
       <div className="detail-grid">
         <section>
           <h3>주문 미리보기</h3>
-          <p>{preview ? `${actionLabel(preview.side)} ${preview.estimated_quantity.toFixed(6)} ${preview.symbol} · $${preview.estimated_price.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
-          <p>{preview ? `$${preview.estimated_order_amount.toFixed(2)} · ${statusLabel(preview.execution_mode)}` : null}</p>
+          <p>{preview ? `${actionLabel(preview.side)} ${preview.estimated_quantity.toFixed(6)} ${symbolLabel(preview.symbol)} · ${formatKRW(preview.estimated_price)}` : "미리보기를 사용할 수 없습니다."}</p>
+          <p>{preview ? `${formatKRW(preview.estimated_order_amount)} · ${statusLabel(preview.execution_mode)}` : null}</p>
         </section>
         <section>
           <h3>리스크 검증</h3>
@@ -138,7 +139,7 @@ export function DecisionDetailPage({ decisionId }: { decisionId: number | null }
         </section>
         <section>
           <h3>예산 영향</h3>
-          <p>{preview ? `사용 가능 $${preview.available_budget.toFixed(2)} · 노출 $${preview.bot_exposure.toFixed(2)}` : "미리보기를 사용할 수 없습니다."}</p>
+          <p>{preview ? `사용 가능 ${formatKRW(preview.available_budget)} · 노출 ${formatKRW(preview.bot_exposure)}` : "미리보기를 사용할 수 없습니다."}</p>
         </section>
         <section>
           <h3>포지션 범위</h3>

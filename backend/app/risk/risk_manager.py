@@ -21,7 +21,6 @@ class RiskManager:
         sell_quantity: float | None = None,
     ) -> dict[str, bool | str]:
         symbol = self._read(decision, "symbol", "").upper()
-        sector = self._read(decision, "sector", "").lower()
         action = self._read(decision, "action", "")
         amount = float(self._read(decision, "recommended_order_amount", 0) or 0)
         price = float(self._read(decision, "current_price", 0) or 0)
@@ -30,45 +29,48 @@ class RiskManager:
         if not self.settings.dry_run and not self.settings.live_trading_enabled:
             return self._reject("Live trading is disabled while DRY_RUN is false.")
 
-        if symbol not in self.settings.allowed_symbols:
-            return self._reject(f"Symbol {symbol} is outside the active universe.")
-
-        if symbol in self.settings.protected_symbols:
-            return self._reject(f"Symbol {symbol} is protected and cannot be traded.")
-
-        if sector != self.settings.allowed_sector.lower():
-            return self._reject(f"Sector {sector} is not allowed.")
-
-        if self._contains_forbidden_keyword(name):
-            return self._reject("Product name contains a forbidden leveraged/inverse keyword.")
+        if not self.settings.dry_run and self.settings.max_order_amount_limit_krw is None:
+            return self._reject("MAX_ORDER_AMOUNT_KRW must be positive for live trading.")
 
         legacy_position = self._get_legacy_position(db, symbol)
         bot_position = self._get_bot_position(db, symbol)
+        is_bot_exit = action == AgentAction.SELL and bot_position is not None
+
+        if symbol not in self.settings.allowed_symbols and not is_bot_exit:
+            return self._reject(f"Symbol {symbol} is outside the active universe.")
+
+        if symbol in self.settings.protected_symbols and not is_bot_exit:
+            return self._reject(f"Symbol {symbol} is protected and cannot be traded.")
+
+        if self._contains_forbidden_keyword(name) and not is_bot_exit:
+            return self._reject("Product name contains a forbidden leveraged/inverse keyword.")
+
         if legacy_position and not bot_position:
             return self._reject(f"Symbol {symbol} exists only as a protected legacy position.")
 
-        if amount > self.settings.max_order_amount_usd:
-            return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_USD.")
+        max_order_amount = self.settings.max_order_amount_limit_krw
+        if not is_bot_exit and max_order_amount is not None and amount > max_order_amount:
+            return self._reject("Recommended order amount exceeds MAX_ORDER_AMOUNT_KRW.")
 
-        if action in {AgentAction.BUY, AgentAction.SELL} and amount < self.settings.min_order_amount_usd:
-            return self._reject("Recommended order amount is below MIN_ORDER_AMOUNT_USD.")
+        if action == AgentAction.BUY and amount < self.settings.min_order_amount_krw:
+            return self._reject("Recommended order amount is below MIN_ORDER_AMOUNT_KRW.")
 
         estimated_quantity = self._estimate_quantity(amount, price)
         if (
-            action in {AgentAction.BUY, AgentAction.SELL}
+            action == AgentAction.BUY
             and not self.settings.fractional_trading_enabled
             and estimated_quantity < 1
         ):
             return self._reject("Fractional trading is disabled and estimated quantity is below 1 share.")
 
         exposure = self.calculate_bot_exposure(db)
-        if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_usd:
-            return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_USD.")
+        if action == AgentAction.BUY and amount + exposure > self.settings.bot_capital_limit_krw:
+            return self._reject("Total bot invested amount would exceed BOT_CAPITAL_LIMIT_KRW.")
 
         budget = (
             available_bot_budget
             if available_bot_budget is not None
-            else self.settings.bot_capital_limit_usd - exposure
+            else self.settings.bot_capital_limit_krw - exposure
         )
         if action == AgentAction.BUY and amount > budget:
             return self._reject("Available bot budget is insufficient.")
@@ -82,7 +84,11 @@ class RiskManager:
             if open_positions >= self.settings.max_positions:
                 return self._reject("MAX_POSITIONS would be exceeded.")
 
-        if self.count_today_simulated_trades(db) >= self.settings.max_daily_trades:
+        if (
+            not is_bot_exit
+            and self.settings.max_daily_trades > 0
+            and self.count_today_simulated_trades(db) >= self.settings.max_daily_trades
+        ):
             return self._reject("MAX_DAILY_TRADES has been reached.")
 
         if action == AgentAction.SELL:
@@ -91,13 +97,14 @@ class RiskManager:
             if requested_quantity > owned_quantity:
                 return self._reject("Sell quantity exceeds bot-owned quantity.")
 
-        position_loss_reason = self._position_loss_guardrail_reason(db)
-        if position_loss_reason:
-            return self._reject(position_loss_reason)
+        if action == AgentAction.BUY:
+            position_loss_reason = self._position_loss_guardrail_reason(db)
+            if position_loss_reason:
+                return self._reject(position_loss_reason)
 
-        daily_loss_reason = self._daily_loss_guardrail_reason(db)
-        if daily_loss_reason:
-            return self._reject(daily_loss_reason)
+            daily_loss_reason = self._daily_loss_guardrail_reason(db)
+            if daily_loss_reason:
+                return self._reject(daily_loss_reason)
 
         return {"approved": True, "reason": "Approved by RiskManager."}
 
@@ -181,7 +188,7 @@ class RiskManager:
         if max_percent <= 0:
             return None
 
-        max_symbol_exposure = self.settings.bot_capital_limit_usd * (max_percent / 100)
+        max_symbol_exposure = self.settings.bot_capital_limit_krw * (max_percent / 100)
         current_symbol_exposure = bot_position.total_invested_amount if bot_position else 0
         projected_symbol_exposure = current_symbol_exposure + order_amount
         if projected_symbol_exposure > max_symbol_exposure:

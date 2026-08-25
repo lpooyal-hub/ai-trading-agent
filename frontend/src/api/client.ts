@@ -32,15 +32,15 @@ export type HealthResponse = {
 };
 
 export type PortfolioSummary = {
-  bot_capital_limit_usd: number;
-  invested_amount_usd: number;
-  available_budget_usd: number;
-  min_cash_reserve_usd: number;
+  bot_capital_limit_krw: number;
+  invested_amount_krw: number;
+  available_budget_krw: number;
+  min_cash_reserve_krw: number;
   bot_position_count: number;
   legacy_position_count: number;
   protected_legacy_symbols: string[];
   bot_symbols: string[];
-  unrealized_pnl_usd: number;
+  unrealized_pnl_krw: number;
   unrealized_pnl_percent: number;
   dry_run: boolean;
   live_trading_enabled: boolean;
@@ -123,6 +123,7 @@ export type MemoryLesson = {
 
 export type MemorySummary = {
   lookback_journal_entries: number;
+  strategy_entry_count: number;
   evaluated_entry_count: number;
   average_reward_score: number;
   win_rate_percent: number;
@@ -167,6 +168,29 @@ export type WorkflowRun = {
   steps: WorkflowStep[];
 };
 
+export type AgentSessionStatus = "RUNNING" | "SUCCEEDED" | "FAILED" | "STOPPED";
+
+export type AgentSession = {
+  id: number;
+  status: AgentSessionStatus;
+  trigger_source: string;
+  started_at: string;
+  finished_at: string | null;
+  cycle_count: number;
+  max_cycles: number;
+  stop_reason: string | null;
+  stop_requested: boolean;
+};
+
+export type AgentSessionWorkflowRun = WorkflowRun & {
+  session_id: number;
+  cycle_index: number;
+};
+
+export type AgentSessionDetail = AgentSession & {
+  runs: AgentSessionWorkflowRun[];
+};
+
 export type WorkflowNode = {
   id: string;
   label: string;
@@ -181,6 +205,13 @@ export type WorkflowEdge = {
   to: string;
 };
 
+export type WorkflowConditionalEdge = {
+  from: string;
+  condition: string;
+  true: string;
+  false: string;
+};
+
 export type WorkflowSideLoop = {
   name: string;
   description: string;
@@ -190,8 +221,10 @@ export type WorkflowSideLoop = {
 export type WorkflowDefinition = {
   workflow_name: string;
   description: string;
+  engine?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
+  conditional_edges?: WorkflowConditionalEdge[];
   side_loops: WorkflowSideLoop[];
 };
 
@@ -229,6 +262,12 @@ export type AgentCandidate = {
   reason: string;
   change_percent: number;
   volume: number;
+  return_5m_percent?: number;
+  return_15m_percent?: number;
+  volume_ratio?: number;
+  vwap_deviation_percent?: number;
+  spread_percent?: number;
+  event_triggered?: boolean;
 };
 
 export type AgentAutomationPolicy = {
@@ -236,7 +275,7 @@ export type AgentAutomationPolicy = {
   automation_mode: string;
   paper_auto_enabled: boolean;
   min_confidence: number;
-  max_order_amount_usd: number;
+  max_order_amount_krw: number;
   dry_run: boolean;
   live_trading_enabled: boolean;
   blockers: string[];
@@ -363,14 +402,14 @@ export type BotPositionMarketSyncResponse = {
 export type PortfolioPerformance = {
   simulated_order_count: number;
   live_submitted_order_count: number;
-  live_submitted_order_amount_usd: number;
+  live_submitted_order_amount_krw: number;
   buy_order_count: number;
   sell_order_count: number;
-  gross_bought_usd: number;
-  gross_sold_usd: number;
-  realized_pnl_usd: number;
-  unrealized_pnl_usd: number;
-  total_pnl_usd: number;
+  gross_bought_krw: number;
+  gross_sold_krw: number;
+  realized_pnl_krw: number;
+  unrealized_pnl_krw: number;
+  total_pnl_krw: number;
   total_pnl_percent: number;
   winning_sell_count: number;
   losing_sell_count: number;
@@ -382,12 +421,12 @@ export type PortfolioPerformance = {
 export type PortfolioCostRecovery = {
   pnl_scope: string;
   llm_cost_scope: string;
-  paper_total_pnl_usd: number;
-  paper_realized_pnl_usd: number;
+  paper_total_pnl_krw: number;
+  paper_realized_pnl_krw: number;
   monthly_llm_cost_usd: number;
   today_llm_cost_usd: number;
-  net_after_llm_cost_usd: number;
-  realized_net_after_llm_cost_usd: number;
+  net_after_llm_cost_krw: number;
+  realized_net_after_llm_cost_krw: number;
   llm_cost_recovery_ratio: number | null;
   realized_llm_cost_recovery_ratio: number | null;
   llm_cost_covered: boolean | null;
@@ -401,17 +440,17 @@ export type PortfolioRealizedTrade = {
   created_at: string;
   symbol: string;
   quantity: number;
-  sell_amount_usd: number;
-  cost_basis_usd: number;
-  realized_pnl_usd: number;
+  sell_amount_krw: number;
+  cost_basis_krw: number;
+  realized_pnl_krw: number;
   realized_pnl_percent: number;
 };
 
 export type PortfolioSymbolPerformance = {
   symbol: string;
   realized_trade_count: number;
-  realized_pnl_usd: number;
-  sell_amount_usd: number;
+  realized_pnl_krw: number;
+  sell_amount_krw: number;
   win_rate_percent: number;
 };
 
@@ -576,23 +615,30 @@ export type SafetySettings = {
   dry_run: boolean;
   live_trading_enabled: boolean;
   use_mock_data: boolean;
-  bot_capital_limit_usd: number;
-  max_order_amount_usd: number;
+  bot_capital_limit_krw: number;
+  max_order_amount_krw: number;
   max_positions: number;
   max_daily_trades: number;
   max_symbol_exposure_percent: number;
-  min_cash_reserve_usd: number;
+  min_cash_reserve_krw: number;
   fractional_trading_enabled: boolean;
-  min_order_amount_usd: number;
+  min_order_amount_krw: number;
   quantity_decimal_places: number;
   order_sizing_mode: string;
-  allowed_sector: string;
   allowed_symbols: string[];
   forbidden_keywords: string[];
   protected_symbols: string[];
   default_stop_mode: string;
   hard_max_position_loss_percent: number;
   hard_daily_loss_limit_percent: number;
+  position_exit_enabled: boolean;
+  position_stop_loss_percent: number;
+  position_take_profit_percent: number;
+  position_trailing_stop_enabled: boolean;
+  position_trailing_activation_percent: number;
+  position_trailing_distance_percent: number;
+  position_max_holding_trading_days: number;
+  position_exit_max_snapshot_age_seconds: number;
   llm_daily_call_limit: number;
   llm_min_minutes_between_calls: number;
   llm_max_candidates_per_run: number;
@@ -604,10 +650,13 @@ export type SafetySettings = {
   agent_automation_enabled: boolean;
   agent_automation_mode: string;
   agent_auto_execute_min_confidence: number;
-  agent_auto_execute_max_order_amount_usd: number;
+  agent_auto_execute_max_order_amount_krw: number;
   paper_auto_enabled: boolean;
   agent_scheduler_enabled: boolean;
   agent_scheduler_interval_minutes: number;
+  intraday_signals_enabled: boolean;
+  intraday_shortlist_size: number;
+  intraday_candle_count: number;
   agent_scheduler_market_hours_only: boolean;
   agent_market_timezone: string;
   agent_market_open_time: string;
@@ -761,6 +810,9 @@ export const api = {
   getAgentAutomationPolicy: () => request<AgentAutomationPolicy>("/agent/automation-policy"),
   getAgentSchedule: () => request<AgentSchedule>("/agent/schedule"),
   getAgentOperations: () => request<AgentOperations>("/agent/operations"),
+  getAgentSessions: (limit = 50) => request<AgentSession[]>(`/agent/sessions?limit=${limit}`),
+  getAgentSession: (id: number) => request<AgentSessionDetail>(`/agent/sessions/${id}`),
+  stopAgentSession: (id: number) => request<AgentSession>(`/agent/sessions/${id}/stop`, { method: "POST" }),
   getDecisions: (filters?: DecisionFilters) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);

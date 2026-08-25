@@ -13,18 +13,76 @@ class MarketService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.mock_client = MockMarketDataClient()
-        self.market_data_client = MarketDataClient()
+        # Pass settings through explicitly -- previously this constructed
+        # MarketDataClient() with no settings, so it silently used the
+        # process-wide get_settings() instead of this MarketService's
+        # settings (harmless while MarketDataClient was a no-op placeholder,
+        # but wrong now that it makes real Toss API calls, and it broke test
+        # isolation for anyone constructing MarketService(custom_settings)).
+        self.market_data_client = MarketDataClient(self.settings)
 
-    def refresh_active_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
-        latest_snapshots = self.get_latest_universe_snapshots(db)
-        if not self.settings.use_mock_data:
-            return latest_snapshots
+    def refresh_active_universe_snapshots(
+        self,
+        db: Session,
+        extra_symbols: list[str] | None = None,
+    ) -> list[MarketSnapshot]:
+        return self.refresh_active_universe_snapshot_result(db, extra_symbols=extra_symbols)["snapshots"]
 
-        raw_snapshots = self.mock_client.get_demo_snapshots(
-            symbols=self.settings.active_universe,
-            sector=self.settings.allowed_sector,
+    def refresh_active_universe_snapshot_result(
+        self,
+        db: Session,
+        extra_symbols: list[str] | None = None,
+    ) -> dict:
+        symbols = list(
+            dict.fromkeys(
+                [*self.settings.active_universe, *(item.upper() for item in (extra_symbols or []))]
+            )
         )
-        allowed_symbols = set(self.settings.active_universe)
+        if self.settings.use_mock_data:
+            return self._refresh_mock_snapshot_result(db, symbols)
+        return self._refresh_real_snapshot_result(db, symbols)
+
+    def _refresh_mock_snapshot_result(self, db: Session, symbols: list[str]) -> dict:
+        raw_snapshots = self.mock_client.get_demo_snapshots(symbols=symbols)
+        snapshots = self._persist_snapshots(db, raw_snapshots, allowed_symbols=set(symbols))
+        return {
+            "created_count": len(snapshots),
+            "skipped_count": 0,
+            "source": "fictional_demo_data",
+            "message": "Demo market snapshots refreshed from mock data.",
+            "snapshots": snapshots,
+        }
+
+    def _refresh_real_snapshot_result(self, db: Session, symbols: list[str]) -> dict:
+        fetch_result = self.market_data_client.get_market_snapshots(symbols)
+        if fetch_result.success and fetch_result.snapshots:
+            snapshots = self._persist_snapshots(db, fetch_result.snapshots, allowed_symbols=set(symbols))
+            return {
+                "created_count": len(snapshots),
+                "skipped_count": max(len(fetch_result.snapshots) - len(snapshots), 0),
+                "source": self.market_data_client.provider_name,
+                "message": fetch_result.message,
+                "snapshots": snapshots,
+            }
+        # Fetch failed, wasn't configured, or returned nothing usable --
+        # fall back to whatever is still within the freshness window
+        # (get_latest_universe_snapshots) rather than going completely
+        # blind for one bad cycle.
+        return {
+            "created_count": 0,
+            "skipped_count": 0,
+            "source": self.market_data_client.provider_name,
+            "message": fetch_result.message,
+            "snapshots": self.get_latest_snapshots(db, symbols),
+        }
+
+    def _persist_snapshots(
+        self,
+        db: Session,
+        raw_snapshots: list[dict],
+        allowed_symbols: set[str] | None = None,
+    ) -> list[MarketSnapshot]:
+        allowed_symbols = allowed_symbols or set(self.settings.active_universe)
         snapshots: list[MarketSnapshot] = []
 
         for item in raw_snapshots:
@@ -48,26 +106,6 @@ class MarketService:
             db.refresh(snapshot)
 
         return snapshots
-
-    def refresh_active_universe_snapshot_result(self, db: Session) -> dict:
-        if not self.settings.use_mock_data:
-            result = self.market_data_client.get_market_snapshots(self.settings.active_universe)
-            return {
-                "created_count": 0,
-                "skipped_count": 0,
-                "source": self.market_data_client.provider_name,
-                "message": result.message,
-                "snapshots": self.get_latest_universe_snapshots(db),
-            }
-
-        snapshots = self.refresh_active_universe_snapshots(db)
-        return {
-            "created_count": len(snapshots),
-            "skipped_count": 0,
-            "source": "fictional_demo_data",
-            "message": "Demo market snapshots refreshed from mock data.",
-            "snapshots": snapshots,
-        }
 
     def get_snapshot_status(self, db: Session) -> dict:
         latest_snapshots = self.get_latest_universe_snapshots(db)
@@ -105,9 +143,6 @@ class MarketService:
             if symbol not in allowed_symbols:
                 skipped_count += 1
                 continue
-            if item.sector.lower() != self.settings.allowed_sector.lower():
-                skipped_count += 1
-                continue
 
             snapshot = MarketSnapshot(
                 symbol=symbol,
@@ -129,9 +164,12 @@ class MarketService:
         return created, skipped_count
 
     def get_latest_universe_snapshots(self, db: Session) -> list[MarketSnapshot]:
+        return self.get_latest_snapshots(db, self.settings.active_universe)
+
+    def get_latest_snapshots(self, db: Session, symbols: list[str]) -> list[MarketSnapshot]:
         snapshots: list[MarketSnapshot] = []
         cutoff = datetime.utcnow() - timedelta(minutes=self.settings.market_snapshot_max_age_minutes)
-        for symbol in self.settings.active_universe:
+        for symbol in symbols:
             snapshot = (
                 db.query(MarketSnapshot)
                 .filter(MarketSnapshot.symbol == symbol)
