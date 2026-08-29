@@ -10,12 +10,28 @@ from app.models import (
     EvaluationWindow,
     MarketSnapshot,
 )
-from app.services.market_service import MarketService
+
+# Decisions the pre-filter skipped ("no candidate passed") are persisted with a
+# sentinel symbol and a zero price -- there is no position and no price thesis to
+# score in hindsight, so they are excluded from the evaluation backlog entirely.
+_NON_EVALUABLE_SYMBOLS = {"", "NONE"}
 
 
 class EvaluationService:
-    def __init__(self):
-        self.market_service = MarketService()
+    @staticmethod
+    def _is_evaluable(decision: AgentDecision) -> bool:
+        return (
+            (decision.symbol or "").strip().upper() not in _NON_EVALUABLE_SYMBOLS
+            and decision.current_price > 0
+        )
+
+    @staticmethod
+    def _evaluable_decision_filters() -> list:
+        """SQL predicates matching `_is_evaluable`, for backlog/coverage queries."""
+        return [
+            func.upper(func.trim(AgentDecision.symbol)).notin_(_NON_EVALUABLE_SYMBOLS),
+            AgentDecision.current_price > 0,
+        ]
 
     def evaluate_decision(
         self,
@@ -26,6 +42,11 @@ class EvaluationService:
         decision = db.get(AgentDecision, decision_id)
         if not decision:
             raise ValueError("Decision not found.")
+        if not self._is_evaluable(decision):
+            raise ValueError(
+                "Decision has no traded symbol or price to evaluate "
+                "(pre-filter skip)."
+            )
 
         evaluation_price = self._resolve_evaluation_price(db, decision)
         return_percent = self._calculate_return_percent(
@@ -64,6 +85,7 @@ class EvaluationService:
         decisions = (
             db.query(AgentDecision)
             .filter(AgentDecision.created_at <= cutoff)
+            .filter(*self._evaluable_decision_filters())
             .order_by(AgentDecision.created_at.desc())
             .all()
         )
@@ -83,7 +105,9 @@ class EvaluationService:
         return evaluations
 
     def get_status(self, db: Session) -> dict:
-        total_decisions = db.query(AgentDecision).count()
+        total_decisions = (
+            db.query(AgentDecision).filter(*self._evaluable_decision_filters()).count()
+        )
         total_evaluations = db.query(DecisionEvaluation).count()
         latest_evaluated_at = db.query(func.max(DecisionEvaluation.evaluated_at)).scalar()
         windows = []
@@ -92,6 +116,7 @@ class EvaluationService:
             eligible_count = (
                 db.query(AgentDecision)
                 .filter(AgentDecision.created_at <= cutoff)
+                .filter(*self._evaluable_decision_filters())
                 .count()
             )
             evaluated_count = (
@@ -99,6 +124,7 @@ class EvaluationService:
                 .join(AgentDecision, DecisionEvaluation.decision_id == AgentDecision.id)
                 .filter(DecisionEvaluation.evaluation_window == window)
                 .filter(AgentDecision.created_at <= cutoff)
+                .filter(*self._evaluable_decision_filters())
                 .distinct()
                 .count()
             )
@@ -162,6 +188,11 @@ class EvaluationService:
         }
 
     def _resolve_evaluation_price(self, db: Session, decision: AgentDecision) -> float:
+        # Read-only: use the most recent stored snapshot for this symbol, which
+        # the market agent refreshes every cycle during the trading day. This
+        # must never trigger a live universe refresh -- doing so once per
+        # backlogged decision stampeded the Toss quote API at each session open
+        # and starved the rest of the day's cycles of market data.
         latest_snapshot = (
             db.query(MarketSnapshot)
             .filter(MarketSnapshot.symbol == decision.symbol)
@@ -170,11 +201,6 @@ class EvaluationService:
         )
         if latest_snapshot:
             return latest_snapshot.price
-
-        snapshots = self.market_service.refresh_active_universe_snapshots(db)
-        for snapshot in snapshots:
-            if snapshot.symbol == decision.symbol:
-                return snapshot.price
 
         return decision.current_price
 
